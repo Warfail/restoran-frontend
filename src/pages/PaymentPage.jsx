@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Clock, QrCode, Landmark, DollarSign, Download, Check, X } from "lucide-react";
+import { ArrowLeft, Clock, QrCode, Landmark, DollarSign, Check } from "lucide-react";
 import { api } from "../services/api";
 
 export default function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { orderId, totalAmount = 45000, customerName = "Tintin", tableNumber = "07", items = [] } = location.state || {};
-  
+  const { orderId, totalAmount, customerName, tableNumber, items } = location.state || {};
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 59);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCashInstructionModal, setShowCashInstructionModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -33,67 +31,56 @@ export default function PaymentPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-const handlePayment = async () => {
-  if (!selectedMethod) {
-    alert("Pilih metode pembayaran terlebih dahulu!");
-    return;
-  }
-  
-  setLoading(true);
-  try {
-    const paymentData = {
-      orderId,
-      method: selectedMethod,
-      amount: totalAmount,
-      status: "success"
-    };
-    
-    if (selectedMethod === "cash") {
-      // HARUSNYA: Cuma tampilkan instruksi, JANGAN panggil API
-      setShowCashInstructionModal(true);
-    } else {
-      // QRIS/Transfer: panggil API
-      const response = await api.processCustomerPayment(paymentData);
-      if (response.success) {
-        setShowSuccessModal(true);
-      }
+  const handlePayment = async () => {
+    if (!selectedMethod) {
+      alert("Pilih metode pembayaran terlebih dahulu!");
+      return;
     }
-  } catch (error) {
-    console.error("Payment failed:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+    
+    setLoading(true);
+    try {
+      if (selectedMethod === "cash") {
+        // Tampilkan instruksi tunai
+        setShowCashInstructionModal(true);
+      } else {
+        // QRIS atau Transfer - panggil API
+        const paymentData = {
+          orderId: orderId,
+          method: selectedMethod,
+          amount: totalAmount,
+          status: "success"
+        };
+        
+        const response = await api.processCustomerPayment(paymentData);
+        console.log("Payment response:", response);
+        
+        if (response.success) {
+          // Navigasi ke Payment Success Page
+          navigate("/payment-success", {
+            state: {
+              orderId: orderId,
+              totalAmount: totalAmount,
+              customerName: customerName,
+              tableNumber: tableNumber,
+              paymentMethod: selectedMethod === "qris" ? "QRIS" : "Transfer Bank"
+            }
+          });
+        } else {
+          alert("Pembayaran gagal. Silakan coba lagi.");
+        }
+      }
+    } catch (error) {
+      console.error("Payment failed:", error);
+      alert("Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const closeCashModal = () => {
-  setShowCashInstructionModal(false);
-  // JANGAN panggil api.processPayment di sini!
-  // Langsung redirect ke order status dengan status pending
-  navigate("/order-status", { 
-    state: { 
-      orderId: orderId,
-      tableNumber: tableNumber,
-      totalAmount: totalAmount,
-      items: items,
-      customerName: customerName,
-      paymentMethod: "cash",
-      status: "pending"  // ← status tetap pending
-    } 
-  });
-};
-
-  const closeSuccessModal = () => {
-    setShowSuccessModal(false);
-    navigate("/order-status", { 
-      state: { 
-        orderId,
-        tableNumber,
-        totalAmount,
-        items,
-        customerName,
-        paymentMethod: selectedMethod
-      } 
-    });
+  const closeCashModal = () => {
+    setShowCashInstructionModal(false);
+    // Untuk tunai, langsung ke order status (pending)
+    navigate(`/order-status?orderId=${orderId}`);
   };
 
   return (
@@ -122,6 +109,10 @@ const closeCashModal = () => {
           <span className="text-gray-500 text-sm">Total Pembayaran</span>
           <span className="text-green-600 font-bold text-lg">Rp {totalAmount.toLocaleString()}</span>
         </div>
+        <div className="flex justify-between items-center mt-2">
+          <span className="text-gray-500 text-sm">Meja</span>
+          <span className="text-red-500 font-semibold text-sm">Meja {tableNumber}</span>
+        </div>
       </div>
 
       {/* Payment Methods */}
@@ -147,7 +138,6 @@ const closeCashModal = () => {
               <div className="w-7 h-5 bg-blue-900 rounded flex items-center justify-center">
                 <span className="text-white text-[8px] font-bold">BCA</span>
               </div>
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
             </div>
           </div>
         </div>
@@ -207,42 +197,21 @@ const closeCashModal = () => {
       {showCashInstructionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 flex flex-col items-center">
-            <div className="w-18 h-18 rounded-full bg-red-500 flex items-center justify-center mb-5">
-              <DollarSign className="w-9 h-9 text-white" />
+            <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-5">
+              <DollarSign className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">Instruksi Pembayaran Tunai</h3>
             <p className="text-gray-500 text-sm text-center mb-7">
               Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda 
               <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span> 
-              untuk menyelesaikan pembayaran tunai.
+              untuk menyelesaikan pembayaran tunai. Setelah kasir mengonfirmasi, pesanan akan langsung otomatis dimasak oleh dapur.
             </p>
             <button onClick={closeCashModal} className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3.5 rounded-xl transition mb-3">
               Saya Mengerti
             </button>
-            <button onClick={() => setShowCashInstructionModal(false)} className="text-gray-500 text-sm font-medium">Kembali</button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL SUKSES */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 flex flex-col items-center">
-            <div className="w-18 h-18 rounded-full bg-red-500 flex items-center justify-center shadow-lg mb-5">
-              <div className="w-11 h-11 rounded-full bg-green-100 flex items-center justify-center">
-                <Check className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-            <h3 className="text-gray-900 font-bold text-xl mb-1">Pembayaran Berhasil!</h3>
-            <p className="text-gray-500 text-sm text-center mb-5">Terima kasih, dana Anda telah kami terima.</p>
-            <div className="w-full bg-gray-50 rounded-xl p-4 mb-4">
-              <div className="flex justify-between py-2"><span className="text-gray-500 text-sm">Order ID</span><span className="text-gray-900 font-mono text-sm">{orderId}</span></div>
-              <div className="flex justify-between py-2"><span className="text-gray-500 text-sm">Metode</span><span className="text-gray-900 text-sm font-medium">{selectedMethod === "qris" ? "QRIS" : "Transfer Bank"}</span></div>
-              <div className="w-full h-px bg-gray-200 my-1"></div>
-              <div className="flex justify-between py-2"><span className="text-gray-500 text-sm">Total Bayar</span><span className="text-green-600 text-sm font-semibold">Rp {totalAmount.toLocaleString()}</span></div>
-            </div>
-            <p className="text-gray-500 text-xs text-center mb-5">Pesanan Anda telah diteruskan ke dapur.</p>
-            <button onClick={closeSuccessModal} className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-xl transition">OK</button>
+            <button onClick={() => setShowCashInstructionModal(false)} className="text-gray-500 text-sm font-medium">
+              Kembali
+            </button>
           </div>
         </div>
       )}

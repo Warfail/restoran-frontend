@@ -17,6 +17,7 @@ import CartPage from "./pages/CartPage";
 import PaymentPage from "./pages/PaymentPage";
 import OrderStatusPage from "./pages/OrderStatusPage";
 import InventoryPageNew from "./pages/InventoryPageNew";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 
 
 function PrivateRoute({ children }) {
@@ -46,6 +47,7 @@ function App() {
 <Route path="/menu" element={<CustomerMenuPage />} />
 <Route path="/payment" element={<PaymentPage />} />
 <Route path="/order-status" element={<OrderStatusPage />} />
+<Route path="/payment-success" element={<PaymentSuccessPage />} />
 {/* <Route path="/admin/inventory" element={<PrivateRoute><InventoryPageNew /></PrivateRoute>} /> */}
 
 

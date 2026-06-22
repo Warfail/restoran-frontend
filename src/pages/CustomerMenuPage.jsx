@@ -21,58 +21,61 @@ export default function CustomerMenuPage() {
   const [categories, setCategories] = useState(["Semua"]);
 
   // Fetch menu dari API
-useEffect(() => {
-  const fetchMenu = async () => {
-    try {
-      setLoading(true);
-      const menus = await api.getMenu();
-      console.log("Menus:", menus);
-      
-      if (Array.isArray(menus) && menus.length > 0) {
-        setMenuItems(menus);
-        const uniqueCats = ["Semua", ...new Set(menus.map(item => item.category))];
-        setCategories(uniqueCats);
-      } else {
-        console.warn("Menu data is empty or not an array");
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        setLoading(true);
+        const menus = await api.getMenu();
+        console.log("Menus:", menus);
+        
+        if (Array.isArray(menus) && menus.length > 0) {
+          setMenuItems(menus);
+          const uniqueCats = ["Semua", ...new Set(menus.map(item => item.category))];
+          setCategories(uniqueCats);
+        } else {
+          console.warn("Menu data is empty or not an array");
+          setMenuItems([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch menu:", error);
         setMenuItems([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch menu:", error);
-      setMenuItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  fetchMenu();
-}, []);
-  const addToCart = (item) => {
-    const existing = cart.find(cartItem => cartItem.id === item.id);
-    if (existing) {
-      setCart(cart.map(cartItem => 
-        cartItem.id === item.id 
-          ? { ...cartItem, quantity: cartItem.quantity + 1, subtotal: (cartItem.quantity + 1) * cartItem.price }
-          : cartItem
-      ));
-    } else {
-      setCart([...cart, { ...item, quantity: 1, subtotal: item.price }]);
-    }
-  };
+    };
+    
+    fetchMenu();
+  }, []);
 
-  const updateQuantity = (itemId, change) => {
-    const item = cart.find(i => i.id === itemId);
-    if (item) {
-      const newQuantity = Math.max(1, item.quantity + change);
-      setCart(cart.map(i => 
-        i.id === itemId 
-          ? { ...i, quantity: newQuantity, subtotal: newQuantity * i.price }
-          : i
-      ));
-    }
-  };
+const addToCart = (item) => {
+  const itemId = item._id || item.menuId || item.id;
+  const existing = cart.find(cartItem => (cartItem._id || cartItem.menuId || cartItem.id) === itemId);
+  
+  if (existing) {
+    setCart(cart.map(cartItem => 
+      (cartItem._id || cartItem.menuId || cartItem.id) === itemId
+        ? { ...cartItem, quantity: cartItem.quantity + 1, subtotal: (cartItem.quantity + 1) * cartItem.price }
+        : cartItem
+    ));
+  } else {
+    setCart([...cart, { ...item, quantity: 1, subtotal: item.price }]);
+  }
+};
+
+const updateQuantity = (itemId, change) => {
+  const item = cart.find(i => (i._id || i.menuId || i.id) === itemId);
+  if (item) {
+    const newQuantity = Math.max(1, item.quantity + change);
+    setCart(cart.map(i => 
+      (i._id || i.menuId || i.id) === itemId
+        ? { ...i, quantity: newQuantity, subtotal: newQuantity * i.price }
+        : i
+    ));
+  }
+};
 
   const removeFromCart = (itemId) => {
-    setCart(cart.filter(i => i.id !== itemId));
+    setCart(cart.filter(i => (i._id || i.menuId || i.id) !== itemId));
   };
 
   const totalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
@@ -82,92 +85,49 @@ const handleCheckout = async () => {
     alert("Keranjang kosong!");
     return;
   }
+
+  // Simpan cart ke localStorage
+  localStorage.setItem("cart", JSON.stringify(cart));
   
-  setLoading(true);
-  try {
-    const orderData = {
-      customerName: customerName,
-      tableNumber: parseInt(tableNumber),
-      orderType: orderType,
-      items: cart.map(item => ({
-        menuId: item.menuId,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        subtotal: item.subtotal
-      })),
-      totalAmount: totalAmount
-    };
-    
-    console.log("Sending order:", orderData);
-    const response = await api.createOrder(orderData);
-    console.log("Order response:", response);
-    
-    if (response.success) {
-      const savedOrder = response.data;
-      setOrderSummary({
-        ...orderData,
-        orderId: savedOrder.orderId,
-        createdAt: savedOrder.createdAt
-      });
-      setShowCart(false);
-      setShowSuccessModal(true);
-      setCart([]);
-    } else {
-      alert("Gagal membuat pesanan");
-    }
-  } catch (error) {
-    console.error("Checkout failed:", error);
-    alert("Gagal memproses pesanan. Silakan coba lagi.");
-  } finally {
-    setLoading(false);
-  }
-};
-const goToPayment = () => {
-  console.log("Order summary:", orderSummary); // Debug
-  navigate("/payment", { 
-    state: { 
-      orderId: orderSummary.orderId,  // Pastikan ini ada
-      totalAmount: orderSummary.totalAmount,
+  // Navigasi ke CartPage
+  navigate("/cart", {
+    state: {
       customerName: customerName,
       tableNumber: tableNumber,
-      orderType: orderType,
-      items: orderSummary.items
-    } 
+      orderType: orderType
+    }
   });
 };
 
-const filteredMenu = menuItems.filter(item => {
-  // Pastikan item dan item.name ada
-  if (!item || !item.name) return false;
-  
-  const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
-  const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-  return matchesCategory && matchesSearch && item.isAvailable !== false;
-});
+  const filteredMenu = menuItems.filter(item => {
+    if (!item || !item.name) return false;
+    const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch && item.isAvailable !== false;
+  });
 
-const groupedMenu = filteredMenu.reduce((groups, item) => {
-  if (!item || !item.category) return groups;
-  if (!groups[item.category]) groups[item.category] = [];
-  groups[item.category].push(item);
-  return groups;
-}, {});
+  const groupedMenu = filteredMenu.reduce((groups, item) => {
+    if (!item || !item.category) return groups;
+    if (!groups[item.category]) groups[item.category] = [];
+    groups[item.category].push(item);
+    return groups;
+  }, {});
 
-if (loading) {
-  return (
-    <div className="min-h-screen bg-[#FFF0F0] flex items-center justify-center">
-      <div className="text-center">Loading menu...</div>
-    </div>
-  );
-}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FFF0F0] flex items-center justify-center">
+        <div className="text-center">Loading menu...</div>
+      </div>
+    );
+  }
 
-if (menuItems.length === 0 && !loading) {
-  return (
-    <div className="min-h-screen bg-[#FFF0F0] flex items-center justify-center">
-      <div className="text-center text-gray-500">Menu tidak tersedia</div>
-    </div>
-  );
-}
+  if (menuItems.length === 0 && !loading) {
+    return (
+      <div className="min-h-screen bg-[#FFF0F0] flex items-center justify-center">
+        <div className="text-center text-gray-500">Menu tidak tersedia</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FFF0F0] pb-24">
@@ -214,9 +174,9 @@ if (menuItems.length === 0 && !loading) {
 
         {/* Category Chips */}
         <div className="flex gap-2 px-4 pb-3.5 overflow-x-auto">
-          {categories.map((cat) => (
+          {categories.map((cat, index) => (
             <button
-              key={cat}
+              key={index}
               onClick={() => setSelectedCategory(cat)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${
                 selectedCategory === cat
@@ -237,7 +197,7 @@ if (menuItems.length === 0 && !loading) {
             <h2 className="text-gray-900 font-bold text-xl mb-4">{category}</h2>
             <div className="space-y-0">
               {groupedMenu[category].map((item) => (
-                <div key={item.id} className="flex items-center gap-3.5 py-4 border-b border-gray-100">
+                <div key={item._id || item.menuId || item.id} className="flex items-center gap-3.5 py-4 border-b border-gray-100">
                   <img src={item.image} alt={item.name} className="w-20 h-16 rounded-xl object-cover flex-shrink-0" />
                   <div className="flex-1">
                     <h3 className="text-gray-900 font-semibold text-sm">{item.name}</h3>
@@ -272,17 +232,17 @@ if (menuItems.length === 0 && !loading) {
               ) : (
                 <div className="space-y-3">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+  <div key={item._id || item.menuId || item.id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                       <img src={item.image} alt={item.name} className="w-14 h-12 rounded-lg object-cover" />
                       <div className="flex-1">
                         <div className="font-medium text-gray-800 text-sm">{item.name}</div>
                         <div className="text-red-600 font-semibold text-sm">Rp {item.price.toLocaleString()}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 rounded-full bg-gray-200"><Minus className="w-3.5 h-3.5 text-gray-700" /></button>
+                        <button onClick={() => updateQuantity(item._id || item.menuId || item.id, -1)} className="w-7 h-7 rounded-full bg-gray-200"><Minus className="w-3.5 h-3.5 text-gray-700" /></button>
                         <span className="w-6 text-center font-medium">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 rounded-full bg-red-500"><Plus className="w-3.5 h-3.5 text-white" /></button>
-                        <button onClick={() => removeFromCart(item.id)} className="w-7 h-7 rounded-full bg-gray-200 ml-1"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
+                        <button onClick={() => updateQuantity(item._id || item.menuId || item.id, 1)} className="w-7 h-7 rounded-full bg-red-500"><Plus className="w-3.5 h-3.5 text-white" /></button>
+                        <button onClick={() => removeFromCart(item._id || item.menuId || item.id)} className="w-7 h-7 rounded-full bg-gray-200 ml-1"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
                       </div>
                     </div>
                   ))}
@@ -303,52 +263,6 @@ if (menuItems.length === 0 && !loading) {
                 </button>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* SUCCESS MODAL */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              
-              <h3 className="text-gray-900 font-bold text-xl mb-2">Pesanan Berhasil!</h3>
-              
-              <div className="bg-gray-50 rounded-xl p-4 w-full mb-4 text-left">
-                <p className="text-gray-800 font-semibold mb-1">{orderSummary.customerName}</p>
-                <p className="text-gray-500 text-sm mb-2">{orderSummary.orderType} - Meja {orderSummary.tableNumber}</p>
-                <div className="border-t border-gray-200 my-2"></div>
-                <div className="max-h-32 overflow-y-auto mb-2">
-                  {orderSummary.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-sm py-1">
-                      <span className="text-gray-600">{item.name} x{item.quantity}</span>
-                      <span className="text-gray-800">Rp {item.subtotal.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-gray-200 mt-2 pt-2">
-                  <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span className="text-green-600">Rp {orderSummary.totalAmount?.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <p className="text-gray-500 text-sm mb-4">
-                Silakan lanjutkan ke pembayaran.
-              </p>
-              
-              <button
-                onClick={goToPayment}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition"
-              >
-                Lanjut ke Pembayaran
-              </button>
-            </div>
           </div>
         </div>
       )}

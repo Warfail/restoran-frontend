@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Check, UtensilsCrossed, Flame, ChefHat, Info, RefreshCw, Clock, Wallet } from "lucide-react";
 import { api } from "../services/api";
 
 export default function OrderStatusPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { orderId, tableNumber, totalAmount, totalItems, customerName } = location.state || {};
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("orderId"); // ← AMBIL DARI URL
   
   const [currentStatus, setCurrentStatus] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,8 @@ export default function OrderStatusPage() {
     "paid": 1,
     "confirmed": 2,
     "cooking": 3,
-    "done": 4
+    "done": 4,
+    "completed": 4
   };
 
   // Update ref ketika currentStatus berubah
@@ -37,9 +38,13 @@ export default function OrderStatusPage() {
 
   // Fetch order detail dari API
   const fetchOrderDetail = async () => {
-    if (!orderId) return;
+    if (!orderId) {
+      console.log("No orderId provided");
+      return;
+    }
     
     try {
+      console.log("Fetching order detail for:", orderId);
       const response = await api.getOrderStatus(orderId);
       console.log("Order detail response:", response);
       
@@ -51,6 +56,8 @@ export default function OrderStatusPage() {
         if (newStatus !== currentStatusRef.current) {
           setCurrentStatus(newStatus);
         }
+      } else {
+        console.warn("Order not found or API error:", response);
       }
     } catch (error) {
       console.error("Failed to fetch order detail:", error);
@@ -65,7 +72,10 @@ export default function OrderStatusPage() {
 
   // Auto refresh status setiap 5 detik
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId) {
+      console.log("No orderId, skipping fetch");
+      return;
+    }
     
     // Fetch pertama kali
     fetchOrderDetail();
@@ -148,7 +158,7 @@ export default function OrderStatusPage() {
       <div className="bg-white px-4 py-3.5 flex justify-between items-center">
         <h1 className="text-green-600 font-semibold text-base">Status Pesanan</h1>
         <div className="bg-red-500 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
-          Meja {tableNumber || orderData?.tableNumber || "-"}
+          Meja {orderData?.tableNumber || "-"}
         </div>
       </div>
       
@@ -159,7 +169,7 @@ export default function OrderStatusPage() {
         <div className="flex flex-col items-center pt-6 pb-2">
           <h2 className="text-gray-700 font-semibold text-lg mb-2">Status Pesanan Anda</h2>
           <div className="bg-red-500 text-white text-xs font-semibold px-5 py-1 rounded-full mb-6">
-            Meja {tableNumber || orderData?.tableNumber || "-"}
+            Meja {orderData?.tableNumber || "-"}
           </div>
           
           {/* Timeline */}
@@ -201,10 +211,10 @@ export default function OrderStatusPage() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-900 font-bold text-sm">
-            Total Pesanan: {totalItems || orderData?.items?.length || 0} Item
+            Total Pesanan: {orderData?.items?.length || 0} Item
           </span>
           <span className="text-amber-500 font-bold text-sm">
-            Rp {(totalAmount || orderData?.totalAmount || 0).toLocaleString()}
+            Rp {(orderData?.totalAmount || 0).toLocaleString()}
           </span>
         </div>
       </div>

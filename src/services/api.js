@@ -24,7 +24,7 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 };
 
 export const api = {
-  // Auth
+  // ========== AUTH ==========
   login: async (username, password) => {
     const response = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
@@ -34,22 +34,7 @@ export const api = {
     return response.json();
   },
 
-  // Admin - Dashboard Stats (opsional)
-getDashboardStats: async () => {
-  const orders = await api.getOrders();
-  const menus = await api.getMenu();
-  const ordersData = orders.data || orders;
-  const menusData = menus.data || menus;
-  
-  return {
-    totalSales: Array.isArray(ordersData) ? ordersData.reduce((sum, o) => sum + (o.totalAmount || 0), 0) : 0,
-    totalOrders: Array.isArray(ordersData) ? ordersData.length : 0,
-    totalMenus: Array.isArray(menusData) ? menusData.length : 0,
-    totalUsers: 0 // nanti dari API users
-  };
-},
-
-  // Menu (Customer) - LANGSUNG TANPA AUTH
+  // ========== MENU (Public) ==========
   getMenu: async () => {
     const res = await fetch(`${API_BASE}/menu`);
     const data = await res.json();
@@ -63,22 +48,34 @@ getDashboardStats: async () => {
     }
     return [];
   },
-  getMenuByCategory: (category) => fetchWithAuth(`/menu?category=${category}`),
 
-  // Order (Customer)
-  createOrder: (orderData) => fetchWithAuth("/orders", {
-    method: "POST",
-    body: JSON.stringify(orderData),
-  }),
+  // ========== ORDERS (Customer) ==========
+  createOrder: async (orderData) => {
+    const res = await fetch(`${API_BASE}/orders/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(orderData),
+    });
+    return res.json();
+  },
 
-getOrderStatus: async (orderId) => {
-  const res = await fetch(`${API_BASE}/orders/${orderId}`);
-  const data = await res.json();
-  console.log("getOrderStatus response:", data);
-  return data;
-},
+  getOrderStatus: async (orderId) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}`);
+    const data = await res.json();
+    console.log("getOrderStatus response:", data);
+    return data;
+  },
 
-  // Orders untuk Kasir
+  processCustomerPayment: async (paymentData) => {
+    const res = await fetch(`${API_BASE}/orders/payment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(paymentData),
+    });
+    return res.json();
+  },
+
+  // ========== CASHIER ==========
   getOrders: async () => {
     const res = await fetch(`${API_BASE}/cashier/orders`);
     return res.json();
@@ -93,7 +90,6 @@ getOrderStatus: async (orderId) => {
     return res.json();
   },
 
-  // Payment untuk Kasir (Tunai)
   processCashPayment: async (orderId, amountPaid) => {
     const res = await fetch(`${API_BASE}/cashier/payment?order_id=${orderId}&amount_paid=${amountPaid}`, {
       method: "POST",
@@ -101,54 +97,59 @@ getOrderStatus: async (orderId) => {
     return res.json();
   },
 
-  // Payment untuk Customer (QRIS/Transfer)
-processCustomerPayment: async (paymentData) => {
-  const res = await fetch(`${API_BASE}/payments`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(paymentData),
-  });
-  return res.json();
-},
+  // ========== KITCHEN ==========
+  getKitchenOrders: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/kitchen/orders`, {
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return res.json();
+  },
 
-  // Kitchen
- // Kitchen
-getKitchenOrders: async () => {
-  const res = await fetch(`${API_BASE}/kitchen/orders`);
-  return res.json();
-},
+  updateKitchenStatus: async (orderId, status) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/kitchen/orders/${orderId}/status`, {
+      method: "PUT",
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status }),
+    });
+    return res.json();
+  },
 
-updateKitchenStatus: async (orderId, status) => {
-  const res = await fetch(`${API_BASE}/kitchen/orders/${orderId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
-  });
-  return res.json();
-},
+  getKitchenOrderCount: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/kitchen/orders/count`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    return res.json();
+  },
 
-  // Admin - Menu Management
-  // Admin - Menu Management
-createMenu: async (menuData) => {
-  console.log("API received:", menuData);  // ← Tambah ini
-  console.log("Price type in API:", typeof menuData.price);  // ← Tambah ini
-  console.log("Stock type in API:", typeof menuData.stock);  // ← Tambah ini
-  const res = await fetch(`${API_BASE}/menu/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(menuData),
-  });
-  return res.json();
-},
+  // ========== ADMIN - MENU ==========
+  createMenu: async (menuData) => {
+    console.log("API received:", menuData);
+    const res = await fetch(`${API_BASE}/menu/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(menuData),
+    });
+    return res.json();
+  },
   
-updateMenu: async (menuId, menuData) => {
-  const res = await fetch(`${API_BASE}/menu/${menuId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(menuData),
-  });
-  return res.json();
-},
+  updateMenu: async (menuId, menuData) => {
+    const res = await fetch(`${API_BASE}/menu/${menuId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(menuData),
+    });
+    return res.json();
+  },
+
   deleteMenu: async (menuId) => {
     const res = await fetch(`${API_BASE}/menu/${menuId}`, {
       method: "DELETE",
@@ -156,62 +157,77 @@ updateMenu: async (menuId, menuData) => {
     return res.json();
   },
 
-  // Admin - Inventory
-// Inventory endpoints
-getInventory: async () => {
-  const res = await fetch(`${API_BASE}/inventory/`, {
-    headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-  });
-  return res.json();
-},
+  // ========== ADMIN - INVENTORY ==========
+  getInventory: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/inventory/`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    return res.json();
+  },
 
-updateStock: async (itemId, newStock) => {
-  const res = await fetch(`${API_BASE}/inventory/${itemId}`, {
-    method: "PUT",
-    headers: { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${localStorage.getItem("token")}`
-    },
-    body: JSON.stringify({ stock: newStock }),
-  });
-  return res.json();
-},
+  updateStock: async (itemId, newStock) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/inventory/${itemId}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ stock: newStock }),
+    });
+    return res.json();
+  },
 
-  // Admin - Users
-// Users endpoints
-getUsers: async () => {
-  const token = localStorage.getItem("token");
-  const res = await fetch(`${API_BASE}/users/`, {
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-  return res.json();
-},
+  // ========== ADMIN - USERS ==========
+  getUsers: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/users/`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    return res.json();
+  },
 
-updateUser: async (userId, userData) => {
-  const token = localStorage.getItem("token");
-  const res = await fetch(`${API_BASE}/users/${userId}`, {
-    method: "PUT",
-    headers: { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify(userData),
-  });
-  return res.json();
-},
+  updateUser: async (userId, userData) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/users/${userId}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(userData),
+    });
+    return res.json();
+  },
 
-deleteUser: async (userId) => {
-  const token = localStorage.getItem("token");
-  const res = await fetch(`${API_BASE}/users/${userId}`, {
-    method: "DELETE",
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-  return res.json();
-},
+  deleteUser: async (userId) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/users/${userId}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    return res.json();
+  },
 
-  // Admin - Reports
+  // ========== ADMIN - REPORTS ==========
   getSalesReport: (params) => {
     const query = new URLSearchParams(params).toString();
     return fetchWithAuth(`/reports/sales${query ? `?${query}` : ""}`);
+  },
+
+  // ========== DASHBOARD STATS ==========
+  getDashboardStats: async () => {
+    const orders = await api.getOrders();
+    const menus = await api.getMenu();
+    const ordersData = orders.data || orders;
+    const menusData = menus.data || menus;
+    
+    return {
+      totalSales: Array.isArray(ordersData) ? ordersData.reduce((sum, o) => sum + (o.totalAmount || 0), 0) : 0,
+      totalOrders: Array.isArray(ordersData) ? ordersData.length : 0,
+      totalMenus: Array.isArray(menusData) ? menusData.length : 0,
+      totalUsers: 0
+    };
   },
 };
