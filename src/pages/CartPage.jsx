@@ -77,7 +77,8 @@ export default function CartPage() {
           name: item.name,
           quantity: item.quantity,
           price: item.price,
-          subtotal: item.price * item.quantity
+          subtotal: item.price * item.quantity,
+           category: item.category || "Makanan"
         })),
         totalAmount: total,
         note: noteInput

@@ -61,10 +61,14 @@ const addToCart = (item) => {
         : cartItem
     ));
   } else {
-    setCart([...cart, { ...item, quantity: 1, subtotal: item.price }]);
+    setCart([...cart, { 
+      ...item, 
+      quantity: 1, 
+      subtotal: item.price,
+      category: item.category || "Makanan" // ← TAMBAHKAN INI
+    }]);
   }
 };
-
 const updateQuantity = (itemId, change) => {
   const item = cart.find(i => (i._id || i.menuId || i.id) === itemId);
   if (item) {
