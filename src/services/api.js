@@ -39,19 +39,26 @@ export const api = {
   },
 
   // ========== MENU (Public) ==========
-  getMenu: async () => {
-    const res = await fetch(`${API_BASE}/menu`);
-    const data = await res.json();
-    console.log("Raw response:", data);
-    
-    if (data && data.success && Array.isArray(data.data)) {
-      return data.data;
-    }
-    if (Array.isArray(data)) {
-      return data;
-    }
-    return [];
-  },
+getMenu: async () => {
+  const res = await fetch(`${API_BASE}/menu/`);
+  const data = await res.json();
+  console.log("Raw response:", data);
+  
+  // 🔥 PASTIKAN FORMAT RESPONSE
+  if (data && data.success && Array.isArray(data.data)) {
+    console.log("✅ Menu data found:", data.data.length);
+    return data.data;
+  }
+  
+  // Fallback kalau response langsung array
+  if (Array.isArray(data)) {
+    console.log("✅ Menu data (array):", data.length);
+    return data;
+  }
+  
+  console.warn("❌ Menu data is empty or not an array");
+  return [];
+},
 
   // ========== ORDERS (Customer) ==========
   createOrder: async (orderData) => {
