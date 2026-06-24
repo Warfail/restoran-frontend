@@ -23,37 +23,40 @@ export default function KitchenDashboard() {
   const [counters, setCounters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchOrders = async () => {
-    try {
-      const response = await api.getKitchenOrders();
-      const ordersData = response?.data || response || [];
-      const ordersArray = Array.isArray(ordersData) ? ordersData : [];
-      
-      // Pisahkan makanan dan minuman
-      const food = ordersArray.filter(o => 
-        o.items?.some(item => 
-          item.category === "Makanan" || 
-          item.category === "Nasi & Mie" || 
-          item.category === "Menu Utama" ||
-          item.category === "Singkong" ||
-          item.category === "Tradisional" ||
-          item.category === "Pisang" ||
-          item.category === "Gorengan"
-        )
-      );
-      const drinks = ordersArray.filter(o => 
-        o.items?.some(item => item.category === "Minuman")
-      );
-      
-      // Filter berdasarkan status
-      setFoodOrders(food.filter(o => o.status === "paid" || o.status === "pending"));
-      setDrinkOrders(drinks.filter(o => o.status === "paid" || o.status === "pending"));
-      setFoodCooking(food.filter(o => o.status === "cooking"));
-      setDrinkCooking(drinks.filter(o => o.status === "cooking"));
-    } catch (error) {
-      console.error("Failed to fetch orders:", error);
-    }
-  };
+const fetchOrders = async () => {
+  try {
+    const response = await api.getKitchenOrders();
+    const ordersData = response?.data || response || [];
+    const ordersArray = Array.isArray(ordersData) ? ordersData : [];
+    
+    // 🔥 FILTER BERDASARKAN CATEGORY DARI ITEMS
+    const food = ordersArray.filter(o => 
+      o.items?.some(item => 
+        item.category === "Makanan" || 
+        item.category === "Singkong" ||
+        item.category === "Nasi & Mie" ||
+        item.category === "Tradisional" ||
+        item.category === "Pisang" ||
+        item.category === "Gorengan" ||
+        item.category === "Menu Utama" ||
+        item.category === "Snack"
+      )
+    );
+    
+    const drinks = ordersArray.filter(o => 
+      o.items?.some(item => 
+        item.category === "Minuman"
+      )
+    );
+    
+    setFoodOrders(food.filter(o => o.status === "paid" || o.status === "pending"));
+    setDrinkOrders(drinks.filter(o => o.status === "paid" || o.status === "pending"));
+    setFoodCooking(food.filter(o => o.status === "cooking"));
+    setDrinkCooking(drinks.filter(o => o.status === "cooking"));
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+  }
+};
 
   const fetchInventory = async () => {
     try {
