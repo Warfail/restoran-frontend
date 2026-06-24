@@ -31,26 +31,28 @@ const fetchOrders = async () => {
     
     console.log("📦 All orders:", ordersArray);
     
-    // 🔥 PISAHKAN MAKANAN & MINUMAN
+    // 🔥 PISAHKAN BERDASARKAN MENU ID
     const makanan = [];
     const minuman = [];
     
     ordersArray.forEach(order => {
-      // Cek apakah order punya item makanan
-      const hasMakanan = order.items?.some(item => 
-        item.category && item.category !== "Minuman"
-      );
-      // Cek apakah order punya item minuman
-      const hasMinuman = order.items?.some(item => 
-        item.category === "Minuman"
-      );
+      // Cek apakah order punya item makanan (menuId dimulai M atau S)
+      const hasMakanan = order.items?.some(item => {
+        const menuId = item.menuId || "";
+        return menuId.startsWith("M") || menuId.startsWith("S");
+      });
+      // Cek apakah order punya item minuman (menuId dimulai D)
+      const hasMinuman = order.items?.some(item => {
+        const menuId = item.menuId || "";
+        return menuId.startsWith("D");
+      });
       
       if (hasMakanan) makanan.push(order);
       if (hasMinuman) minuman.push(order);
     });
     
-    console.log("🍽️ Makanan:", makanan);
-    console.log("🥤 Minuman:", minuman);
+    console.log("🍽️ Makanan (M/S):", makanan);
+    console.log("🥤 Minuman (D):", minuman);
     
     setFoodOrders(makanan);
     setDrinkOrders(minuman);
