@@ -23,24 +23,43 @@ export default function KitchenDashboard() {
   const [counters, setCounters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchOrders = async () => {
-    try {
-      const response = await api.getKitchenOrders();
-      const ordersData = response?.data || response || [];
-      const ordersArray = Array.isArray(ordersData) ? ordersData : [];
+const fetchOrders = async () => {
+  try {
+    const response = await api.getKitchenOrders();
+    const ordersData = response?.data || response || [];
+    const ordersArray = Array.isArray(ordersData) ? ordersData : [];
+    
+    console.log("📦 All orders:", ordersArray);
+    
+    // 🔥 PISAHKAN MAKANAN & MINUMAN
+    const makanan = [];
+    const minuman = [];
+    
+    ordersArray.forEach(order => {
+      // Cek apakah order punya item makanan
+      const hasMakanan = order.items?.some(item => 
+        item.category && item.category !== "Minuman"
+      );
+      // Cek apakah order punya item minuman
+      const hasMinuman = order.items?.some(item => 
+        item.category === "Minuman"
+      );
       
-      // Tampilkan SEMUA antrean dulu (biar keluar)
-      const paidOrders = ordersArray.filter(o => o.status === "paid" || o.status === "pending");
-      const cookingOrders = ordersArray.filter(o => o.status === "cooking");
-      
-      setFoodOrders(paidOrders);
-      setDrinkOrders([]);
-      setFoodCooking(cookingOrders);
-      setDrinkCooking([]);
-    } catch (error) {
-      console.error("Failed to fetch orders:", error);
-    }
-  };
+      if (hasMakanan) makanan.push(order);
+      if (hasMinuman) minuman.push(order);
+    });
+    
+    console.log("🍽️ Makanan:", makanan);
+    console.log("🥤 Minuman:", minuman);
+    
+    setFoodOrders(makanan);
+    setDrinkOrders(minuman);
+    setFoodCooking([]);
+    setDrinkCooking([]);
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+  }
+};
 
   const fetchInventory = async () => {
     try {
