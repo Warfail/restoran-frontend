@@ -19,6 +19,7 @@ import PaymentPage from "./pages/PaymentPage";
 import OrderStatusPage from "./pages/OrderStatusPage";
 import InventoryPageNew from "./pages/InventoryPageNew";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import CustomerLoginPage from "./pages/CustomerLoginPage";
 
 
 function PrivateRoute({ children }) {
@@ -51,6 +52,7 @@ function App() {
 <Route path="/payment" element={<PaymentPage />} />
 <Route path="/order-status" element={<OrderStatusPage />} />
 <Route path="/payment-success" element={<PaymentSuccessPage />} />
+<Route path="/customer/login" element={<CustomerLoginPage />} />
 {/* <Route path="/admin/inventory" element={<PrivateRoute><InventoryPageNew /></PrivateRoute>} /> */}
 
 
