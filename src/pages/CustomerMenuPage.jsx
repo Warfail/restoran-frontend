@@ -28,6 +28,8 @@ export default function CustomerMenuPage() {
         setLoading(true);
         const menus = await api.getMenu();
         console.log("Menus:", menus);
+        console.log("Raw menu data:", menus);
+        
         
         if (Array.isArray(menus) && menus.length > 0) {
           setMenuItems(menus);

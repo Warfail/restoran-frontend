@@ -53,6 +53,7 @@ function App() {
 <Route path="/order-status" element={<OrderStatusPage />} />
 <Route path="/payment-success" element={<PaymentSuccessPage />} />
 <Route path="/customer/login" element={<CustomerLoginPage />} />
+<Route path="/customer-login" element={<CustomerLoginPage />} />
 {/* <Route path="/admin/inventory" element={<PrivateRoute><InventoryPageNew /></PrivateRoute>} /> */}
 
 
