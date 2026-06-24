@@ -1,4 +1,5 @@
-const API_BASE = "http://127.0.0.1:8000";
+// const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -22,6 +23,9 @@ const fetchWithAuth = async (endpoint, options = {}) => {
 
   return response.json();
 };
+
+
+
 
 export const api = {
   // ========== AUTH ==========
@@ -75,14 +79,26 @@ export const api = {
     return res.json();
   },
 
-  setPaymentMethod: async (orderId, method) => {
-    const res = await fetch(`${API_BASE}/orders/${orderId}/payment-method`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ method }),
-    });
-    return res.json();
-  },
+// ========== MIDTRANS ==========
+createMidtransTransaction: async (data) => {
+  const res = await fetch(`${API_BASE}/payment/create-transaction`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+},
+
+setPaymentMethod: async (orderId, method) => {
+  const res = await fetch(`${API_BASE}/payment/set-method`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, method }),
+  });
+  return res.json();
+},
+
+  
 
   // ========== CASHIER ==========
   getOrders: async () => {
