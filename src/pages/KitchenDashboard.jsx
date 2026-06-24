@@ -29,26 +29,39 @@ const fetchOrders = async () => {
     const ordersData = response?.data || response || [];
     const ordersArray = Array.isArray(ordersData) ? ordersData : [];
     
-    // 🔥 FILTER BERDASARKAN CATEGORY DARI ITEMS
-    const food = ordersArray.filter(o => 
-      o.items?.some(item => 
-        item.category === "Makanan" || 
-        item.category === "Singkong" ||
-        item.category === "Nasi & Mie" ||
-        item.category === "Tradisional" ||
-        item.category === "Pisang" ||
-        item.category === "Gorengan" ||
-        item.category === "Menu Utama" ||
-        item.category === "Snack"
-      )
-    );
+    console.log("📦 All orders:", ordersArray);
     
-    const drinks = ordersArray.filter(o => 
-      o.items?.some(item => 
-        item.category === "Minuman"
-      )
-    );
+    // 🔥 PISAHKAN BERDASARKAN MENU ID
+    const makanan = [];
+    const minuman = [];
     
+    ordersArray.forEach(order => {
+      // Cek apakah order punya item makanan (menuId M atau S)
+      const hasMakanan = order.items?.some(item => {
+        const menuId = item.menuId || "";
+        return menuId.startsWith("M") || menuId.startsWith("S");
+      });
+      // Cek apakah order punya item minuman (menuId D)
+      const hasMinuman = order.items?.some(item => {
+        const menuId = item.menuId || "";
+        return menuId.startsWith("D");
+      });
+      
+      if (hasMakanan) makanan.push(order);
+      if (hasMinuman) minuman.push(order);
+    });
+    
+    console.log("🍽️ Makanan (M/S):", makanan);
+    console.log("🥤 Minuman (D):", minuman);
+    
+    setFoodOrders(makanan.filter(o => o.status === "paid" || o.status === "pending"));
+    setDrinkOrders(minuman.filter(o => o.status === "paid" || o.status === "pending"));
+    setFoodCooking(makanan.filter(o => o.status === "cooking"));
+    setDrinkCooking(minuman.filter(o => o.status === "cooking"));
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+  }
+};    
     setFoodOrders(food.filter(o => o.status === "paid" || o.status === "pending"));
     setDrinkOrders(drinks.filter(o => o.status === "paid" || o.status === "pending"));
     setFoodCooking(food.filter(o => o.status === "cooking"));
