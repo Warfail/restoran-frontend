@@ -156,7 +156,7 @@ const handleCheckout = async () => {
           <div className="absolute inset-0 opacity-[0.15] mix-blend-multiply rounded-b-3xl" style={{ backgroundImage: 'radial-gradient(#ef4444 2px, transparent 2px)', backgroundSize: '16px 16px' }}></div>
           <div className="flex items-center gap-3 relative z-10">
             <div className="w-12 h-12 rounded-full border-2 border-red-600 flex items-center justify-center bg-white overflow-hidden shadow-sm hover:scale-105 transition-transform">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+              <img src="/logo.PNG" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="text-red-700 font-extrabold text-lg tracking-tight drop-shadow-sm">Singkong Keju</span>

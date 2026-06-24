@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Clock, QrCode, Landmark, DollarSign, Check } from "lucide-react";
+import { ArrowLeft, Clock, QrCode, Landmark, DollarSign } from "lucide-react";
 import { api } from "../services/api";
 
 export default function PaymentPage() {
@@ -12,7 +12,9 @@ export default function PaymentPage() {
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 59);
   const [showCashInstructionModal, setShowCashInstructionModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [snapLoaded, setSnapLoaded] = useState(false);
 
+  // Timer countdown
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -26,62 +28,93 @@ export default function PaymentPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Load Midtrans Snap script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
+    script.setAttribute("data-client-key", import.meta.env.VITE_MIDTRANS_CLIENT_KEY || "SB-Mid-client-xxx");
+    script.onload = () => setSnapLoaded(true);
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handlePayment = async () => {
-    if (!selectedMethod) {
-      toast.error("Pilih metode pembayaran terlebih dahulu!");
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      if (selectedMethod === "cash" || selectedMethod === "debit") {
-        await api.setPaymentMethod(orderId, selectedMethod);
-        // Tampilkan instruksi
-        setShowCashInstructionModal(true);
-      } else {
-        // QRIS atau Transfer - panggil API
-        const paymentData = {
-          orderId: orderId,
-          method: selectedMethod,
-          amount: totalAmount,
-          status: "success"
-        };
-        
-        const response = await api.processCustomerPayment(paymentData);
-        console.log("Payment response:", response);
-        
-        if (response.success) {
-          // Navigasi ke Payment Success Page
-          navigate("/payment-success", {
-            state: {
-              orderId: orderId,
-              totalAmount: totalAmount,
-              customerName: customerName,
-              tableNumber: tableNumber,
-              paymentMethod: selectedMethod === "qris" ? "QRIS" : "Transfer Bank"
-            }
-          });
-        } else {
-          toast.error("Pembayaran gagal. Silakan coba lagi.");
+const handlePayment = async () => {
+  if (!selectedMethod) {
+    toast.error("Pilih metode pembayaran terlebih dahulu!");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    if (selectedMethod === "cash" || selectedMethod === "debit") {
+      await api.setPaymentMethod(orderId, selectedMethod);
+      setShowCashInstructionModal(true);
+    } else {
+      const response = await api.createMidtransTransaction({
+        orderId: orderId,
+        totalAmount: totalAmount,
+        customerName: customerName,
+        customerEmail: "customer@example.com",
+        items: items || [],
+      });
+
+      console.log("Midtrans response:", response);
+
+      if (response.success && response.token) {
+        if (!snapLoaded || !window.snap) {
+          toast.error("Payment gateway belum siap. Silakan refresh halaman.");
+          setLoading(false);
+          return;
         }
+
+        window.snap.pay(response.token, {
+          onSuccess: function (result) {
+            console.log("Payment success:", result);
+            navigate("/payment-success", {
+              state: {
+                orderId: orderId,
+                totalAmount: totalAmount,
+                customerName: customerName,
+                tableNumber: tableNumber,
+                paymentMethod: selectedMethod === "qris" ? "QRIS" : "Transfer Bank"
+              }
+            });
+          },
+          onPending: function (result) {
+            console.log("Payment pending:", result);
+            navigate(`/order-status?orderId=${orderId}`);
+          },
+          onError: function (result) {
+            console.error("Payment error:", result);
+            toast.error("Pembayaran gagal.");
+          },
+          onClose: function () {
+            console.log("Payment popup closed");
+          },
+        });
+      } else {
+        toast.error("Gagal membuat transaksi pembayaran.");
       }
-    } catch (error) {
-      console.error("Payment failed:", error);
-      toast.error("Terjadi kesalahan. Silakan coba lagi.");
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error("Payment failed:", error);
+    toast.error("Terjadi kesalahan. Silakan coba lagi.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const closeCashModal = () => {
     setShowCashInstructionModal(false);
-    // Untuk tunai, langsung ke order status (pending)
     navigate(`/order-status?orderId=${orderId}`);
   };
 
@@ -109,7 +142,7 @@ export default function PaymentPage() {
         </div>
         <div className="flex justify-between items-center mt-2">
           <span className="text-gray-500 text-sm">Total Pembayaran</span>
-          <span className="text-green-600 font-bold text-lg">Rp {totalAmount.toLocaleString()}</span>
+          <span className="text-green-600 font-bold text-lg">Rp {totalAmount?.toLocaleString() || 0}</span>
         </div>
         <div className="flex justify-between items-center mt-2">
           <span className="text-gray-500 text-sm">Meja</span>
@@ -138,7 +171,7 @@ export default function PaymentPage() {
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-7 h-5 bg-blue-900 rounded flex items-center justify-center">
-                <span className="text-white text-[8px] font-bold">BCA</span>
+                <span className="text-white text-[8px] font-bold">Midtrans</span>
               </div>
             </div>
           </div>
@@ -158,7 +191,7 @@ export default function PaymentPage() {
             <div className="flex-1 flex justify-between items-center">
               <span className="text-gray-900 font-medium text-sm">Transfer Virtual Account</span>
               <div className="w-9 h-5.5 bg-blue-900 rounded flex items-center justify-center">
-                <span className="text-white text-[9px] font-bold">BCA</span>
+                <span className="text-white text-[9px] font-bold">Midtrans</span>
               </div>
             </div>
           </div>
@@ -210,23 +243,31 @@ export default function PaymentPage() {
         </button>
       </div>
 
-      {/* MODAL INSTRUKSI TUNAI */}
+      {/* MODAL INSTRUKSI TUNAI / DEBIT */}
       {showCashInstructionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 flex flex-col items-center">
             <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-5">
               <DollarSign className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">Instruksi Pembayaran</h3>
+            <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">
+              {selectedMethod === "debit" ? "Instruksi Pembayaran Debit" : "Instruksi Pembayaran Tunai"}
+            </h3>
             <p className="text-gray-500 text-sm text-center mb-7">
-              Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda 
-              <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span> 
+              Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda
+              <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span>
               untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan langsung otomatis dimasak oleh dapur.
             </p>
-            <button onClick={closeCashModal} className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3.5 rounded-xl transition mb-3">
+            <button
+              onClick={closeCashModal}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3.5 rounded-xl transition mb-3"
+            >
               Saya Mengerti
             </button>
-            <button onClick={() => setShowCashInstructionModal(false)} className="text-gray-500 text-sm font-medium">
+            <button
+              onClick={() => setShowCashInstructionModal(false)}
+              className="text-gray-500 text-sm font-medium"
+            >
               Kembali
             </button>
           </div>
