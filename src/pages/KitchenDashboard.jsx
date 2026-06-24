@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { 
   Bell, LogOut, Check, Plus, Search, Minus, RefreshCw,
-  UtensilsCrossed, Coffee, ChefHat, LayoutDashboard, Package, Settings
+  UtensilsCrossed, Coffee, ChefHat
 } from "lucide-react";
 
 export default function KitchenDashboard() {
@@ -23,53 +23,43 @@ export default function KitchenDashboard() {
   const [counters, setCounters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
 
-const fetchOrders = async () => {
-  try {
-    const response = await api.getKitchenOrders();
-    const ordersData = response?.data || response || [];
-    const ordersArray = Array.isArray(ordersData) ? ordersData : [];
-    
-    console.log("📦 All orders:", ordersArray);
-    
-    // 🔥 PISAHKAN BERDASARKAN MENU ID
-    const makanan = [];
-    const minuman = [];
-    
-    ordersArray.forEach(order => {
-      // Cek apakah order punya item makanan (menuId M atau S)
-      const hasMakanan = order.items?.some(item => {
-        const menuId = item.menuId || "";
-        return menuId.startsWith("M") || menuId.startsWith("S");
-      });
-      // Cek apakah order punya item minuman (menuId D)
-      const hasMinuman = order.items?.some(item => {
-        const menuId = item.menuId || "";
-        return menuId.startsWith("D");
+  const fetchOrders = async () => {
+    try {
+      const response = await api.getKitchenOrders();
+      const ordersData = response?.data || response || [];
+      const ordersArray = Array.isArray(ordersData) ? ordersData : [];
+      
+      console.log("📦 All orders:", ordersArray);
+      
+      // 🔥 PISAHKAN BERDASARKAN MENU ID
+      const makanan = [];
+      const minuman = [];
+      
+      ordersArray.forEach(order => {
+        const hasMakanan = order.items?.some(item => {
+          const menuId = item.menuId || "";
+          return menuId.startsWith("M") || menuId.startsWith("S");
+        });
+        const hasMinuman = order.items?.some(item => {
+          const menuId = item.menuId || "";
+          return menuId.startsWith("D");
+        });
+        
+        if (hasMakanan) makanan.push(order);
+        if (hasMinuman) minuman.push(order);
       });
       
-      if (hasMakanan) makanan.push(order);
-      if (hasMinuman) minuman.push(order);
-    });
-    
-    console.log("🍽️ Makanan (M/S):", makanan);
-    console.log("🥤 Minuman (D):", minuman);
-    
-    setFoodOrders(makanan.filter(o => o.status === "paid" || o.status === "pending"));
-    setDrinkOrders(minuman.filter(o => o.status === "paid" || o.status === "pending"));
-    setFoodCooking(makanan.filter(o => o.status === "cooking"));
-    setDrinkCooking(minuman.filter(o => o.status === "cooking"));
-  } catch (error) {
-    console.error("Failed to fetch orders:", error);
-  }
-};    
-    setFoodOrders(food.filter(o => o.status === "paid" || o.status === "pending"));
-    setDrinkOrders(drinks.filter(o => o.status === "paid" || o.status === "pending"));
-    setFoodCooking(food.filter(o => o.status === "cooking"));
-    setDrinkCooking(drinks.filter(o => o.status === "cooking"));
-  } catch (error) {
-    console.error("Failed to fetch orders:", error);
-  }
-};
+      console.log("🍽️ Makanan (M/S):", makanan);
+      console.log("🥤 Minuman (D):", minuman);
+      
+      setFoodOrders(makanan.filter(o => o.status === "paid" || o.status === "pending"));
+      setDrinkOrders(minuman.filter(o => o.status === "paid" || o.status === "pending"));
+      setFoodCooking(makanan.filter(o => o.status === "cooking"));
+      setDrinkCooking(minuman.filter(o => o.status === "cooking"));
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -110,25 +100,36 @@ const fetchOrders = async () => {
 
   const startCooking = async (orderId) => {
     try {
-      await api.updateKitchenStatus(orderId, "cooking");
-      await fetchOrders();
+      const response = await api.updateKitchenStatus(orderId, "cooking");
+      console.log("Start cooking response:", response);
+      if (response.success) {
+        await fetchOrders();
+        alert("✅ Order mulai dimasak!");
+      } else {
+        alert("Gagal mulai masak: " + (response.message || "Unknown error"));
+      }
     } catch (error) {
       console.error("Failed to start cooking:", error);
-      alert("Gagal mulai masak");
+      alert("Gagal mulai masak: " + (error.message || "Unknown error"));
     }
   };
 
   const completeOrder = async (orderId) => {
     try {
-      await api.updateKitchenStatus(orderId, "completed");
-      await fetchOrders();
+      const response = await api.updateKitchenStatus(orderId, "completed");
+      console.log("Complete order response:", response);
+      if (response.success) {
+        await fetchOrders();
+        alert("✅ Order selesai!");
+      } else {
+        alert("Gagal menyelesaikan order: " + (response.message || "Unknown error"));
+      }
     } catch (error) {
       console.error("Failed to complete order:", error);
-      alert("Gagal menyelesaikan order");
+      alert("Gagal menyelesaikan order: " + (error.message || "Unknown error"));
     }
   };
 
-  // Inventory functions
   const updateCounter = (id, change) => {
     setCounters(prev => ({
       ...prev,
@@ -234,15 +235,7 @@ const fetchOrders = async () => {
                       <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
                     </div>
                     <div className="space-y-1 mb-3">
-                      {order.items?.filter(i => 
-                        i.category === "Makanan" || 
-                        i.category === "Nasi & Mie" || 
-                        i.category === "Menu Utama" ||
-                        i.category === "Singkong" ||
-                        i.category === "Tradisional" ||
-                        i.category === "Pisang" ||
-                        i.category === "Gorengan"
-                      ).map((item, idx) => (
+                      {order.items?.map((item, idx) => (
                         <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
                       ))}
                     </div>
@@ -301,7 +294,7 @@ const fetchOrders = async () => {
                       <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
                     </div>
                     <div className="space-y-1 mb-3">
-                      {order.items?.filter(i => i.category === "Minuman").map((item, idx) => (
+                      {order.items?.map((item, idx) => (
                         <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
                       ))}
                     </div>
@@ -346,7 +339,6 @@ const fetchOrders = async () => {
       {/* Stok Bahan Section */}
       {activeTab === "kelolastokbahan" && (
         <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-          {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border">
               <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL BAHAN</div>
@@ -362,7 +354,6 @@ const fetchOrders = async () => {
             </div>
           </div>
 
-          {/* Search */}
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
@@ -374,7 +365,6 @@ const fetchOrders = async () => {
             />
           </div>
 
-          {/* Bahan List */}
           <div className="space-y-2">
             {filteredInventory.map(item => (
               <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border">
@@ -389,26 +379,15 @@ const fetchOrders = async () => {
                   {getStatusBadge(item.stock)}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => updateCounter(item._id || item.id, -1)} 
-                    className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"
-                  >
+                  <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
                     <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <div className="w-10 text-center font-semibold">
-                    {counters[item._id || item.id] || 0}
-                  </div>
-                  <button 
-                    onClick={() => updateCounter(item._id || item.id, 1)} 
-                    className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"
-                  >
+                  <div className="w-10 text-center font-semibold">{counters[item._id || item.id] || 0}</div>
+                  <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <button 
-                  onClick={() => handleUpdateStock(item._id || item.id)} 
-                  className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"
-                >
+                <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700">
                   <RefreshCw className="w-3.5 h-3.5" /> Update
                 </button>
               </div>
