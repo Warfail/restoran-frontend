@@ -1,59 +1,60 @@
-import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import SettingsModal from "../components/SettingsModal";
 import { api } from "../services/api";
 import { 
   Bell, LogOut, Check, Plus, Search, Minus, RefreshCw,
-  ChevronDown, ChevronUp
+  UtensilsCrossed, Coffee, ChefHat, LayoutDashboard, Package, Settings
 } from "lucide-react";
 
 export default function KitchenDashboard() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
-    }
-  }, []);
-
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("antrean");
   const [currentTime, setCurrentTime] = useState("");
   const [loading, setLoading] = useState(true);
   
-  // Data dari API
-  const [pendingOrders, setPendingOrders] = useState([]);
-  const [cookingOrders, setCookingOrders] = useState([]);
+  // Data orders
+  const [foodOrders, setFoodOrders] = useState([]);
+  const [drinkOrders, setDrinkOrders] = useState([]);
+  const [foodCooking, setFoodCooking] = useState([]);
+  const [drinkCooking, setDrinkCooking] = useState([]);
   
-  // State untuk kelola stok bahan
+  // Inventory
   const [inventory, setInventory] = useState([]);
   const [counters, setCounters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch orders dari API
   const fetchOrders = async () => {
     try {
       const response = await api.getKitchenOrders();
-      console.log("Kitchen orders response:", response);
-      
       const ordersData = response?.data || response || [];
       const ordersArray = Array.isArray(ordersData) ? ordersData : [];
       
-      // Filter berdasarkan status
-      const pending = ordersArray.filter(o => o.status === "paid" || o.status === "confirmed");
-      const cooking = ordersArray.filter(o => o.status === "cooking");
+      // Pisahkan makanan dan minuman
+      const food = ordersArray.filter(o => 
+        o.items?.some(item => 
+          item.category === "Makanan" || 
+          item.category === "Nasi & Mie" || 
+          item.category === "Menu Utama" ||
+          item.category === "Singkong" ||
+          item.category === "Tradisional" ||
+          item.category === "Pisang" ||
+          item.category === "Gorengan"
+        )
+      );
+      const drinks = ordersArray.filter(o => 
+        o.items?.some(item => item.category === "Minuman")
+      );
       
-      setPendingOrders(pending);
-      setCookingOrders(cooking);
+      // Filter berdasarkan status
+      setFoodOrders(food.filter(o => o.status === "paid" || o.status === "pending"));
+      setDrinkOrders(drinks.filter(o => o.status === "paid" || o.status === "pending"));
+      setFoodCooking(food.filter(o => o.status === "cooking"));
+      setDrinkCooking(drinks.filter(o => o.status === "cooking"));
     } catch (error) {
       console.error("Failed to fetch orders:", error);
     }
   };
 
-  // Fetch inventory dari API
   const fetchInventory = async () => {
     try {
       const response = await api.getInventory();
@@ -65,7 +66,6 @@ export default function KitchenDashboard() {
   };
 
   useEffect(() => {
-    // Initial fetch
     const loadData = async () => {
       setLoading(true);
       await Promise.all([fetchOrders(), fetchInventory()]);
@@ -73,13 +73,11 @@ export default function KitchenDashboard() {
     };
     loadData();
 
-    // Timer for realtime clock
     const timer = setInterval(() => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     }, 1000);
 
-    // Refresh orders every 5 seconds
     const interval = setInterval(fetchOrders, 5000);
     
     return () => {
@@ -94,14 +92,13 @@ export default function KitchenDashboard() {
     navigate("/kitchen/login");
   };
 
-  // Kitchen Order Actions
   const startCooking = async (orderId) => {
     try {
       await api.updateKitchenStatus(orderId, "cooking");
       await fetchOrders();
     } catch (error) {
       console.error("Failed to start cooking:", error);
-      toast.error("Gagal mulai masak: " + (error.message || "Unknown error"));
+      alert("Gagal mulai masak");
     }
   };
 
@@ -111,11 +108,11 @@ export default function KitchenDashboard() {
       await fetchOrders();
     } catch (error) {
       console.error("Failed to complete order:", error);
-      toast.error("Gagal menyelesaikan order: " + (error.message || "Unknown error"));
+      alert("Gagal menyelesaikan order");
     }
   };
 
-  // Inventory Actions
+  // Inventory functions
   const updateCounter = (id, change) => {
     setCounters(prev => ({
       ...prev,
@@ -129,10 +126,10 @@ export default function KitchenDashboard() {
       await api.updateStock(id, newStock);
       await fetchInventory();
       setCounters(prev => ({ ...prev, [id]: 0 }));
-      toast.success("✅ Stok berhasil diupdate!");
+      alert("✅ Stok berhasil diupdate!");
     } catch (error) {
       console.error("Failed to update stock:", error);
-      toast.error("Gagal update stok: " + (error.message || "Unknown error"));
+      alert("Gagal update stok");
     }
   };
 
@@ -160,131 +157,190 @@ export default function KitchenDashboard() {
   );
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading kitchen dashboard...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading kitchen dashboard...</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b shadow-sm px-5 py-3 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full border border-gray-200 p-0.5" />
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="font-semibold text-sm">Kitchen Production Feed - Live</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <ChefHat className="w-5 h-5 text-red-600" />
+          <span className="font-semibold text-sm">Kitchen Production - Live</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex gap-1">
+          <div className="flex gap-1">
             <button 
               onClick={() => setActiveTab("antrean")} 
               className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
             >
-              Antrean Meja
+              Antrean
             </button>
             <button 
               onClick={() => setActiveTab("kelolastokbahan")} 
               className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
             >
-              Kelola Stok Bahan
+              Stok Bahan
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">{currentTime}</span>
-            <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
-            <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600">
-              <LogOut className="w-4 h-4 text-white" />
-            </button>
-          </div>
+          <span className="text-sm font-medium">{currentTime}</span>
+          <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+          <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600">
+            <LogOut className="w-4 h-4 text-white" />
+          </button>
         </div>
       </header>
 
-      {/* Content - Antrean Meja */}
+      {/* Antrean Section */}
       {activeTab === "antrean" && (
-        <div className="flex flex-1">
-          {/* Left Panel - Pending Orders */}
-          <div className="w-80 bg-white border-r flex flex-col">
-            <div className="px-5 py-4 border-b">
-              <h2 className="font-bold text-sm uppercase">ANTREAN BARU ({pendingOrders.length})</h2>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {pendingOrders.length === 0 && (
-                <div className="text-center text-gray-400 py-8">Tidak ada antrean 🎉</div>
-              )}
-              {pendingOrders.map(order => (
-                <div key={order._id || order.orderId} className="bg-white border rounded-xl p-4 shadow-sm">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-bold">Meja {order.tableNumber || "-"}</span>
-                    <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
+        <div className="flex-1 p-6 overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* SECTION MAKANAN */}
+            <div className="bg-white rounded-xl shadow-sm border p-4">
+              <div className="flex items-center gap-2 mb-4 border-b pb-3">
+                <UtensilsCrossed className="w-5 h-5 text-orange-600" />
+                <h2 className="font-bold text-lg text-gray-800">Makanan</h2>
+                <span className="ml-auto bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full">
+                  Antrean: {foodOrders.length}
+                </span>
+              </div>
+              
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {foodOrders.length === 0 && (
+                  <div className="text-center text-gray-400 py-8">Tidak ada antrean makanan 🎉</div>
+                )}
+                {foodOrders.map(order => (
+                  <div key={order.orderId || order._id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="flex justify-between mb-2">
+                      <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
+                      <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
+                    </div>
+                    <div className="space-y-1 mb-3">
+                      {order.items?.filter(i => 
+                        i.category === "Makanan" || 
+                        i.category === "Nasi & Mie" || 
+                        i.category === "Menu Utama" ||
+                        i.category === "Singkong" ||
+                        i.category === "Tradisional" ||
+                        i.category === "Pisang" ||
+                        i.category === "Gorengan"
+                      ).map((item, idx) => (
+                        <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => startCooking(order.orderId || order._id)} 
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white py-1.5 rounded-lg text-sm font-medium transition"
+                    >
+                      🍳 Mulai Masak
+                    </button>
                   </div>
-                  <div className="space-y-1 mb-3">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
-                    ))}
-                  </div>
-                  <button 
-                    onClick={() => startCooking(order.orderId || order._id)} 
-                    className="w-full border border-gray-300 rounded-lg py-2 text-sm hover:bg-gray-50"
-                  >
-                    Mulai Masak
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
 
-          {/* Right Panel - Cooking Orders */}
-          <div className="flex-1 bg-gray-50">
-            <div className="py-4">
-              <h2 className="text-center font-bold text-sm uppercase">SEDANG DIMASAK ({cookingOrders.length})</h2>
-            </div>
-            <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {cookingOrders.length === 0 && (
-                <div className="text-center text-gray-400 py-8 col-span-3">Tidak ada pesanan dimasak</div>
-              )}
-              {cookingOrders.map(order => (
-                <div key={order._id || order.orderId} className="bg-white rounded-xl border p-4 shadow-sm">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold">Meja {order.tableNumber || "-"}</span>
-                    <span className="text-amber-500 text-sm font-semibold">{order.customerName || "Guest"}</span>
-                  </div>
-                  <div className="space-y-2 my-3">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center">
-                        <span className="text-sm">{item.quantity}x {item.name}</span>
-                        <div className="w-5 h-5 border-2 rounded flex items-center justify-center">
-                          {item.done && <Check className="w-3 h-3" />}
-                        </div>
+              <div className="mt-4 border-t pt-3">
+                <h3 className="text-sm font-semibold text-gray-500 mb-2">🔥 Sedang Dimasak ({foodCooking.length})</h3>
+                <div className="space-y-2">
+                  {foodCooking.length === 0 && (
+                    <div className="text-center text-gray-400 text-sm py-4">Tidak ada makanan dimasak</div>
+                  )}
+                  {foodCooking.map(order => (
+                    <div key={order.orderId || order._id} className="bg-orange-50 rounded-lg p-2 border border-orange-200 flex justify-between items-center">
+                      <div>
+                        <span className="font-medium text-gray-800">Meja {order.tableNumber}</span>
+                        <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
                       </div>
-                    ))}
-                  </div>
-                  <button 
-                    onClick={() => completeOrder(order.orderId || order._id)} 
-                    className="w-full border border-gray-300 rounded-lg py-2 text-sm hover:bg-gray-50"
-                  >
-                    Selesai
-                  </button>
+                      <button 
+                        onClick={() => completeOrder(order.orderId || order._id)} 
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium"
+                      >
+                        ✅ Selesai
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
+
+            {/* SECTION MINUMAN */}
+            <div className="bg-white rounded-xl shadow-sm border p-4">
+              <div className="flex items-center gap-2 mb-4 border-b pb-3">
+                <Coffee className="w-5 h-5 text-blue-600" />
+                <h2 className="font-bold text-lg text-gray-800">Minuman</h2>
+                <span className="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">
+                  Antrean: {drinkOrders.length}
+                </span>
+              </div>
+              
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {drinkOrders.length === 0 && (
+                  <div className="text-center text-gray-400 py-8">Tidak ada antrean minuman 🎉</div>
+                )}
+                {drinkOrders.map(order => (
+                  <div key={order.orderId || order._id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="flex justify-between mb-2">
+                      <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
+                      <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
+                    </div>
+                    <div className="space-y-1 mb-3">
+                      {order.items?.filter(i => i.category === "Minuman").map((item, idx) => (
+                        <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => startCooking(order.orderId || order._id)} 
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-1.5 rounded-lg text-sm font-medium transition"
+                    >
+                      🧊 Mulai Buat
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 border-t pt-3">
+                <h3 className="text-sm font-semibold text-gray-500 mb-2">🧊 Sedang Dibuat ({drinkCooking.length})</h3>
+                <div className="space-y-2">
+                  {drinkCooking.length === 0 && (
+                    <div className="text-center text-gray-400 text-sm py-4">Tidak ada minuman dibuat</div>
+                  )}
+                  {drinkCooking.map(order => (
+                    <div key={order.orderId || order._id} className="bg-blue-50 rounded-lg p-2 border border-blue-200 flex justify-between items-center">
+                      <div>
+                        <span className="font-medium text-gray-800">Meja {order.tableNumber}</span>
+                        <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
+                      </div>
+                      <button 
+                        onClick={() => completeOrder(order.orderId || order._id)} 
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium"
+                      >
+                        ✅ Selesai
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* Content - Kelola Stok Bahan */}
+      {/* Stok Bahan Section */}
       {activeTab === "kelolastokbahan" && (
-        <div className="flex-1 p-6 space-y-4">
+        <div className="flex-1 p-6 space-y-4 overflow-y-auto">
           {/* Stats Cards */}
-          <div className="flex gap-4">
-            <div className="flex-1 bg-white rounded-xl p-5 shadow-sm">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl p-5 shadow-sm border">
               <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL BAHAN</div>
               <div className="text-green-500 text-4xl font-bold">{stats.total}</div>
             </div>
-            <div className="flex-1 bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-xl p-5 shadow-sm border">
               <div className="text-gray-500 text-xs font-semibold uppercase">STOK MENIPIS</div>
               <div className="text-orange-500 text-4xl font-bold">{stats.menipis}</div>
             </div>
-            <div className="flex-1 bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-xl p-5 shadow-sm border">
               <div className="text-gray-500 text-xs font-semibold uppercase">STOK HABIS</div>
               <div className="text-red-500 text-4xl font-bold">{stats.habis}</div>
             </div>
@@ -307,7 +363,7 @@ export default function KitchenDashboard() {
             {filteredInventory.map(item => (
               <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border">
                 <div className="flex-1 min-w-[120px]">
-                  <div className="font-semibold">{item.name}</div>
+                  <div className="font-semibold text-gray-800">{item.name}</div>
                   <div className="text-xs text-gray-500">{item.category || "Bahan Baku"}</div>
                 </div>
                 <div className="flex flex-col items-center gap-1 min-w-[80px]">
@@ -319,7 +375,7 @@ export default function KitchenDashboard() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => updateCounter(item._id || item.id, -1)} 
-                    className="w-8 h-8 border rounded-lg flex items-center justify-center"
+                    className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
@@ -328,7 +384,7 @@ export default function KitchenDashboard() {
                   </div>
                   <button 
                     onClick={() => updateCounter(item._id || item.id, 1)} 
-                    className="w-8 h-8 border rounded-lg flex items-center justify-center"
+                    className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
@@ -347,9 +403,6 @@ export default function KitchenDashboard() {
           </div>
         </div>
       )}
-    
-    
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }
