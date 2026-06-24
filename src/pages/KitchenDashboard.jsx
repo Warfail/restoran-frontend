@@ -21,22 +21,26 @@ export default function KitchenDashboard() {
   // Inventory
   const [inventory, setInventory] = useState([]);
   const [counters, setCounters] = useState({});
-  const [searchTerm, setSearchTerm] = useState("")const fetchOrders = async () => {
-  try {
-    const response = await api.getKitchenOrders();
-    const ordersData = response?.data || response || [];
-    const ordersArray = Array.isArray(ordersData) ? ordersData : [];
-    
-    // 🔥 TAMPILKAN SEMUA (ga pake filter)
-    console.log("All orders:", ordersArray);
-    setFoodOrders(ordersArray);
-    setFoodCooking([]);
-    setDrinkOrders([]);
-    setDrinkCooking([]);
-  } catch (error) {
-    console.error("Failed to fetch orders:", error);
-  }
-};
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const fetchOrders = async () => {
+    try {
+      const response = await api.getKitchenOrders();
+      const ordersData = response?.data || response || [];
+      const ordersArray = Array.isArray(ordersData) ? ordersData : [];
+      
+      // Tampilkan SEMUA antrean dulu (biar keluar)
+      const paidOrders = ordersArray.filter(o => o.status === "paid" || o.status === "pending");
+      const cookingOrders = ordersArray.filter(o => o.status === "cooking");
+      
+      setFoodOrders(paidOrders);
+      setDrinkOrders([]);
+      setFoodCooking(cookingOrders);
+      setDrinkCooking([]);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -201,15 +205,7 @@ export default function KitchenDashboard() {
                       <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
                     </div>
                     <div className="space-y-1 mb-3">
-                      {order.items?.filter(i => 
-                        i.category === "Makanan" || 
-                        i.category === "Nasi & Mie" || 
-                        i.category === "Menu Utama" ||
-                        i.category === "Singkong" ||
-                        i.category === "Tradisional" ||
-                        i.category === "Pisang" ||
-                        i.category === "Gorengan"
-                      ).map((item, idx) => (
+                      {order.items?.map((item, idx) => (
                         <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
                       ))}
                     </div>
@@ -268,7 +264,7 @@ export default function KitchenDashboard() {
                       <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
                     </div>
                     <div className="space-y-1 mb-3">
-                      {order.items?.filter(i => i.category === "Minuman").map((item, idx) => (
+                      {order.items?.map((item, idx) => (
                         <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
                       ))}
                     </div>
