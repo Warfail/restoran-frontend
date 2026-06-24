@@ -22,41 +22,17 @@ export default function KitchenDashboard() {
   const [inventory, setInventory] = useState([]);
   const [counters, setCounters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-
-const fetchOrders = async () => {
+  const fetchOrders = async () => {
   try {
     const response = await api.getKitchenOrders();
     const ordersData = response?.data || response || [];
     const ordersArray = Array.isArray(ordersData) ? ordersData : [];
     
-    console.log("📦 All orders:", ordersArray);
-    
-    // 🔥 PISAHKAN BERDASARKAN MENU ID
-    const makanan = [];
-    const minuman = [];
-    
-    ordersArray.forEach(order => {
-      // Cek apakah order punya item makanan (menuId dimulai M atau S)
-      const hasMakanan = order.items?.some(item => {
-        const menuId = item.menuId || "";
-        return menuId.startsWith("M") || menuId.startsWith("S");
-      });
-      // Cek apakah order punya item minuman (menuId dimulai D)
-      const hasMinuman = order.items?.some(item => {
-        const menuId = item.menuId || "";
-        return menuId.startsWith("D");
-      });
-      
-      if (hasMakanan) makanan.push(order);
-      if (hasMinuman) minuman.push(order);
-    });
-    
-    console.log("🍽️ Makanan (M/S):", makanan);
-    console.log("🥤 Minuman (D):", minuman);
-    
-    setFoodOrders(makanan);
-    setDrinkOrders(minuman);
+    // 🔥 TAMPILKAN SEMUA (ga pake filter)
+    console.log("All orders:", ordersArray);
+    setFoodOrders(ordersArray);
     setFoodCooking([]);
+    setDrinkOrders([]);
     setDrinkCooking([]);
   } catch (error) {
     console.error("Failed to fetch orders:", error);
@@ -226,7 +202,15 @@ const fetchOrders = async () => {
                       <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
                     </div>
                     <div className="space-y-1 mb-3">
-                      {order.items?.map((item, idx) => (
+                      {order.items?.filter(i => 
+                        i.category === "Makanan" || 
+                        i.category === "Nasi & Mie" || 
+                        i.category === "Menu Utama" ||
+                        i.category === "Singkong" ||
+                        i.category === "Tradisional" ||
+                        i.category === "Pisang" ||
+                        i.category === "Gorengan"
+                      ).map((item, idx) => (
                         <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
                       ))}
                     </div>
@@ -285,7 +269,7 @@ const fetchOrders = async () => {
                       <span className="text-sm text-gray-500">{order.customerName || "Guest"}</span>
                     </div>
                     <div className="space-y-1 mb-3">
-                      {order.items?.map((item, idx) => (
+                      {order.items?.filter(i => i.category === "Minuman").map((item, idx) => (
                         <div key={idx} className="text-xs text-gray-600">{item.quantity}x {item.name}</div>
                       ))}
                     </div>
