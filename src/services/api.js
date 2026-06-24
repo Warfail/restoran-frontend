@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000";
+const API_BASE = "http://127.0.0.1:8000";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -71,6 +71,15 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(paymentData),
+    });
+    return res.json();
+  },
+
+  setPaymentMethod: async (orderId, method) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}/payment-method`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method }),
     });
     return res.json();
   },
@@ -184,6 +193,19 @@ export const api = {
     const token = getToken();
     const res = await fetch(`${API_BASE}/users/`, {
       headers: { "Authorization": `Bearer ${token}` }
+    });
+    return res.json();
+  },
+
+  createUser: async (userData) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/users/`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(userData),
     });
     return res.json();
   },

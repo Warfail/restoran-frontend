@@ -1,5 +1,7 @@
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import SettingsModal from "../components/SettingsModal";
 import { api } from "../services/api";
 import { 
   Bell, LogOut, Check, Plus, Search, Minus, RefreshCw,
@@ -7,6 +9,16 @@ import {
 } from "lucide-react";
 
 export default function KitchenDashboard() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("antrean");
   const [currentTime, setCurrentTime] = useState("");
@@ -89,7 +101,7 @@ export default function KitchenDashboard() {
       await fetchOrders();
     } catch (error) {
       console.error("Failed to start cooking:", error);
-      alert("Gagal mulai masak: " + (error.message || "Unknown error"));
+      toast.error("Gagal mulai masak: " + (error.message || "Unknown error"));
     }
   };
 
@@ -99,7 +111,7 @@ export default function KitchenDashboard() {
       await fetchOrders();
     } catch (error) {
       console.error("Failed to complete order:", error);
-      alert("Gagal menyelesaikan order: " + (error.message || "Unknown error"));
+      toast.error("Gagal menyelesaikan order: " + (error.message || "Unknown error"));
     }
   };
 
@@ -117,10 +129,10 @@ export default function KitchenDashboard() {
       await api.updateStock(id, newStock);
       await fetchInventory();
       setCounters(prev => ({ ...prev, [id]: 0 }));
-      alert("✅ Stok berhasil diupdate!");
+      toast.success("✅ Stok berhasil diupdate!");
     } catch (error) {
       console.error("Failed to update stock:", error);
-      alert("Gagal update stok: " + (error.message || "Unknown error"));
+      toast.error("Gagal update stok: " + (error.message || "Unknown error"));
     }
   };
 
@@ -155,9 +167,12 @@ export default function KitchenDashboard() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b shadow-sm px-5 py-3 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="font-semibold text-sm">Kitchen Production Feed - Live</span>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full border border-gray-200 p-0.5" />
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
+            <span className="font-semibold text-sm">Kitchen Production Feed - Live</span>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden md:flex gap-1">
@@ -332,6 +347,9 @@ export default function KitchenDashboard() {
           </div>
         </div>
       )}
+    
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }

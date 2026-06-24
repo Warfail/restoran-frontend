@@ -1,13 +1,26 @@
+import SettingsModal from "../components/SettingsModal";
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import UpdateMenuModal from "../components/UpdateMenuModal";
-import { 
+import {
+  
   Search, Plus, Pencil, Trash, ChevronLeft, ChevronRight,
   LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut
 } from "lucide-react";
 
 export default function MenuManagementPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [menus, setMenus] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +59,7 @@ export default function MenuManagementPage() {
       setTimeout(() => setToast({ show: false, message: "" }), 3000);
     } catch (error) {
       console.error("Failed to update menu:", error);
-      alert("Gagal mengupdate menu");
+      toast.error("Gagal mengupdate menu");
     }
   };
 
@@ -84,7 +97,10 @@ export default function MenuManagementPage() {
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
         <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-extrabold text-white">Singkong Keju D9</h2>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+            <h2 className="text-xl font-extrabold text-white">Singkong Keju D9</h2>
+          </div>
           <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
         </div>
         <nav className="p-4 space-y-1">
@@ -95,7 +111,7 @@ export default function MenuManagementPage() {
           <button onClick={() => navigate("/reports")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full"><BarChart3 className="w-5 h-5" /><span>Laporan Penjualan</span></button>
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full"><Settings className="w-5 h-5" /><span>Pengaturan</span></button>
+          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full" onClick={() => setIsSettingsOpen(true)}><Settings className="w-5 h-5" /><span>Pengaturan</span></button>
           <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1"><LogOut className="w-5 h-5" /><span>Keluar</span></button>
         </div>
       </aside>
@@ -142,6 +158,8 @@ export default function MenuManagementPage() {
             </tbody>
           </table>
         </div>
+      
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
       </main>
 
       {/* MODAL UPDATE MENU */}
@@ -151,6 +169,7 @@ export default function MenuManagementPage() {
         onClose={() => setIsModalOpen(false)}
         onUpdate={handleUpdateMenu}
       />
+    
     </div>
   );
 }

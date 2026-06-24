@@ -1,8 +1,20 @@
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
+import SettingsModal from "../components/SettingsModal";
 
 export default function InventoryPageNew() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,10 +43,10 @@ export default function InventoryPageNew() {
     try {
       await api.updateStock(itemId, { stock: newStock });
       await fetchInventory();
-      alert("Stok berhasil diupdate!");
+      toast.success("Stok berhasil diupdate!");
     } catch (error) {
       console.error("Failed to update stock:", error);
-      alert("Gagal update stok");
+      toast.error("Gagal update stok");
     }
   };
 
@@ -130,8 +142,17 @@ export default function InventoryPageNew() {
             <div className="flex gap-1"><i className="ti ti-bell text-xl text-gray-500"></i><i className="ti ti-help-circle text-xl text-gray-500"></i></div>
             <div className="w-px h-8 bg-gray-200"></div>
             <div className="flex items-center gap-2.5">
-              <div className="text-right"><div className="text-sm font-semibold">Admin Sistem</div><div className="text-[11px] text-gray-500 font-medium">SUPERUSER</div></div>
-              <img src="https://placehold.co/36x36/c0392b/c0392b" alt="Admin" className="w-9 h-9 rounded-full object-cover" />
+              <div className="text-right">
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                {currentUser?.profilePicture ? (
+                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -230,6 +251,8 @@ export default function InventoryPageNew() {
           </div>
         </div>
       </div>
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }

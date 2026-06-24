@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import SalesReportPage from "./pages/SalesReportPage";
 import UserListPage from "./pages/UserListPage";
-import UserManagementPage from "./pages/UserManagementPage";
+import UserManagementPage from "./pages/UserManagementpage";
 import MenuManagementPage from "./pages/MenuManagementPage";
 import AddMenuPage from "./pages/AddMenuPage";
 import InventoryPage from "./pages/InventoryPage";
@@ -30,8 +31,10 @@ function PrivateRoute({ children }) {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <>
+      <Toaster position="top-center" reverseOrder={false} />
+      <BrowserRouter>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
         <Route path="/reports" element={<PrivateRoute><SalesReportPage /></PrivateRoute>} />
@@ -40,7 +43,7 @@ function App() {
         <Route path="/admin/menu" element={<PrivateRoute><MenuManagementPage /></PrivateRoute>} />
         <Route path="/admin/inventory" element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
         <Route path="/admin/menu/add" element={<PrivateRoute><AddMenuPage /></PrivateRoute>} />
-        <Route path="/cashier/login" element={<CashierLoginPage />} />
+        <Route path="/cashier/login" element={<Navigate to="/login" replace />} />
         <Route path="/cart" element={<CartPage />} />
 <Route path="/cashier" element={<PrivateRoute><CashierDashboard /></PrivateRoute>} />
 <Route path="/landing" element={<CustomerLandingPage />} />
@@ -51,12 +54,13 @@ function App() {
 {/* <Route path="/admin/inventory" element={<PrivateRoute><InventoryPageNew /></PrivateRoute>} /> */}
 
 
-<Route path="/kitchen/login" element={<KitchenLoginPage />} />
+<Route path="/kitchen/login" element={<Navigate to="/login" replace />} />
 <Route path="/kitchen/dashboard" element={<PrivateRoute><KitchenDashboard /></PrivateRoute>} />
         
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
 

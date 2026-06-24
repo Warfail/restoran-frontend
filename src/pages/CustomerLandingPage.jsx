@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Armchair, ShoppingBag, X } from "lucide-react";
@@ -19,7 +20,7 @@ export default function CustomerLandingPage() {
 
   const handleConfirm = () => {
     if (!customerName.trim()) {
-      alert("Masukkan nama Anda terlebih dahulu");
+      toast.error("Masukkan nama Anda terlebih dahulu");
       return;
     }
     // Simpan ke session/local storage
@@ -41,8 +42,8 @@ export default function CustomerLandingPage() {
         {/* Logo & Title */}
         <div className="flex flex-col items-center mb-6">
           <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mb-4">
-            <div className="w-17 h-17 rounded-full border-3 border-red-600 flex items-center justify-center">
-              <span className="text-red-600 font-bold text-3xl">D-9</span>
+            <div className="w-17 h-17 rounded-full border-3 border-red-600 flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
           </div>
           <div className="text-center">
@@ -58,7 +59,7 @@ export default function CustomerLandingPage() {
           {/* Dine In Option */}
           <div
             onClick={() => handleMethodSelect("dinein")}
-            className="w-full bg-white rounded-2xl p-5 flex items-center gap-4 shadow-md active:scale-98 transition-transform cursor-pointer"
+            className="w-full bg-white rounded-2xl p-5 flex items-center gap-4 shadow-md active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
               <Armchair className="w-6 h-6 text-red-600" />
@@ -72,7 +73,7 @@ export default function CustomerLandingPage() {
           {/* Take Away Option */}
           <div
             onClick={() => handleMethodSelect("takeaway")}
-            className="w-full bg-white rounded-2xl p-5 flex items-center gap-4 shadow-md active:scale-98 transition-transform cursor-pointer"
+            className="w-full bg-white rounded-2xl p-5 flex items-center gap-4 shadow-md active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
               <ShoppingBag className="w-6 h-6 text-red-600" />
@@ -108,12 +109,7 @@ export default function CustomerLandingPage() {
         </div>
       )}
 
-      {/* Custom styles untuk scale effect */}
-      <style jsx>{`
-        .active\\:scale-98:active {
-          transform: scale(0.98);
-        }
-      `}</style>
+
     </div>
   );
 }

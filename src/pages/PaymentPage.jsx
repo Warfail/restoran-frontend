@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Clock, QrCode, Landmark, DollarSign, Check } from "lucide-react";
@@ -33,14 +34,15 @@ export default function PaymentPage() {
 
   const handlePayment = async () => {
     if (!selectedMethod) {
-      alert("Pilih metode pembayaran terlebih dahulu!");
+      toast.error("Pilih metode pembayaran terlebih dahulu!");
       return;
     }
     
     setLoading(true);
     try {
-      if (selectedMethod === "cash") {
-        // Tampilkan instruksi tunai
+      if (selectedMethod === "cash" || selectedMethod === "debit") {
+        await api.setPaymentMethod(orderId, selectedMethod);
+        // Tampilkan instruksi
         setShowCashInstructionModal(true);
       } else {
         // QRIS atau Transfer - panggil API
@@ -66,12 +68,12 @@ export default function PaymentPage() {
             }
           });
         } else {
-          alert("Pembayaran gagal. Silakan coba lagi.");
+          toast.error("Pembayaran gagal. Silakan coba lagi.");
         }
       }
     } catch (error) {
       console.error("Payment failed:", error);
-      alert("Terjadi kesalahan. Silakan coba lagi.");
+      toast.error("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
@@ -162,7 +164,7 @@ export default function PaymentPage() {
           </div>
         </div>
 
-        {/* Tunai/Debit */}
+        {/* Tunai */}
         <div
           onClick={() => setSelectedMethod("cash")}
           className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${
@@ -173,7 +175,22 @@ export default function PaymentPage() {
             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
               <DollarSign className="w-5.5 h-5.5 text-gray-500" />
             </div>
-            <span className="text-gray-900 font-medium text-sm">Tunai/Debit</span>
+            <span className="text-gray-900 font-medium text-sm">Tunai Kasir</span>
+          </div>
+        </div>
+
+        {/* Debit */}
+        <div
+          onClick={() => setSelectedMethod("debit")}
+          className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${
+            selectedMethod === "debit" ? "border-2 border-green-500" : "border border-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+              <Landmark className="w-5.5 h-5.5 text-gray-500" />
+            </div>
+            <span className="text-gray-900 font-medium text-sm">Debit Kasir (EDC)</span>
           </div>
         </div>
       </div>
@@ -200,11 +217,11 @@ export default function PaymentPage() {
             <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-5">
               <DollarSign className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">Instruksi Pembayaran Tunai</h3>
+            <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">Instruksi Pembayaran</h3>
             <p className="text-gray-500 text-sm text-center mb-7">
               Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda 
               <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span> 
-              untuk menyelesaikan pembayaran tunai. Setelah kasir mengonfirmasi, pesanan akan langsung otomatis dimasak oleh dapur.
+              untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan langsung otomatis dimasak oleh dapur.
             </p>
             <button onClick={closeCashModal} className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3.5 rounded-xl transition mb-3">
               Saya Mengerti

@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global Interactive Sweeteners */
+@layer base {
+  button, 
+  a, 
+  .cursor-pointer {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  button:active,
+  .cursor-pointer:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Modal Pop Animation */
+.fixed.inset-0 > div[class*="bg-white"] {
+  animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Drawer Slide Animation */
+.fixed.inset-0.justify-end > div[class*="bg-white"] {
+  animation: drawerSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes drawerSlide {
+  0% { opacity: 0; transform: translateX(100%); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Smooth Page Scroll */
+html {
+  scroll-behavior: smooth;
+}

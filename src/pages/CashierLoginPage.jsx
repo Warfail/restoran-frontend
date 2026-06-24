@@ -18,7 +18,9 @@ export default function CashierLoginPage() {
 
     // Simulasi login kasir (nanti panggil API)
     setTimeout(() => {
-      if (username === "kasir" && password === "kasir123") {
+      const u = username.trim().toLowerCase();
+      const p = password.trim();
+      if (u === "kasir" && p === "kasir123") {
         localStorage.setItem("token", "kasir-token-123");
         localStorage.setItem("role", "kasir");
         if (rememberMe) {
@@ -39,8 +41,8 @@ export default function CashierLoginPage() {
         <div className="flex flex-col items-center mb-8">
           <h1 className="text-2xl font-bold text-red-600 tracking-tight mb-4">Singkong Keju D9</h1>
           
-          <div className="w-[72px] h-[72px] rounded-full border-3 border-red-500 flex items-center justify-center mb-5">
-            <span className="text-red-500 text-[22px] font-bold tracking-tight">D-9</span>
+          <div className="w-[72px] h-[72px] rounded-full border-3 border-red-500 flex items-center justify-center mb-5 overflow-hidden">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           
           <h2 className="text-2xl font-bold text-gray-900 mb-1">Selamat Datang</h2>

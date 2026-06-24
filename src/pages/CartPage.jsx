@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../services/api";
@@ -61,7 +62,7 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
-      alert("Keranjang kosong!");
+      toast.error("Keranjang kosong!");
       return;
     }
 
@@ -102,11 +103,11 @@ export default function CartPage() {
           }
         });
       } else {
-        alert("Gagal membuat pesanan");
+        toast.error("Gagal membuat pesanan");
       }
     } catch (error) {
       console.error("Checkout failed:", error);
-      alert("Gagal memproses pesanan. Silakan coba lagi.");
+      toast.error("Gagal memproses pesanan. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }

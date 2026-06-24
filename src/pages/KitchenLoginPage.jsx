@@ -18,7 +18,9 @@ export default function KitchenLoginPage() {
 
     // Simulasi login (nanti panggil API)
     setTimeout(() => {
-      if (username === "kitchen" && password === "kitchen123") {
+      const u = username.trim().toLowerCase();
+      const p = password.trim();
+      if (u === "kitchen" && p === "kitchen123") {
         localStorage.setItem("token", "kitchen-token-123");
         localStorage.setItem("role", "kitchen");
         if (rememberMe) {
@@ -40,11 +42,8 @@ export default function KitchenLoginPage() {
           Singkong Keju D9
         </div>
 
-        <div className="mb-5">
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="36" cy="36" r="34" stroke="#e53e3e" strokeWidth="3" fill="white" />
-            <text x="36" y="44" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="700" fill="#e53e3e">D-9</text>
-          </svg>
+        <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center mb-5 overflow-hidden border-2 border-red-500">
+          <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Selamat Datang</h1>

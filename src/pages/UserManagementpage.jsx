@@ -1,5 +1,8 @@
-import { useState } from "react";
+import toast from "react-hot-toast";
+import SettingsModal from "../components/SettingsModal";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { api } from "../services/api";
 import { 
   ArrowLeft, 
   User, 
@@ -17,11 +20,23 @@ import {
 } from "lucide-react";
 
 export default function UserManagementPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [isActive, setIsActive] = useState(true);
   const [selectedRole, setSelectedRole] = useState("");
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
+    password: "",
     email: "",
     phone: ""
   });
@@ -36,11 +51,34 @@ export default function UserManagementPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Data karyawan:", { ...formData, role: selectedRole, isActive });
-    alert("Karyawan berhasil ditambahkan!");
-    navigate("/users");
+    if (!selectedRole) {
+      toast.error("Pilih role terlebih dahulu!");
+      return;
+    }
+    if (!formData.username || !formData.password) {
+      toast("Username dan Password wajib diisi!");
+      return;
+    }
+    
+    try {
+      const payload = {
+        ...formData,
+        role: selectedRole,
+        isActive
+      };
+      const response = await api.createUser(payload);
+      if (response.success || response.userId) {
+        toast.success("Karyawan berhasil ditambahkan!");
+        navigate("/users");
+      } else {
+        toast.error("Gagal menambahkan karyawan: " + (response.detail || "Kesalahan server"));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Terjadi kesalahan: " + err.message);
+    }
   };
 
   return (
@@ -48,7 +86,10 @@ export default function UserManagementPage() {
       {/* SIDEBAR */}
       <aside className="fixed left-0 top-0 w-64 h-full bg-[#c0392b] shadow-lg z-10">
         <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white tracking-tight">Singkong Keju D9</h2>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+            <h2 className="text-xl font-bold text-white tracking-tight">Singkong Keju D9</h2>
+          </div>
           <p className="text-amber-300 text-xs font-semibold uppercase mt-1">Admin Panel</p>
         </div>
 
@@ -76,9 +117,8 @@ export default function UserManagementPage() {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full transition">
-            <Settings className="w-5 h-5" />
-            <span className="text-sm">Pengaturan</span>
+          <button className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-5 h-5" /><span className="text-sm">Pengaturan</span>
           </button>
           <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full mt-1 transition">
             <LogOut className="w-5 h-5" />
@@ -105,10 +145,16 @@ export default function UserManagementPage() {
             <div className="w-px h-8 bg-gray-200"></div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">Admin Sistem</div>
-                <div className="text-gray-400 text-xs font-medium">SUPERUSER</div>
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
               </div>
-              <img src="https://placehold.co/36x36/a0a0a0/a0a0a0" alt="Admin" className="w-9 h-9 rounded-full object-cover" />
+              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                {currentUser?.profilePicture ? (
+                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -140,6 +186,28 @@ export default function UserManagementPage() {
                     placeholder="Masukkan nama lengkap"
                     className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
                     value={formData.name}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-700 text-sm font-medium mb-1.5 block">Username</label>
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Masukkan username untuk login"
+                    className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    value={formData.username}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-700 text-sm font-medium mb-1.5 block">Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Masukkan password"
+                    className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    value={formData.password}
                     onChange={handleChange}
                   />
                 </div>
@@ -241,6 +309,8 @@ export default function UserManagementPage() {
           </div>
         </div>
       </main>
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }

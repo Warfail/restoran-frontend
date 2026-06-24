@@ -1,12 +1,25 @@
+import SettingsModal from "../components/SettingsModal";
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { 
+import {
+  
   Search, Plus, Pencil,
   LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut
 } from "lucide-react";
 
 export default function InventoryPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,11 +51,11 @@ export default function InventoryPage() {
     try {
       await api.updateStock(itemId, { stock: parseInt(newStock) });
       await fetchInventory();
-      alert("Stok berhasil diupdate!");
+      toast.success("Stok berhasil diupdate!");
       setEditingItem(null);
     } catch (error) {
       console.error("Failed to update stock:", error);
-      alert("Gagal update stok");
+      toast.error("Gagal update stok");
     }
   };
 
@@ -92,7 +105,10 @@ export default function InventoryPage() {
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
         <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
+          </div>
           <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
         </div>
         <nav className="p-4 space-y-1">
@@ -113,7 +129,7 @@ export default function InventoryPage() {
           </button>
         </nav>
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
+          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full" onClick={() => setIsSettingsOpen(true)}>
             <Settings className="w-5 h-5" /><span>Pengaturan</span>
           </button>
           <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1">
@@ -251,6 +267,8 @@ export default function InventoryPage() {
           </div>
         </div>
       </main>
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }

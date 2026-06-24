@@ -1,7 +1,19 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut } from "lucide-react";
+import SettingsModal from "../../components/SettingsModal";
 
 export default function Sidebar() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -50,9 +62,8 @@ export default function Sidebar() {
       </nav>
 
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-        <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition">
-          <Settings className="w-5 h-5" />
-          <span>Pengaturan</span>
+        <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
+          <Settings className="w-5 h-5" /><span>Pengaturan</span>
         </button>
 
         <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1 transition">
@@ -60,6 +71,8 @@ export default function Sidebar() {
           <span>Keluar</span>
         </button>
       </div>
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </aside>
   );
 }

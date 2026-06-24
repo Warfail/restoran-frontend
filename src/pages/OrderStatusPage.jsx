@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Check, UtensilsCrossed, Flame, ChefHat, Info, RefreshCw, Clock, Wallet } from "lucide-react";
@@ -99,7 +100,7 @@ export default function OrderStatusPage() {
   const handleUpdateStatus = async () => {
     if (!canUpdate()) {
       const nextStatus = statuses[currentStatus + 1];
-      alert(`Hanya ${nextStatus?.canUpdate.join(" atau ")} yang dapat mengupdate ke status ini.`);
+      toast(`Hanya ${nextStatus?.canUpdate.join(" atau ")} yang dapat mengupdate ke status ini.`);
       return;
     }
     
@@ -129,10 +130,10 @@ export default function OrderStatusPage() {
       
       // Refresh data setelah update
       await fetchOrderDetail();
-      alert(`Status berhasil diupdate ke: ${nextStatusName}`);
+      toast.success(`Status berhasil diupdate ke: ${nextStatusName}`);
     } catch (error) {
       console.error("Failed to update status:", error);
-      alert("Gagal mengupdate status");
+      toast.error("Gagal mengupdate status");
     } finally {
       setLoading(false);
     }

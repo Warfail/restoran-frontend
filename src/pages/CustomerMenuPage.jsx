@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, CheckCircle } from "lucide-react";
@@ -65,12 +66,16 @@ const addToCart = (item) => {
 const updateQuantity = (itemId, change) => {
   const item = cart.find(i => (i._id || i.menuId || i.id) === itemId);
   if (item) {
-    const newQuantity = Math.max(1, item.quantity + change);
-    setCart(cart.map(i => 
-      (i._id || i.menuId || i.id) === itemId
-        ? { ...i, quantity: newQuantity, subtotal: newQuantity * i.price }
-        : i
-    ));
+    const newQuantity = item.quantity + change;
+    if (newQuantity <= 0) {
+      removeFromCart(itemId);
+    } else {
+      setCart(cart.map(i => 
+        (i._id || i.menuId || i.id) === itemId
+          ? { ...i, quantity: newQuantity, subtotal: newQuantity * i.price }
+          : i
+      ));
+    }
   }
 };
 
@@ -82,7 +87,7 @@ const updateQuantity = (itemId, change) => {
 
 const handleCheckout = async () => {
   if (cart.length === 0) {
-    alert("Keranjang kosong!");
+    toast.error("Keranjang kosong!");
     return;
   }
 
@@ -115,8 +120,22 @@ const handleCheckout = async () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFF0F0] flex items-center justify-center">
-        <div className="text-center">Loading menu...</div>
+      <div className="min-h-screen bg-[#FFF0F0] pb-24">
+        <header className="bg-gradient-to-b from-red-50 to-[#FFF0F0] sticky top-0 z-10 shadow-sm rounded-b-3xl mb-4 h-[180px] animate-pulse"></header>
+        <div className="flex-1 bg-white rounded-t-3xl px-4 py-8 min-h-screen">
+          <div className="h-6 bg-gray-200 rounded-lg w-1/3 mb-6 animate-pulse"></div>
+          <div className="space-y-6">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex gap-4 animate-pulse">
+                <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0"></div>
+                <div className="flex-1 space-y-3 py-1">
+                  <div className="h-4 bg-gray-200 rounded-md w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded-md w-1/4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -132,18 +151,19 @@ const handleCheckout = async () => {
   return (
     <div className="min-h-screen bg-[#FFF0F0] pb-24">
       {/* Header */}
-      <header className="bg-[#FFF0F0] sticky top-0 z-10">
-        <div className="flex justify-between items-center px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-11 h-11 rounded-full border-2 border-red-600 flex items-center justify-center bg-white">
-              <span className="text-red-600 font-bold text-sm">D-9</span>
+      <header className="bg-gradient-to-b from-red-50 to-[#FFF0F0] sticky top-0 z-10 shadow-sm rounded-b-3xl mb-4 transition-all duration-300">
+        <div className="flex justify-between items-center px-4 py-4 relative">
+          <div className="absolute inset-0 opacity-[0.15] mix-blend-multiply rounded-b-3xl" style={{ backgroundImage: 'radial-gradient(#ef4444 2px, transparent 2px)', backgroundSize: '16px 16px' }}></div>
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-12 h-12 rounded-full border-2 border-red-600 flex items-center justify-center bg-white overflow-hidden shadow-sm hover:scale-105 transition-transform">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
-              <span className="text-red-600 font-bold text-base">Singkong Keju</span>
-              <span className="text-red-600 font-medium text-xs">D9</span>
+              <span className="text-red-700 font-extrabold text-lg tracking-tight drop-shadow-sm">Singkong Keju</span>
+              <span className="text-red-600 font-bold text-xs -mt-1 tracking-wider uppercase">D9 Salatiga</span>
             </div>
           </div>
-          <div className="bg-red-600 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full">
+          <div className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-shadow relative z-10">
             Meja {tableNumber}
           </div>
         </div>
@@ -203,18 +223,58 @@ const handleCheckout = async () => {
                     <h3 className="text-gray-900 font-semibold text-sm">{item.name}</h3>
                     <p className="text-gray-900 font-bold text-base mt-1">Rp {item.price.toLocaleString()}</p>
                   </div>
-                  <button
-                    onClick={() => addToCart(item)}
-                    className="border border-red-600 text-red-600 text-xs font-medium px-5 py-1.5 rounded-full hover:bg-red-600 hover:text-white transition"
-                  >
-                    Tambah
-                  </button>
+                  {(() => {
+                    const cartItem = cart.find(c => (c._id || c.menuId || c.id) === (item._id || item.menuId || item.id));
+                    if (cartItem) {
+                      return (
+                        <div className="flex items-center bg-gray-100 rounded-full p-0.5 shadow-sm">
+                          <button onClick={() => updateQuantity(item._id || item.menuId || item.id, -1)} className="w-7 h-7 rounded-full bg-white text-gray-600 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"><Minus className="w-3.5 h-3.5" /></button>
+                          <span className="w-7 text-center font-bold text-gray-700 text-sm">{cartItem.quantity}</span>
+                          <button onClick={() => updateQuantity(item._id || item.menuId || item.id, 1)} className="w-7 h-7 rounded-full bg-red-500 text-white shadow-sm flex items-center justify-center hover:bg-red-600 transition-colors active:scale-95"><Plus className="w-3.5 h-3.5" /></button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <button
+                        onClick={() => addToCart(item)}
+                        className="border-2 border-red-600 text-red-600 text-xs font-bold px-5 py-1.5 rounded-full hover:bg-red-600 hover:text-white transition active:scale-95"
+                      >
+                        Tambah
+                      </button>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
           </div>
         ))}
       </div>
+      {/* FLOATING CHECKOUT BAR */}
+      {cart.length > 0 && !showCart && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 z-40 bg-gradient-to-t from-white via-white/80 to-transparent pt-12 pb-6 pointer-events-none">
+          <div 
+            onClick={() => setShowCart(true)}
+            className="max-w-md mx-auto bg-red-600 rounded-2xl shadow-lg p-3 flex items-center justify-between cursor-pointer hover:bg-red-700 transition active:scale-[0.98] pointer-events-auto"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-red-800/40 rounded-full w-10 h-10 flex items-center justify-center relative">
+                <ShoppingCart className="w-5 h-5 text-white" />
+                <span className="absolute -top-1 -right-1 bg-white text-red-600 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {cart.length}
+                </span>
+              </div>
+              <div className="flex flex-col text-white">
+                <span className="text-[11px] text-red-100 font-medium leading-none mb-1">Total Pesanan</span>
+                <span className="font-bold leading-none">Rp {totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-white font-bold text-sm bg-red-500/50 px-3 py-1.5 rounded-xl">
+              Lanjut
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CART MODAL */}
       {showCart && (
@@ -232,17 +292,19 @@ const handleCheckout = async () => {
               ) : (
                 <div className="space-y-3">
                   {cart.map((item) => (
-  <div key={item._id || item.menuId || item.id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
-                      <img src={item.image} alt={item.name} className="w-14 h-12 rounded-lg object-cover" />
+  <div key={item._id || item.menuId || item.id} className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-xl p-3 hover:shadow-md transition-shadow">
+                      <img src={item.image} alt={item.name} className="w-14 h-14 rounded-lg object-cover" />
                       <div className="flex-1">
-                        <div className="font-medium text-gray-800 text-sm">{item.name}</div>
-                        <div className="text-red-600 font-semibold text-sm">Rp {item.price.toLocaleString()}</div>
+                        <div className="font-semibold text-gray-800 text-sm leading-tight mb-1">{item.name}</div>
+                        <div className="text-red-600 font-bold text-sm">Rp {item.price.toLocaleString()}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => updateQuantity(item._id || item.menuId || item.id, -1)} className="w-7 h-7 rounded-full bg-gray-200"><Minus className="w-3.5 h-3.5 text-gray-700" /></button>
-                        <span className="w-6 text-center font-medium">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item._id || item.menuId || item.id, 1)} className="w-7 h-7 rounded-full bg-red-500"><Plus className="w-3.5 h-3.5 text-white" /></button>
-                        <button onClick={() => removeFromCart(item._id || item.menuId || item.id)} className="w-7 h-7 rounded-full bg-gray-200 ml-1"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
+                        <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+                          <button onClick={() => updateQuantity(item._id || item.menuId || item.id, -1)} className="w-7 h-7 rounded-full bg-white text-gray-600 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"><Minus className="w-3.5 h-3.5" /></button>
+                          <span className="w-7 text-center font-bold text-gray-700 text-sm">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item._id || item.menuId || item.id, 1)} className="w-7 h-7 rounded-full bg-red-500 text-white shadow-sm flex items-center justify-center hover:bg-red-600 transition-colors active:scale-95"><Plus className="w-3.5 h-3.5" /></button>
+                        </div>
+                        <button onClick={() => removeFromCart(item._id || item.menuId || item.id)} className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors active:scale-95 ml-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
                   ))}

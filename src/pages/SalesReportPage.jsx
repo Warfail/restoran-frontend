@@ -1,10 +1,190 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut, Search, HelpCircle, Bell, Download } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import SettingsModal from "../components/SettingsModal";
+
+const dataBulanan = [
+  { name: 'Jan', pendapatan: 2500000, tahunLalu: 2000000 },
+  { name: 'Feb', pendapatan: 3000000, tahunLalu: 2200000 },
+  { name: 'Mar', pendapatan: 2800000, tahunLalu: 2500000 },
+  { name: 'Apr', pendapatan: 3500000, tahunLalu: 2800000 },
+  { name: 'Mei', pendapatan: 4200000, tahunLalu: 3000000 },
+  { name: 'Jun', pendapatan: 3800000, tahunLalu: 3200000 },
+  { name: 'Jul', pendapatan: 4500000, tahunLalu: 3500000 },
+  { name: 'Agu', pendapatan: 4800000, tahunLalu: 3800000 },
+  { name: 'Sep', pendapatan: 4000000, tahunLalu: 3500000 },
+  { name: 'Okt', pendapatan: 5200000, tahunLalu: 4000000 },
+  { name: 'Nov', pendapatan: 5800000, tahunLalu: 4500000 },
+  { name: 'Des', pendapatan: 6500000, tahunLalu: 5000000 },
+];
+
+const dataMingguan = [
+  { name: 'Sen', pendapatan: 850000, tahunLalu: 700000 },
+  { name: 'Sel', pendapatan: 900000, tahunLalu: 750000 },
+  { name: 'Rab', pendapatan: 880000, tahunLalu: 800000 },
+  { name: 'Kam', pendapatan: 950000, tahunLalu: 820000 },
+  { name: 'Jum', pendapatan: 1200000, tahunLalu: 950000 },
+  { name: 'Sab', pendapatan: 1800000, tahunLalu: 1500000 },
+  { name: 'Min', pendapatan: 2100000, tahunLalu: 1700000 },
+];
+
+const dataTahunan = [
+  { name: '2020', pendapatan: 25000000, tahunLalu: 20000000 },
+  { name: '2021', pendapatan: 30000000, tahunLalu: 25000000 },
+  { name: '2022', pendapatan: 38000000, tahunLalu: 30000000 },
+  { name: '2023', pendapatan: 45000000, tahunLalu: 38000000 },
+  { name: '2024', pendapatan: 52000000, tahunLalu: 45000000 },
+];
+
+const menuLaris = [
+  { nama: "Singkong Keju Original", terjual: 842, persentase: 100 },
+  { nama: "Singkong Keju Cokelat", terjual: 612, persentase: 72 },
+  { nama: "Singkong Keju Spesial", terjual: 540, persentase: 64 },
+  { nama: "Es Teh Manis Jumbo", terjual: 480, persentase: 57 }
+];
+
+const menuKurangLaris = [
+  { nama: "Kopi Tubruk Gula Aren", terjual: 12, persentase: 15 },
+  { nama: "Singkong Rebus Polos", terjual: 18, persentase: 22 },
+  { nama: "Juice Alpukat (Seasonal)", terjual: 24, persentase: 30 },
+  { nama: "Es Jeruk Hangat", terjual: 32, persentase: 38 }
+];
 
 export default function SalesReportPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const [activePeriod, setActivePeriod] = useState("Bulanan");
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const navigate = useNavigate();
+
+  const currentChartData = activePeriod === "Tahunan" 
+    ? dataTahunan 
+    : activePeriod === "Mingguan" 
+      ? dataMingguan 
+      : dataBulanan;
+
+  const statsMapping = {
+    Mingguan: {
+      pendapatan: "Rp 8.480.000",
+      pendapatanGrowth: "+5.2%",
+      pendapatanGrowthColor: "text-green-600",
+      transaksi: "342",
+      transaksiGrowth: "+2.1%",
+      transaksiGrowthColor: "text-green-600",
+      pelanggan: "84",
+      pelangganGrowth: "-1.5%",
+      pelangganGrowthColor: "text-red-600",
+      rating: "4.8/5.0",
+      ratingGrowth: "+0.1",
+      ratingGrowthColor: "text-green-600"
+    },
+    Bulanan: {
+      pendapatan: "Rp 45.230.000",
+      pendapatanGrowth: "+12.5%",
+      pendapatanGrowthColor: "text-green-600",
+      transaksi: "1,284",
+      transaksiGrowth: "+8.2%",
+      transaksiGrowthColor: "text-green-600",
+      pelanggan: "342",
+      pelangganGrowth: "-2.1%",
+      pelangganGrowthColor: "text-red-600",
+      rating: "4.8/5.0",
+      ratingGrowth: "+0.4",
+      ratingGrowthColor: "text-green-600"
+    },
+    Tahunan: {
+      pendapatan: "Rp 542.800.000",
+      pendapatanGrowth: "+24.8%",
+      pendapatanGrowthColor: "text-green-600",
+      transaksi: "15,420",
+      transaksiGrowth: "+18.5%",
+      transaksiGrowthColor: "text-green-600",
+      pelanggan: "4,120",
+      pelangganGrowth: "+12.4%",
+      pelangganGrowthColor: "text-green-600",
+      rating: "4.9/5.0",
+      ratingGrowth: "+0.2",
+      ratingGrowthColor: "text-green-600"
+    }
+  };
+
+  const currentStats = statsMapping[activePeriod];
+
+  const handleExportExcel = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Pendapatan
+    const wsPendapatan = XLSX.utils.json_to_sheet(currentChartData.map(item => ({
+      Periode: item.name,
+      'Pendapatan Tahun Ini (Rp)': item.pendapatan,
+      'Pendapatan Tahun Lalu (Rp)': item.tahunLalu
+    })));
+    XLSX.utils.book_append_sheet(wb, wsPendapatan, "Pendapatan");
+
+    // Sheet 2: Menu Terlaris
+    const wsLaris = XLSX.utils.json_to_sheet(menuLaris.map(item => ({
+      'Nama Menu': item.nama,
+      'Jumlah Terjual (Porsi)': item.terjual,
+      'Indikator Performa (%)': item.persentase
+    })));
+    XLSX.utils.book_append_sheet(wb, wsLaris, "Menu Terlaris");
+
+    // Sheet 3: Menu Kurang Laris
+    const wsKurang = XLSX.utils.json_to_sheet(menuKurangLaris.map(item => ({
+      'Nama Menu': item.nama,
+      'Jumlah Terjual (Porsi)': item.terjual,
+      'Indikator Performa (%)': item.persentase
+    })));
+    XLSX.utils.book_append_sheet(wb, wsKurang, "Menu Kurang Laris");
+
+    XLSX.writeFile(wb, `Laporan_Penjualan_${activePeriod}.xlsx`);
+  };
+
+  const handleExportPDF = async () => {
+    const element = document.getElementById('laporan-content');
+    if (!element) return;
+    
+    setIsExportingPDF(true);
+    try {
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      
+      const margin = 10;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (canvas.height * contentWidth) / canvas.width;
+      
+      pdf.setFontSize(16);
+      pdf.text(`Laporan Penjualan - Periode ${activePeriod}`, margin, margin + 5);
+      
+      // Prevent image from overflowing A4 height
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let finalHeight = contentHeight;
+      if (margin + 10 + contentHeight > pageHeight - margin) {
+        finalHeight = pageHeight - margin - (margin + 10);
+      }
+      
+      pdf.addImage(imgData, 'PNG', margin, margin + 10, contentWidth, finalHeight);
+      pdf.save(`Laporan_Penjualan_${activePeriod}.pdf`);
+    } catch (error) {
+      console.error("Failed to generate PDF", error);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -21,7 +201,10 @@ export default function SalesReportPage() {
       {/* Sidebar - SAMA PERSIS DENGAN DASHBOARD */}
       <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
         <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
+          </div>
           <p className="text-[#CBFFC2] text-sm mt-1 font-koulen">Admin Panel</p>
         </div>
 
@@ -68,9 +251,8 @@ export default function SalesReportPage() {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition">
-            <Settings className="w-5 h-5" />
-            <span>Pengaturan</span>
+          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-5 h-5" /><span>Pengaturan</span>
           </button>
 
           <button
@@ -96,16 +278,22 @@ export default function SalesReportPage() {
             <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
             <div className="flex items-center gap-2.5">
               <div className="text-right">
-                <div className="text-gray-900 text-[13px] font-semibold">Admin Sistem</div>
-                <div className="text-gray-500 text-[11px] font-medium">SUPERUSER</div>
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
               </div>
-              <img src="https://placehold.co/36x36/d97706/d97706" alt="Avatar" className="w-9 h-9 rounded-full object-cover" />
+              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                {currentUser?.profilePicture ? (
+                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Content - Sama seperti sebelumnya */}
-        <div className="px-7 py-5 space-y-5">
+        <div id="laporan-content" className="px-7 py-5 space-y-5 bg-gray-50">
           {/* Search & Filter Bar */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 flex-1 max-w-[420px] w-full">
@@ -115,7 +303,7 @@ export default function SalesReportPage() {
             
             <div className="flex items-center gap-2">
               <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
-                {["Bulanan", "Mingguan", "Harian"].map((period) => (
+                {["Tahunan", "Bulanan", "Mingguan"].map((period) => (
                   <button
                     key={period}
                     onClick={() => setActivePeriod(period)}
@@ -130,25 +318,38 @@ export default function SalesReportPage() {
                 ))}
               </div>
               
-              <button className="flex items-center gap-2 bg-green-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm hover:bg-green-700 transition">
-                <Download className="w-3.5 h-3.5" />
-                <span>Ekspor PDF</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-1.5 bg-green-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm hover:bg-green-700 transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Ekspor Excel</span>
+                </button>
+                <button 
+                  onClick={handleExportPDF}
+                  disabled={isExportingPDF}
+                  className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isExportingPDF ? "Memproses..." : "Ekspor PDF"}</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon="💰" iconBg="bg-green-50" iconColor="text-green-600" title="Total Pendapatan" value="Rp 45.230.000" growth="+12.5%" growthColor="text-green-600" />
-            <StatCard icon="🛒" iconBg="bg-yellow-50" iconColor="text-yellow-600" title="Total Transaksi" value="1,284" growth="+8.2%" growthColor="text-green-600" />
-            <StatCard icon="👥" iconBg="bg-red-50" iconColor="text-red-600" title="Pelanggan Baru" value="342" growth="-2.1%" growthColor="text-red-600" />
-            <StatCard icon="⭐" iconBg="bg-yellow-50" iconColor="text-yellow-600" title="Rata-rata Rating" value="4.8/5.0" growth="+0.4" growthColor="text-green-600" />
+            <StatCard icon="💰" iconBg="bg-green-50" iconColor="text-green-600" title="Total Pendapatan" value={currentStats.pendapatan} growth={currentStats.pendapatanGrowth} growthColor={currentStats.pendapatanGrowthColor} />
+            <StatCard icon="🛒" iconBg="bg-yellow-50" iconColor="text-yellow-600" title="Total Transaksi" value={currentStats.transaksi} growth={currentStats.transaksiGrowth} growthColor={currentStats.transaksiGrowthColor} />
+            <StatCard icon="👥" iconBg="bg-red-50" iconColor="text-red-600" title="Pelanggan Baru" value={currentStats.pelanggan} growth={currentStats.pelangganGrowth} growthColor={currentStats.pelangganGrowthColor} />
+            <StatCard icon="⭐" iconBg="bg-yellow-50" iconColor="text-yellow-600" title="Rata-rata Rating" value={currentStats.rating} growth={currentStats.ratingGrowth} growthColor={currentStats.ratingGrowthColor} />
           </div>
 
           {/* Chart Section */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-gray-900 text-base font-bold">Tren Pendapatan Bulanan</h3>
+              <h3 className="text-gray-900 text-base font-bold">Tren Pendapatan {activePeriod}</h3>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-green-600"></div>
@@ -161,23 +362,33 @@ export default function SalesReportPage() {
               </div>
             </div>
             
-            <div className="w-full overflow-x-auto">
-              <svg viewBox="0 0 900 260" className="w-full min-w-[500px] h-[260px]" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#16a34a" stopOpacity="0.18" />
-                    <stop offset="100%" stopColor="#16a34a" stopOpacity="0.01" />
-                  </linearGradient>
-                </defs>
-                {[20, 65, 110, 155, 200].map((y) => (
-                  <line key={y} x1="0" y1={y} x2="900" y2={y} stroke="#f3f4f6" strokeWidth="1" />
-                ))}
-                <path d="M 0 220 C 30 215, 60 205, 75 195 C 100 180, 130 165, 150 158 C 180 148, 210 145, 225 143 C 255 140, 285 142, 300 145 C 330 150, 360 158, 375 162 C 405 168, 435 170, 450 168 C 480 164, 510 155, 525 148 C 555 132, 585 105, 600 88 C 630 58, 660 38, 675 32 C 705 22, 735 28, 750 35 C 780 48, 810 72, 825 85 C 855 108, 885 130, 900 140" fill="url(#greenGrad)" stroke="none" />
-                <path d="M 0 220 C 30 215, 60 205, 75 195 C 100 180, 130 165, 150 158 C 180 148, 210 145, 225 143 C 255 140, 285 142, 300 145 C 330 150, 360 158, 375 162 C 405 168, 435 170, 450 168 C 480 164, 510 155, 525 148 C 555 132, 585 105, 600 88 C 630 58, 660 38, 675 32 C 705 22, 735 28, 750 35 C 780 48, 810 72, 825 85 C 855 108, 885 130, 900 140" fill="none" stroke="#16a34a" strokeWidth="2.5" />
-                {["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"].map((month, idx) => (
-                  <text key={month} x={idx * 75} y="248" fill="#9ca3af" fontSize="11" textAnchor="middle">{month}</text>
-                ))}
-              </svg>
+            <div className="w-full h-[280px] mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={currentChartData}
+                  margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorPendapatan" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorTahunLalu" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#9ca3af" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#9ca3af" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} tickFormatter={(value) => value === 0 ? '0' : `Rp${value/1000000}Jt`} width={65} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                    formatter={(value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value)}
+                  />
+                  <Area type="monotone" dataKey="tahunLalu" name="Tahun Lalu" stroke="#9ca3af" strokeWidth={2} fillOpacity={1} fill="url(#colorTahunLalu)" />
+                  <Area type="monotone" dataKey="pendapatan" name="Tahun Ini" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#colorPendapatan)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -189,10 +400,9 @@ export default function SalesReportPage() {
                 <span className="text-xl">📈</span>
               </div>
               <div className="space-y-4">
-                <MenuRankItem name="Singkong Keju Original" sold="842 Porsi" percentage={100} />
-                <MenuRankItem name="Singkong Keju Cokelat" sold="612 Porsi" percentage={72} />
-                <MenuRankItem name="Singkong Keju Spesial" sold="540 Porsi" percentage={64} />
-                <MenuRankItem name="Es Teh Manis Jumbo" sold="480 Porsi" percentage={57} />
+                {menuLaris.map(menu => (
+                  <MenuRankItem key={menu.nama} name={menu.nama} sold={`${menu.terjual} Porsi`} percentage={menu.persentase} />
+                ))}
               </div>
             </div>
 
@@ -202,14 +412,15 @@ export default function SalesReportPage() {
                 <span className="text-xl">📉</span>
               </div>
               <div className="space-y-4">
-                <MenuRankItem name="Kopi Tubruk Gula Aren" sold="12 Porsi" percentage={15} color="bg-amber-500" />
-                <MenuRankItem name="Singkong Rebus Polos" sold="18 Porsi" percentage={22} color="bg-amber-500" />
-                <MenuRankItem name="Juice Alpukat (Seasonal)" sold="24 Porsi" percentage={30} color="bg-amber-500" />
-                <MenuRankItem name="Es Jeruk Hangat" sold="32 Porsi" percentage={38} color="bg-amber-500" />
+                {menuKurangLaris.map(menu => (
+                  <MenuRankItem key={menu.nama} name={menu.nama} sold={`${menu.terjual} Porsi`} percentage={menu.persentase} color="bg-amber-500" />
+                ))}
               </div>
             </div>
           </div>
         </div>
+      
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
       </main>
     </div>
   );
@@ -241,6 +452,7 @@ function MenuRankItem({ name, sold, percentage, color = "bg-green-600" }) {
       <div className="w-full bg-gray-200 rounded-full h-1.5">
         <div className={`${color} h-1.5 rounded-full`} style={{ width: `${percentage}%` }}></div>
       </div>
+    
     </div>
   );
 }

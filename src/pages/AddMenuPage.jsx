@@ -1,7 +1,10 @@
-import { useState } from "react";
+import SettingsModal from "../components/SettingsModal";
+import toast from "react-hot-toast";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { 
+import {
+  
   ArrowLeft, 
   ChevronDown, 
   Camera, 
@@ -19,6 +22,16 @@ import {
 } from "lucide-react";
 
 export default function AddMenuPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
@@ -51,7 +64,7 @@ export default function AddMenuPage() {
     e.preventDefault();
     
     if (!formData.name || !formData.category || Number(formData.price) <= 0) {
-      alert("Mohon lengkapi data menu");
+      toast("Mohon lengkapi data menu");
       return;
     }
     
@@ -77,14 +90,14 @@ export default function AddMenuPage() {
       console.log("Menu created:", response);
       
       if (response.success) {
-        alert("✅ Menu berhasil ditambahkan!");
+        toast.success("✅ Menu berhasil ditambahkan!");
         navigate("/admin/menu");
       } else {
-        alert("Gagal menambahkan menu: " + (response.message || "Unknown error"));
+        toast.error("Gagal menambahkan menu: " + (response.message || "Unknown error"));
       }
     } catch (error) {
       console.error("Create menu failed:", error);
-      alert("Terjadi kesalahan saat menambahkan menu");
+      toast.error("Terjadi kesalahan saat menambahkan menu");
     } finally {
       setLoading(false);
     }
@@ -101,7 +114,10 @@ export default function AddMenuPage() {
       {/* SIDEBAR */}
       <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
         <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
+          </div>
           <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
         </div>
 
@@ -133,9 +149,8 @@ export default function AddMenuPage() {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition">
-            <Settings className="w-5 h-5" />
-            <span>Pengaturan</span>
+          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-5 h-5" /><span>Pengaturan</span>
           </button>
           <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1 transition">
             <LogOut className="w-5 h-5" />
@@ -154,10 +169,16 @@ export default function AddMenuPage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-gray-900 text-sm font-semibold">Admin D9</div>
-              <div className="text-gray-500 text-xs">SUPER ADMIN</div>
-            </div>
-            <img src="https://placehold.co/40x40/8b6f5e/8b6f5e" alt="Admin" className="w-10 h-10 rounded-full object-cover" />
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                {currentUser?.profilePicture ? (
+                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                )}
+              </div>
           </div>
         </div>
 
@@ -315,6 +336,8 @@ export default function AddMenuPage() {
           </form>
         </div>
       </main>
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }

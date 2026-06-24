@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
+import { api } from "../services/api";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -16,19 +17,59 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    setTimeout(() => {
-      if (username === "admin" && password === "admin123") {
+    try {
+      const u = username.trim().toLowerCase();
+      const p = password.trim();
+
+      // HARDCODED MOCK LOGINS
+      if (u === "admin" && p === "admin123") {
         localStorage.setItem("token", "dummy-token-123");
         localStorage.setItem("role", "admin");
-        if (rememberMe) {
-          localStorage.setItem("rememberedUser", username);
-        }
+        localStorage.setItem("user", JSON.stringify({ userId: "admin", username: "admin", fullName: "Admin Sistem", role: "admin", profilePicture: "" }));
+        if (rememberMe) localStorage.setItem("rememberedUser", username);
         navigate("/admin");
-      } else {
-        setError("Username atau password salah");
+        return;
+      } else if (u === "kasir" && p === "kasir123") {
+        localStorage.setItem("token", "kasir-token-123");
+        localStorage.setItem("role", "kasir");
+        localStorage.setItem("user", JSON.stringify({ userId: "kasir", username: "kasir", fullName: "Kasir", role: "kasir", profilePicture: "" }));
+        if (rememberMe) localStorage.setItem("rememberedUser", username);
+        navigate("/cashier");
+        return;
+      } else if (u === "kitchen" && p === "kitchen123") {
+        localStorage.setItem("token", "kitchen-token-123");
+        localStorage.setItem("role", "kitchen");
+        localStorage.setItem("user", JSON.stringify({ userId: "kitchen", username: "kitchen", fullName: "Kitchen", role: "kitchen", profilePicture: "" }));
+        if (rememberMe) localStorage.setItem("rememberedUser", username);
+        navigate("/kitchen/dashboard");
+        return;
       }
+
+      // API LOGIN (Untuk Karyawan Baru)
+      const response = await api.login(username.trim(), password.trim());
+      if (response.success) {
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("role", response.role);
+        localStorage.setItem("user", JSON.stringify(response.user));
+        if (rememberMe) localStorage.setItem("rememberedUser", username);
+        
+        if (response.role === "admin") {
+          navigate("/admin");
+        } else if (response.role === "kasir") {
+          navigate("/cashier");
+        } else if (response.role === "kitchen") {
+          navigate("/kitchen/dashboard");
+        } else {
+          navigate("/"); // fallback
+        }
+      } else {
+        setError(response.detail || "Username atau password salah");
+      }
+    } catch (err) {
+      setError(err.message || "Username atau password salah");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   return (
@@ -37,8 +78,8 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-md w-full max-w-[420px] px-6 sm:px-10 py-8 sm:py-10 flex flex-col items-center">
           
           <div className="mb-5">
-            <div className="w-[72px] h-[72px] rounded-full border-2 border-red-600 flex items-center justify-center">
-              <span className="text-red-600 font-bold text-[22px] tracking-tight">D-9</span>
+            <div className="w-[72px] h-[72px] rounded-full border-2 border-red-600 flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
           </div>
 

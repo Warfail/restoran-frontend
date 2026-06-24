@@ -7,8 +7,19 @@ import TopMenuList from "../components/admin/TopMenuList";
 import BottomMenuList from "../components/admin/BottomMenuList";
 import RecentOrdersTable from "../components/admin/RecentOrdersTable";
 import Footer from "../components/admin/Footer";
+import SettingsModal from "../components/SettingsModal";
 
 export default function AdminDashboard() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -208,7 +219,7 @@ export default function AdminDashboard() {
       <main className="ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Selamat datang, Admin</p>
+          <p className="text-gray-500 mt-1">Selamat datang, {currentUser?.fullName || currentUser?.username || "Admin"}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -225,6 +236,8 @@ export default function AdminDashboard() {
         <RecentOrdersTable orders={recentOrders} />
         <Footer />
       </main>
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }

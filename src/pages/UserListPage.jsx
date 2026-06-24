@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import UpdateUserModal from "../components/UpdateUserModal";
 import { useNavigate } from "react-router-dom";
@@ -25,8 +26,19 @@ import {
   Check
 } from "lucide-react";
 import { api } from "../services/api";
+import SettingsModal from "../components/SettingsModal";
 
 export default function UserListPage() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+    }
+  }, []);
+
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
@@ -35,10 +47,6 @@ export default function UserListPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -53,6 +61,12 @@ export default function UserListPage() {
     }
   };
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
@@ -62,13 +76,13 @@ export default function UserListPage() {
   const handleUpdateUser = async (userId, formData) => {
     try {
       await api.updateUser(userId, formData);
-      alert("User berhasil diupdate!");
+      toast.success("User berhasil diupdate!");
       fetchUsers();
       setIsModalOpen(false);
       setSelectedUser(null);
     } catch (error) {
       console.error("Failed to update user:", error);
-      alert("Gagal mengupdate user");
+      toast.error("Gagal mengupdate user");
     }
   };
 
@@ -76,11 +90,11 @@ export default function UserListPage() {
     if (confirm(`Hapus user "${username}"?`)) {
       try {
         await api.deleteUser(userId);
-        alert("User berhasil dihapus!");
+        toast.success("User berhasil dihapus!");
         fetchUsers();
       } catch (error) {
         console.error("Failed to delete user:", error);
-        alert("Gagal menghapus user");
+        toast.error("Gagal menghapus user");
       }
     }
   };
@@ -147,7 +161,10 @@ export default function UserListPage() {
       {/* SIDEBAR - Sama seperti sebelumnya */}
       <aside className="fixed left-0 top-0 w-64 h-full bg-[#c0392b] shadow-lg z-10">
         <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white">Singkong Keju D9</h2>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+            <h2 className="text-xl font-bold text-white">Singkong Keju D9</h2>
+          </div>
           <p className="text-amber-300 text-xs font-semibold uppercase tracking-wide mt-1">Admin Panel</p>
         </div>
 
@@ -175,9 +192,8 @@ export default function UserListPage() {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full transition">
-            <Settings className="w-5 h-5" />
-            <span className="text-sm">Pengaturan</span>
+          <button className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-5 h-5" /><span className="text-sm">Pengaturan</span>
           </button>
           <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full mt-1 transition">
             <LogOut className="w-5 h-5" />
@@ -197,10 +213,16 @@ export default function UserListPage() {
             <div className="w-px h-8 bg-gray-200"></div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">Admin Sistem</div>
-                <div className="text-gray-400 text-xs font-medium tracking-wide">SUPERUSER</div>
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
               </div>
-              <img src="https://placehold.co/36x36/c0392b/c0392b" alt="Admin" className="w-9 h-9 rounded-full object-cover" />
+              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                {currentUser?.profilePicture ? (
+                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -383,6 +405,8 @@ export default function UserListPage() {
         onClose={() => setIsModalOpen(false)}
         onUpdate={handleUpdateUser}
       />
+    
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
 }
