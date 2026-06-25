@@ -525,46 +525,46 @@ const printReceipt = async (orderId) => {
               </button>
               <button
                 onClick={async () => {
-                  if (currentPrintOrderId) {
-                    try {
-                      await fetch(`http://localhost:8000/cashier/order/${currentPrintOrderId}/printed`, { method: "PUT" });
-                      fetchOrders(false); // update the list
-                    } catch (e) {
-                      console.error("Gagal update status isPrinted", e);
-                    }
-                  }
-                  setShowReceipt(false); // Langsung tutup modal struk
-                  const content = document.getElementById("receipt-content").innerHTML;
-                  const printWindow = window.open('', '_blank', 'width=400,height=600');
-                  printWindow.document.write(`
-                    <html>
-                      <head>
-                        <title>Cetak Struk - ${receiptData.receiptId}</title>
-                        <style>
-                          body { font-family: monospace; padding: 20px; color: #000; }
-                          .text-center { text-align: center; }
-                          .mb-6 { margin-bottom: 24px; }
-                          .mb-4 { margin-bottom: 16px; }
-                          .my-4 { margin-top: 16px; margin-bottom: 16px; }
-                          .border-b { border-bottom: 1px dashed #ccc; }
-                          .flex { display: flex; }
-                          .justify-between { justify-content: space-between; }
-                          .font-bold { font-weight: bold; }
-                          .space-y-1 > * + * { margin-top: 4px; }
-                          .space-y-2 > * + * { margin-top: 8px; }
-                        </style>
-                      </head>
-                      <body onload="window.print(); window.close();">
-                        ${content}
-                      </body>
-                    </html>
-                  `);
-                  printWindow.document.close();
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition"
-              >
-                Cetak / Save PDF
-              </button>
+  if (currentPrintOrderId) {
+    try {
+      await api.markAsPrinted(currentPrintOrderId);
+      fetchOrders(false); // update the list
+    } catch (e) {
+      console.error("Gagal update status isPrinted", e);
+    }
+  }
+  setShowReceipt(false);
+  const content = document.getElementById("receipt-content").innerHTML;
+  const printWindow = window.open('', '_blank', 'width=400,height=600');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Cetak Struk - ${receiptData.receiptId}</title>
+        <style>
+          body { font-family: monospace; padding: 20px; color: #000; }
+          .text-center { text-align: center; }
+          .mb-6 { margin-bottom: 24px; }
+          .mb-4 { margin-bottom: 16px; }
+          .my-4 { margin-top: 16px; margin-bottom: 16px; }
+          .border-b { border-bottom: 1px dashed #ccc; }
+          .flex { display: flex; }
+          .justify-between { justify-content: space-between; }
+          .font-bold { font-weight: bold; }
+          .space-y-1 > * + * { margin-top: 4px; }
+          .space-y-2 > * + * { margin-top: 8px; }
+        </style>
+      </head>
+      <body onload="window.print(); window.close();">
+        ${content}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}}
+className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition"
+>
+  Cetak / Save PDF
+</button>
             </div>
           </div>
         </div>
