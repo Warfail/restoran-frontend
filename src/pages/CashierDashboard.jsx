@@ -140,7 +140,7 @@ export default function CashierDashboard() {
   const printReceipt = async (orderId) => {
     try {
       setCurrentPrintOrderId(orderId);
-      const res = await fetch(`http://localhost:8000/cashier/receipt/${orderId}`);
+      const response = await api.getReceipt(orderId);
       const result = await res.json();
       if (result.success) {
         setReceiptData(result.data);
