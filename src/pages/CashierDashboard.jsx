@@ -137,22 +137,23 @@ export default function CashierDashboard() {
     }
   };
 
-  const printReceipt = async (orderId) => {
-    try {
-      setCurrentPrintOrderId(orderId);
-      const response = await api.getReceipt(orderId);
-      const result = await res.json();
-      if (result.success) {
-        setReceiptData(result.data);
-        setShowReceipt(true);
-      } else {
-        toast.error("Gagal mengambil struk");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Kesalahan jaringan");
+const printReceipt = async (orderId) => {
+  try {
+    setCurrentPrintOrderId(orderId);
+    const response = await api.getReceipt(orderId);
+    // const result = await res.json();  // ← HAPUS INI
+    // ✅ PAKE response LANGSUNG (karena api.getReceipt udah return JSON)
+    if (response.success) {
+      setReceiptData(response.data);
+      setShowReceipt(true);
+    } else {
+      toast.error("Gagal mengambil struk");
     }
-  };
+  } catch (error) {
+    console.error(error);
+    toast.error("Kesalahan jaringan");
+  }
+};
 
   const currentOrders = activeTab === "transaksi" 
     ? orders.filter(o => !o.isPrinted)
