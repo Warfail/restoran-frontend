@@ -89,7 +89,6 @@ export default function SalesReportPage() {
         
         validOrders.forEach(o => {
           let dateStr = o.createdAt || o.updatedAt;
-          if (dateStr && !dateStr.endsWith('Z')) dateStr += 'Z';
           const date = new Date(dateStr);
           if (date.getFullYear() === year && date.getMonth() === i) {
             monthlyRevenue += (o.totalAmount || 0);
@@ -143,7 +142,6 @@ export default function SalesReportPage() {
       
       validOrders.forEach(o => {
         let orderDateStr = o.createdAt || o.updatedAt;
-        if (orderDateStr && !orderDateStr.endsWith('Z')) orderDateStr += 'Z';
         const orderDate = new Date(orderDateStr);
         const orderDateNormalized = new Date(orderDate);
         orderDateNormalized.setHours(0, 0, 0, 0);
