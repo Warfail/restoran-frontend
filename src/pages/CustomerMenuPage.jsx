@@ -22,31 +22,39 @@ export default function CustomerMenuPage() {
   const [categories, setCategories] = useState(["Semua"]);
 
   // Fetch menu dari API
-// Di CustomerMenuPage.jsx, ganti useEffect:
-useEffect(() => {
-  const fetchMenu = async () => {
-    try {
-      setLoading(true);
-      const menus = await api.getMenu();
-      console.log("Menus:", menus);
-      
-      if (Array.isArray(menus) && menus.length > 0) {
-        // ✅ TAMPILKAN SEMUA KATEGORI ASLI
-        setMenuItems(menus);
-        const uniqueCats = ["Semua", ...new Set(menus.map(item => item.category).filter(Boolean))];
-        setCategories(uniqueCats);
-      } else {
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        setLoading(true);
+        const menus = await api.getMenu();
+        console.log("Menus:", menus);
+        console.log("Raw menu data:", menus);
+        
+        
+        if (Array.isArray(menus) && menus.length > 0) {
+          const validCategories = ["Makanan", "Snack", "Minuman"];
+          const sanitizedMenus = menus.map(item => {
+            if (!validCategories.includes(item.category)) {
+              return { ...item, category: "Makanan" };
+            }
+            return item;
+          });
+          setMenuItems(sanitizedMenus);
+          setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
+        } else {
+          console.warn("Menu data is empty or not an array");
+          setMenuItems([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch menu:", error);
         setMenuItems([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch menu:", error);
-      setMenuItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchMenu();
-}, []);
+    };
+    
+    fetchMenu();
+  }, []);
 
 const addToCart = (item) => {
   const itemId = item._id || item.menuId || item.id;

@@ -218,6 +218,19 @@ setPaymentMethod: async (orderId, method) => {
     return res.json();
   },
 
+  reduceStock: async (orderId) => {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/inventory/reduce`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ orderId })
+  });
+  return res.json();
+},
+
   updateStock: async (itemId, newStock) => {
     const token = getToken();
     const res = await fetch(`${API_BASE}/inventory/${itemId}`, {

@@ -39,7 +39,8 @@ export default function AddMenuPage() {
     price: 0,
     stock: 0,
     description: "",
-    isAvailable: true
+    isAvailable: true,
+    recipe: [] 
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -60,6 +61,50 @@ export default function AddMenuPage() {
     }
   };
 
+  const [recipeInput, setRecipeInput] = useState({
+  ingredientName: "",
+  quantity: "",
+  unit: "kg"
+});
+const [inventoryList, setInventoryList] = useState([]);
+
+// Fetch inventory buat dropdown
+useEffect(() => {
+  const fetchInventory = async () => {
+    try {
+      const response = await api.getInventory();
+      setInventoryList(Array.isArray(response) ? response : response?.data || []);
+    } catch (error) {
+      console.error("Failed to fetch inventory:", error);
+    }
+  };
+  fetchInventory();
+}, []);
+
+const addRecipeItem = () => {
+  if (!recipeInput.ingredientName || !recipeInput.quantity) {
+    toast.error("Lengkapi data bahan");
+    return;
+  }
+  setFormData(prev => ({
+    ...prev,
+    recipe: [...prev.recipe, {
+      ingredientId: recipeInput.ingredientId || `INV-${Date.now()}`,
+      name: recipeInput.ingredientName,
+      quantity: parseFloat(recipeInput.quantity),
+      unit: recipeInput.unit
+    }]
+  }));
+  setRecipeInput({ ingredientName: "", quantity: "", unit: "kg", ingredientId: "" });
+};
+
+const removeRecipeItem = (index) => {
+  setFormData(prev => ({
+    ...prev,
+    recipe: prev.recipe.filter((_, i) => i !== index)
+  }));
+};
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -79,7 +124,8 @@ export default function AddMenuPage() {
         stock: Number(formData.stock) || 0,
         description: formData.description,
         isAvailable: formData.isAvailable,
-        image: imagePreview || "https://placehold.co/100x80/c8a96e/c8a96e"
+        image: imagePreview || "https://placehold.co/100x80/c8a96e/c8a96e",
+        recipe: formData.recipe || []
       };
 
        console.log("📤 Sending menuData:", menuData);
@@ -333,6 +379,68 @@ export default function AddMenuPage() {
                 <div><h3 className="text-sm font-semibold text-gray-900 mb-1">Deskripsi</h3><p className="text-xs text-gray-500">Sertakan bahan dan keunikan menu.</p></div>
               </div>
             </div>
+
+            {/* Recipe / Bahan Baku */}
+<div className="mt-6">
+  <label className="text-gray-700 text-sm font-medium mb-2 block">Resep / Bahan Baku</label>
+  <div className="flex gap-2 mb-3">
+    <div className="flex-1">
+      <select
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        value={recipeInput.ingredientName}
+        onChange={(e) => {
+          const selected = inventoryList.find(i => i.name === e.target.value);
+          setRecipeInput({
+            ingredientName: e.target.value,
+            ingredientId: selected?._id || "",
+            unit: selected?.unit || "kg"
+          });
+        }}
+      >
+        <option value="">Pilih Bahan</option>
+        {inventoryList.map(item => (
+          <option key={item._id} value={item.name}>{item.name} ({item.unit})</option>
+        ))}
+      </select>
+    </div>
+    <div className="w-24">
+      <input
+        type="number"
+        placeholder="Qty"
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        value={recipeInput.quantity}
+        onChange={(e) => setRecipeInput(prev => ({ ...prev, quantity: e.target.value }))}
+      />
+    </div>
+    <div className="w-20">
+      <span className="text-sm text-gray-500 py-2 block">{recipeInput.unit || "kg"}</span>
+    </div>
+    <button
+      type="button"
+      onClick={addRecipeItem}
+      className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm"
+    >
+      Tambah
+    </button>
+  </div>
+  
+  <div className="space-y-2">
+    {formData.recipe.map((item, idx) => (
+      <div key={idx} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+        <span className="text-sm font-medium flex-1">{item.name}</span>
+        <span className="text-sm text-gray-500">{item.quantity} {item.unit}</span>
+        <button
+          type="button"
+          onClick={() => removeRecipeItem(idx)}
+          className="text-red-500 hover:text-red-700"
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
+
           </form>
         </div>
       </main>

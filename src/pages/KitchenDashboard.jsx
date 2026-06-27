@@ -149,26 +149,36 @@ export default function KitchenDashboard() {
     navigate("/kitchen/login");
   };
 
-  const startCooking = async (orderId) => {
-    try {
-      const response = await api.updateKitchenStatus(orderId, "cooking");
-      console.log("Start cooking response:", response);
-      if (response.success || response) {
-        // Save actual start time to localStorage for accurate timer
-        const startTimes = JSON.parse(localStorage.getItem("kitchenCookingStartTimes") || "{}");
-        startTimes[orderId] = new Date().toISOString();
-        localStorage.setItem("kitchenCookingStartTimes", JSON.stringify(startTimes));
-
-        await fetchOrders();
-        toast.success("Order mulai dimasak!");
-      } else {
-        toast.error("Gagal mulai masak: " + (response.message || "Unknown error"));
-      }
-    } catch (error) {
-      console.error("Failed to start cooking:", error);
-      toast.error("Gagal mulai masak: " + (error.message || "Unknown error"));
+const startCooking = async (orderId) => {
+  try {
+    // 1. Kurangi stok bahan baku
+    const stockResult = await api.reduceStock(orderId);
+    console.log("Reduce stock result:", stockResult);
+    
+    if (!stockResult.success) {
+      toast.error(`Stok tidak cukup: ${stockResult.errors?.join(", ")}`);
+      return;
     }
-  };
+    
+    // 2. Update status jadi cooking
+    const response = await api.updateKitchenStatus(orderId, "cooking");
+    console.log("Start cooking response:", response);
+    
+    if (response.success || response) {
+      const startTimes = JSON.parse(localStorage.getItem("kitchenCookingStartTimes") || "{}");
+      startTimes[orderId] = new Date().toISOString();
+      localStorage.setItem("kitchenCookingStartTimes", JSON.stringify(startTimes));
+
+      await fetchOrders();
+      toast.success("Order mulai dimasak!");
+    } else {
+      toast.error("Gagal mulai masak: " + (response.message || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Failed to start cooking:", error);
+    toast.error("Gagal mulai masak: " + (error.message || "Unknown error"));
+  }
+};
 
   const completeSection = async (order, category) => {
     try {

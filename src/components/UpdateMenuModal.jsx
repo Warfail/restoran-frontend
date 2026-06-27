@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Save, ChevronDown } from "lucide-react";
+import toast from "react-hot-toast"; // ← TAMBAHKAN INI
+import { api } from "../services/api"; 
 
 export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -8,10 +10,56 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
     price: 0,
     stock: 0,
     image: "",
-    isAvailable: true
+    isAvailable: true,
+    recipe: [] 
   });
-  const [loading, setLoading] = useState(false);
 
+  const [recipeInput, setRecipeInput] = useState({
+    ingredientName: "",
+    quantity: "",
+    unit: "kg",
+    ingredientId: ""
+  });
+  const [inventoryList, setInventoryList] = useState([]);
+
+  // Fetch inventory untuk dropdown
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const response = await api.getInventory();
+        setInventoryList(Array.isArray(response) ? response : response?.data || []);
+      } catch (error) {
+        console.error("Failed to fetch inventory:", error);
+      }
+    };
+    fetchInventory();
+  }, []);
+
+  const addRecipeItem = () => {
+    if (!recipeInput.ingredientName || !recipeInput.quantity) {
+      toast.error("Lengkapi data bahan");
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      recipe: [...(prev.recipe || []), {
+        ingredientId: recipeInput.ingredientId || `INV-${Date.now()}`,
+        name: recipeInput.ingredientName,
+        quantity: parseFloat(recipeInput.quantity),
+        unit: recipeInput.unit
+      }]
+    }));
+    setRecipeInput({ ingredientName: "", quantity: "", unit: "kg", ingredientId: "" });
+  };
+
+  const removeRecipeItem = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      recipe: prev.recipe.filter((_, i) => i !== index)
+    }));
+  };
+
+  const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
@@ -22,7 +70,8 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
         price: menu.price || 0,
         stock: menu.stock || 0,
         image: menu.image || "",
-        isAvailable: menu.isAvailable !== false
+        isAvailable: menu.isAvailable !== false,
+        recipe: menu.recipe || [] // ← TAMBAHKAN INI
       });
       setImagePreview(menu.image || null);
     }
@@ -50,10 +99,15 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await onUpdate(menu.menuId || menu._id, formData);
+      const updateData = {
+        ...formData,
+        recipe: formData.recipe || []
+      };
+      await onUpdate(menu.menuId || menu._id, updateData);
       onClose();
     } catch (error) {
       console.error("Update failed:", error);
+      toast.error("Gagal mengupdate menu");
     } finally {
       setLoading(false);
     }
@@ -120,6 +174,67 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+
+          {/* Recipe / Bahan Baku */}
+<div className="mt-6">
+  <label className="text-gray-700 text-sm font-medium mb-2 block">Resep / Bahan Baku</label>
+  <div className="flex gap-2 mb-3">
+    <div className="flex-1">
+      <select
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        value={recipeInput.ingredientName}
+        onChange={(e) => {
+          const selected = inventoryList.find(i => i.name === e.target.value);
+          setRecipeInput({
+            ingredientName: e.target.value,
+            ingredientId: selected?._id || "",
+            unit: selected?.unit || "kg"
+          });
+        }}
+      >
+        <option value="">Pilih Bahan</option>
+        {inventoryList.map(item => (
+          <option key={item._id} value={item.name}>{item.name} ({item.unit})</option>
+        ))}
+      </select>
+    </div>
+    <div className="w-24">
+      <input
+        type="number"
+        placeholder="Qty"
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        value={recipeInput.quantity}
+        onChange={(e) => setRecipeInput(prev => ({ ...prev, quantity: e.target.value }))}
+      />
+    </div>
+    <div className="w-20">
+      <span className="text-sm text-gray-500 py-2 block">{recipeInput.unit || "kg"}</span>
+    </div>
+    <button
+      type="button"
+      onClick={addRecipeItem}
+      className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm"
+    >
+      Tambah
+    </button>
+  </div>
+  
+  <div className="space-y-2">
+    {formData.recipe.map((item, idx) => (
+      <div key={idx} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+        <span className="text-sm font-medium flex-1">{item.name}</span>
+        <span className="text-sm text-gray-500">{item.quantity} {item.unit}</span>
+        <button
+          type="button"
+          onClick={() => removeRecipeItem(idx)}
+          className="text-red-500 hover:text-red-700"
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
 
           <div>
             <label className="text-gray-700 text-sm font-medium mb-1 block">Foto Menu (Opsional)</label>
