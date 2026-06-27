@@ -22,11 +22,25 @@ import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import CustomerLoginPage from "./pages/CustomerLoginPage";
 
 
-function PrivateRoute({ children }) {
-  const token = localStorage.getItem("token");
+function PrivateRoute({ children, allowedRoles }) {
+  const token = sessionStorage.getItem("token");
+  const role = sessionStorage.getItem("role");
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }
+
+  // Jika allowedRoles diberikan dan role user tidak ada di dalamnya
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    // Redirect ke dashboard masing-masing sesuai role yang dimiliki
+    if (role === "admin") return <Navigate to="/admin" replace />;
+    if (role === "kasir") return <Navigate to="/cashier" replace />;
+    if (role === "kitchen") return <Navigate to="/kitchen/dashboard" replace />;
+    
+    // Fallback
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 }
 
@@ -37,16 +51,16 @@ function App() {
       <BrowserRouter>
         <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
-        <Route path="/reports" element={<PrivateRoute><SalesReportPage /></PrivateRoute>} />
-        <Route path="/users" element={<PrivateRoute><UserListPage /></PrivateRoute>} />
-        <Route path="/users/add" element={<PrivateRoute><UserManagementPage /></PrivateRoute>} />
-        <Route path="/admin/menu" element={<PrivateRoute><MenuManagementPage /></PrivateRoute>} />
-        <Route path="/admin/inventory" element={<PrivateRoute><InventoryPage /></PrivateRoute>} />
-        <Route path="/admin/menu/add" element={<PrivateRoute><AddMenuPage /></PrivateRoute>} />
+        <Route path="/admin" element={<PrivateRoute allowedRoles={["admin"]}><AdminDashboard /></PrivateRoute>} />
+        <Route path="/reports" element={<PrivateRoute allowedRoles={["admin"]}><SalesReportPage /></PrivateRoute>} />
+        <Route path="/users" element={<PrivateRoute allowedRoles={["admin"]}><UserListPage /></PrivateRoute>} />
+        <Route path="/users/add" element={<PrivateRoute allowedRoles={["admin"]}><UserManagementPage /></PrivateRoute>} />
+        <Route path="/admin/menu" element={<PrivateRoute allowedRoles={["admin"]}><MenuManagementPage /></PrivateRoute>} />
+        <Route path="/admin/inventory" element={<PrivateRoute allowedRoles={["admin"]}><InventoryPage /></PrivateRoute>} />
+        <Route path="/admin/menu/add" element={<PrivateRoute allowedRoles={["admin"]}><AddMenuPage /></PrivateRoute>} />
         <Route path="/cashier/login" element={<Navigate to="/login" replace />} />
         <Route path="/cart" element={<CartPage />} />
-<Route path="/cashier" element={<PrivateRoute><CashierDashboard /></PrivateRoute>} />
+<Route path="/cashier" element={<PrivateRoute allowedRoles={["kasir"]}><CashierDashboard /></PrivateRoute>} />
 <Route path="/landing" element={<CustomerLandingPage />} />
 <Route path="/menu" element={<CustomerMenuPage />} />
 <Route path="/payment" element={<PaymentPage />} />
@@ -58,7 +72,7 @@ function App() {
 
 
 <Route path="/kitchen/login" element={<Navigate to="/login" replace />} />
-<Route path="/kitchen/dashboard" element={<PrivateRoute><KitchenDashboard /></PrivateRoute>} />
+<Route path="/kitchen/dashboard" element={<PrivateRoute allowedRoles={["kitchen"]}><KitchenDashboard /></PrivateRoute>} />
         
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>

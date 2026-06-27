@@ -43,7 +43,7 @@ export default function CustomerLandingPage() {
         <div className="flex flex-col items-center mb-6">
           <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mb-4">
             <div className="w-17 h-17 rounded-full border-3 border-red-600 flex items-center justify-center overflow-hidden">
-              <img src="/logo.PNG" alt="Logo" className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
           </div>
           <div className="text-center">

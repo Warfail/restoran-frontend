@@ -1,126 +1,256 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut, Search, HelpCircle, Bell, Download } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush } from 'recharts';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import SettingsModal from "../components/SettingsModal";
 
-const dataBulanan = [
-  { name: 'Jan', pendapatan: 2500000, tahunLalu: 2000000 },
-  { name: 'Feb', pendapatan: 3000000, tahunLalu: 2200000 },
-  { name: 'Mar', pendapatan: 2800000, tahunLalu: 2500000 },
-  { name: 'Apr', pendapatan: 3500000, tahunLalu: 2800000 },
-  { name: 'Mei', pendapatan: 4200000, tahunLalu: 3000000 },
-  { name: 'Jun', pendapatan: 3800000, tahunLalu: 3200000 },
-  { name: 'Jul', pendapatan: 4500000, tahunLalu: 3500000 },
-  { name: 'Agu', pendapatan: 4800000, tahunLalu: 3800000 },
-  { name: 'Sep', pendapatan: 4000000, tahunLalu: 3500000 },
-  { name: 'Okt', pendapatan: 5200000, tahunLalu: 4000000 },
-  { name: 'Nov', pendapatan: 5800000, tahunLalu: 4500000 },
-  { name: 'Des', pendapatan: 6500000, tahunLalu: 5000000 },
-];
-
-const dataMingguan = [
-  { name: 'Sen', pendapatan: 850000, tahunLalu: 700000 },
-  { name: 'Sel', pendapatan: 900000, tahunLalu: 750000 },
-  { name: 'Rab', pendapatan: 880000, tahunLalu: 800000 },
-  { name: 'Kam', pendapatan: 950000, tahunLalu: 820000 },
-  { name: 'Jum', pendapatan: 1200000, tahunLalu: 950000 },
-  { name: 'Sab', pendapatan: 1800000, tahunLalu: 1500000 },
-  { name: 'Min', pendapatan: 2100000, tahunLalu: 1700000 },
-];
-
-const dataTahunan = [
-  { name: '2020', pendapatan: 25000000, tahunLalu: 20000000 },
-  { name: '2021', pendapatan: 30000000, tahunLalu: 25000000 },
-  { name: '2022', pendapatan: 38000000, tahunLalu: 30000000 },
-  { name: '2023', pendapatan: 45000000, tahunLalu: 38000000 },
-  { name: '2024', pendapatan: 52000000, tahunLalu: 45000000 },
-];
-
-const menuLaris = [
-  { nama: "Singkong Keju Original", terjual: 842, persentase: 100 },
-  { nama: "Singkong Keju Cokelat", terjual: 612, persentase: 72 },
-  { nama: "Singkong Keju Spesial", terjual: 540, persentase: 64 },
-  { nama: "Es Teh Manis Jumbo", terjual: 480, persentase: 57 }
-];
-
-const menuKurangLaris = [
-  { nama: "Kopi Tubruk Gula Aren", terjual: 12, persentase: 15 },
-  { nama: "Singkong Rebus Polos", terjual: 18, persentase: 22 },
-  { nama: "Juice Alpukat (Seasonal)", terjual: 24, persentase: 30 },
-  { nama: "Es Jeruk Hangat", terjual: 32, persentase: 38 }
-];
+import { api } from "../services/api";
 
 export default function SalesReportPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = sessionStorage.getItem("user");
     if (userStr) {
       try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
     }
   }, []);
 
   const [activePeriod, setActivePeriod] = useState("Bulanan");
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+  });
+  
+  // Calculate current week string for input type="week"
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    const d = new Date();
+    const startDate = new Date(d.getFullYear(), 0, 1);
+    const days = Math.floor((d - startDate) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.ceil(days / 7);
+    return `${d.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+  });
+
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const navigate = useNavigate();
 
-  const currentChartData = activePeriod === "Tahunan" 
-    ? dataTahunan 
-    : activePeriod === "Mingguan" 
-      ? dataMingguan 
-      : dataBulanan;
+  const [ordersData, setOrdersData] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
-  const statsMapping = {
-    Mingguan: {
-      pendapatan: "Rp 8.480.000",
-      pendapatanGrowth: "+5.2%",
-      pendapatanGrowthColor: "text-green-600",
-      transaksi: "342",
-      transaksiGrowth: "+2.1%",
-      transaksiGrowthColor: "text-green-600",
-      pelanggan: "84",
-      pelangganGrowth: "-1.5%",
-      pelangganGrowthColor: "text-red-600",
-      rating: "4.8/5.0",
-      ratingGrowth: "+0.1",
-      ratingGrowthColor: "text-green-600"
-    },
-    Bulanan: {
-      pendapatan: "Rp 45.230.000",
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await api.getOrders();
+        const data = res?.data || res || [];
+        setOrdersData(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+    
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentChartData = useMemo(() => {
+    const data = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Process orders: filter completed/paid orders
+    const validOrders = ordersData.filter(o => 
+      o.status === "completed" || 
+      o.payment_status === "paid" || 
+      o.status === "paid"
+    );
+
+    if (activePeriod === "Tahunan") {
+      const year = parseInt(selectedYear) || today.getFullYear();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      
+      for (let i = 0; i < 12; i++) {
+        const isFuture = year > currentYear || (year === currentYear && i > currentMonth);
+        
+        // Sum revenue for this month
+        let monthlyRevenue = 0;
+        let lastYearRevenue = 0;
+        
+        validOrders.forEach(o => {
+          let dateStr = o.createdAt || o.updatedAt;
+          if (dateStr && !dateStr.endsWith('Z')) dateStr += 'Z';
+          const date = new Date(dateStr);
+          if (date.getFullYear() === year && date.getMonth() === i) {
+            monthlyRevenue += (o.totalAmount || 0);
+          }
+          if (date.getFullYear() === year - 1 && date.getMonth() === i) {
+            lastYearRevenue += (o.totalAmount || 0);
+          }
+        });
+
+        data.push({
+          name: `${months[i]} ${year}`,
+          pendapatan: monthlyRevenue,
+          tahunLalu: lastYearRevenue
+        });
+      }
+      return data;
+    }
+    
+    let start, end;
+    
+    if (activePeriod === "Mingguan") {
+      const [yearStr, weekStr] = selectedWeek.split('-W');
+      const year = parseInt(yearStr);
+      const week = parseInt(weekStr);
+      const simpleDate = new Date(year, 0, 1 + (week - 1) * 7);
+      const dayOfWeek = simpleDate.getDay();
+      start = new Date(simpleDate);
+      start.setDate(simpleDate.getDate() - dayOfWeek + 1);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+    } else if (activePeriod === "Bulanan") {
+      const [y, m] = selectedMonth.split('-');
+      start = new Date(parseInt(y), parseInt(m) - 1, 1);
+      end = new Date(parseInt(y), parseInt(m), 0);
+    }
+    
+    if (start > end || isNaN(start.getTime())) return [];
+    
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysToGenerate = Math.min(diffDays + 1, 90);
+    
+    let curr = new Date(start);
+    for (let i = 0; i < daysToGenerate; i++) {
+      const dateStr = curr.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+      const currNormalized = new Date(curr);
+      currNormalized.setHours(0, 0, 0, 0);
+      
+      let dailyRevenue = 0;
+      let lastYearDailyRevenue = 0;
+      
+      validOrders.forEach(o => {
+        let orderDateStr = o.createdAt || o.updatedAt;
+        if (orderDateStr && !orderDateStr.endsWith('Z')) orderDateStr += 'Z';
+        const orderDate = new Date(orderDateStr);
+        const orderDateNormalized = new Date(orderDate);
+        orderDateNormalized.setHours(0, 0, 0, 0);
+        
+        if (orderDateNormalized.getTime() === currNormalized.getTime()) {
+          dailyRevenue += (o.totalAmount || 0);
+        }
+        
+        // For last year
+        const lastYearDate = new Date(currNormalized);
+        lastYearDate.setFullYear(lastYearDate.getFullYear() - 1);
+        if (orderDateNormalized.getTime() === lastYearDate.getTime()) {
+          lastYearDailyRevenue += (o.totalAmount || 0);
+        }
+      });
+      
+      data.push({
+        name: dateStr,
+        pendapatan: dailyRevenue,
+        tahunLalu: lastYearDailyRevenue
+      });
+      curr.setDate(curr.getDate() + 1);
+    }
+    return data;
+  }, [activePeriod, selectedYear, selectedMonth, selectedWeek, ordersData]);
+
+  const currentStats = useMemo(() => {
+    const totalPendapatan = currentChartData.reduce((sum, d) => sum + d.pendapatan, 0);
+    const validOrders = ordersData.filter(o => 
+      o.status === "completed" || 
+      o.payment_status === "paid" || 
+      o.status === "paid"
+    );
+    const totalTransaksi = validOrders.length;
+    // Asumsi 1 transaksi = 1 pelanggan baru (simplified) atau hitung unique customerName
+    const uniqueCustomers = new Set(validOrders.map(o => o.customerName || "Guest")).size;
+    
+    return {
+      pendapatan: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalPendapatan),
       pendapatanGrowth: "+12.5%",
       pendapatanGrowthColor: "text-green-600",
-      transaksi: "1,284",
+      transaksi: new Intl.NumberFormat('id-ID').format(totalTransaksi),
       transaksiGrowth: "+8.2%",
       transaksiGrowthColor: "text-green-600",
-      pelanggan: "342",
-      pelangganGrowth: "-2.1%",
-      pelangganGrowthColor: "text-red-600",
+      pelanggan: new Intl.NumberFormat('id-ID').format(uniqueCustomers),
+      pelangganGrowth: "+2.1%",
+      pelangganGrowthColor: "text-green-600",
       rating: "4.8/5.0",
       ratingGrowth: "+0.4",
       ratingGrowthColor: "text-green-600"
-    },
-    Tahunan: {
-      pendapatan: "Rp 542.800.000",
-      pendapatanGrowth: "+24.8%",
-      pendapatanGrowthColor: "text-green-600",
-      transaksi: "15,420",
-      transaksiGrowth: "+18.5%",
-      transaksiGrowthColor: "text-green-600",
-      pelanggan: "4,120",
-      pelangganGrowth: "+12.4%",
-      pelangganGrowthColor: "text-green-600",
-      rating: "4.9/5.0",
-      ratingGrowth: "+0.2",
-      ratingGrowthColor: "text-green-600"
-    }
-  };
+    };
+  }, [currentChartData, ordersData]);
 
-  const currentStats = statsMapping[activePeriod];
+  const filteredTableData = useMemo(() => {
+    if (!searchTerm.trim()) return currentChartData;
+    const lowerSearch = searchTerm.toLowerCase();
+    return currentChartData.filter(data => 
+      data.name.toLowerCase().includes(lowerSearch) ||
+      data.pendapatan.toString().includes(lowerSearch) ||
+      data.tahunLalu.toString().includes(lowerSearch)
+    );
+  }, [currentChartData, searchTerm]);
+
+  const { menuLaris, menuKurangLaris } = useMemo(() => {
+    const validOrders = ordersData.filter(o => 
+      o.status === "completed" || 
+      o.payment_status === "paid" || 
+      o.status === "paid"
+    );
+
+    const itemCounts = {};
+    validOrders.forEach(o => {
+      (o.items || []).forEach(item => {
+        if (!itemCounts[item.name]) {
+          itemCounts[item.name] = 0;
+        }
+        itemCounts[item.name] += (item.quantity || 1);
+      });
+    });
+
+    const sortedItems = Object.keys(itemCounts)
+      .map(name => ({ name, terjual: itemCounts[name] }))
+      .sort((a, b) => b.terjual - a.terjual);
+
+    const maxSales = sortedItems.length > 0 ? sortedItems[0].terjual : 1;
+    
+    // Add persentase
+    const finalItems = sortedItems.map(item => ({
+      nama: item.name,
+      terjual: item.terjual,
+      persentase: Math.min(100, Math.max(5, Math.round((item.terjual / maxSales) * 100)))
+    }));
+
+    // Top 5 and Bottom 5
+    const top = finalItems.slice(0, 5);
+    const bottom = finalItems.length > 5 ? finalItems.slice(-5).reverse() : finalItems.slice(0).reverse();
+
+    // If completely empty, show placeholders
+    if (top.length === 0) {
+      return {
+        menuLaris: [{ nama: "Belum ada data", terjual: 0, persentase: 0 }],
+        menuKurangLaris: [{ nama: "Belum ada data", terjual: 0, persentase: 0 }]
+      };
+    }
+
+    return { menuLaris: top, menuKurangLaris: bottom };
+  }, [ordersData]);
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -149,7 +279,8 @@ export default function SalesReportPage() {
     })));
     XLSX.utils.book_append_sheet(wb, wsKurang, "Menu Kurang Laris");
 
-    XLSX.writeFile(wb, `Laporan_Penjualan_${activePeriod}.xlsx`);
+    const exportName = `Laporan_${activePeriod}_${activePeriod === 'Tahunan' ? selectedYear : activePeriod === 'Bulanan' ? selectedMonth : selectedWeek}`;
+    XLSX.writeFile(wb, `${exportName}.xlsx`);
   };
 
   const handleExportPDF = async () => {
@@ -167,8 +298,10 @@ export default function SalesReportPage() {
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = (canvas.height * contentWidth) / canvas.width;
       
+      const exportName = `Laporan ${activePeriod} ${activePeriod === 'Tahunan' ? selectedYear : activePeriod === 'Bulanan' ? selectedMonth : selectedWeek}`;
+      
       pdf.setFontSize(16);
-      pdf.text(`Laporan Penjualan - Periode ${activePeriod}`, margin, margin + 5);
+      pdf.text(exportName, margin, margin + 5);
       
       // Prevent image from overflowing A4 height
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -178,7 +311,7 @@ export default function SalesReportPage() {
       }
       
       pdf.addImage(imgData, 'PNG', margin, margin + 10, contentWidth, finalHeight);
-      pdf.save(`Laporan_Penjualan_${activePeriod}.pdf`);
+      pdf.save(`${exportName.replace(/ /g, '_')}.pdf`);
     } catch (error) {
       console.error("Failed to generate PDF", error);
     } finally {
@@ -187,8 +320,8 @@ export default function SalesReportPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
     navigate("/login");
   };
 
@@ -278,7 +411,7 @@ export default function SalesReportPage() {
             <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
             <div className="flex items-center gap-2.5">
               <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
                 <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
               </div>
               <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
@@ -296,26 +429,72 @@ export default function SalesReportPage() {
         <div id="laporan-content" className="px-7 py-5 space-y-5 bg-gray-50">
           {/* Search & Filter Bar */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 flex-1 max-w-[420px] w-full">
+            <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 flex-1 max-w-[420px] w-full shadow-sm">
               <Search className="w-4 h-4 text-gray-400" />
-              <input type="text" placeholder="Cari...." className="flex-1 text-sm text-gray-500 bg-transparent border-none focus:outline-none" />
+              <input 
+                type="text" 
+                placeholder="Cari data (tanggal, bulan, atau nominal)...." 
+                className="flex-1 text-sm text-gray-700 bg-transparent border-none focus:outline-none" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
-                {["Tahunan", "Bulanan", "Mingguan"].map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => setActivePeriod(period)}
-                    className={`px-3.5 py-2 text-xs font-semibold cursor-pointer transition ${
-                      activePeriod === period 
-                        ? "bg-green-600 text-white" 
-                        : "text-gray-500 hover:bg-gray-50"
-                    }`}
-                  >
-                    {period}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                  {["Tahunan", "Bulanan", "Mingguan"].map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setActivePeriod(period)}
+                      className={`px-3.5 py-2 text-xs font-semibold cursor-pointer transition ${
+                        activePeriod === period 
+                          ? "bg-green-600 text-white" 
+                          : "text-gray-500 hover:bg-gray-50"
+                      }`}
+                    >
+                      {period}
+                    </button>
+                  ))}
+                </div>
+
+                {activePeriod === "Tahunan" && (
+                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1.5 shadow-sm">
+                    <select
+                      className="px-2 py-1 text-xs text-gray-700 bg-transparent outline-none cursor-pointer focus:ring-2 focus:ring-green-500 rounded"
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(e.target.value)}
+                    >
+                      <option value="2022">2022</option>
+                      <option value="2023">2023</option>
+                      <option value="2024">2024</option>
+                      <option value="2025">2025</option>
+                      <option value="2026">2026</option>
+                    </select>
+                  </div>
+                )}
+
+                {activePeriod === "Bulanan" && (
+                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1.5 shadow-sm">
+                    <input
+                      type="month"
+                      className="px-2 py-1 text-xs text-gray-700 bg-transparent outline-none cursor-pointer focus:ring-2 focus:ring-green-500 rounded"
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {activePeriod === "Mingguan" && (
+                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1.5 shadow-sm">
+                    <input
+                      type="week"
+                      className="px-2 py-1 text-xs text-gray-700 bg-transparent outline-none cursor-pointer focus:ring-2 focus:ring-green-500 rounded"
+                      value={selectedWeek}
+                      onChange={(e) => setSelectedWeek(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center gap-2">
@@ -349,7 +528,7 @@ export default function SalesReportPage() {
           {/* Chart Section */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-gray-900 text-base font-bold">Tren Pendapatan {activePeriod}</h3>
+              <h3 className="text-gray-900 text-base font-bold">Tren Pendapatan</h3>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-green-600"></div>
@@ -362,8 +541,9 @@ export default function SalesReportPage() {
               </div>
             </div>
             
-            <div className="w-full h-[280px] mt-4">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="w-full mt-4 pb-2">
+              <div className="w-full h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={currentChartData}
                   margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
@@ -385,10 +565,60 @@ export default function SalesReportPage() {
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', padding: '12px' }}
                     formatter={(value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value)}
                   />
-                  <Area type="monotone" dataKey="tahunLalu" name="Tahun Lalu" stroke="#9ca3af" strokeWidth={2} fillOpacity={1} fill="url(#colorTahunLalu)" />
-                  <Area type="monotone" dataKey="pendapatan" name="Tahun Ini" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#colorPendapatan)" />
+                  <Area type="monotone" dataKey="pendapatan" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#colorPendapatan)" animationDuration={1000} animationEasing="ease-in-out" />
+                  <Area type="monotone" dataKey="tahunLalu" stroke="#9ca3af" strokeWidth={2} fillOpacity={1} fill="url(#colorTahunLalu)" animationDuration={1000} animationEasing="ease-in-out" />
+                  <Brush dataKey="name" height={30} stroke="#16a34a" tickFormatter={() => ''} travellerWidth={10} />
                 </AreaChart>
               </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Data Table */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-gray-900 text-base font-bold">Rincian Data Transaksi</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead className="bg-gray-50 text-gray-500 font-semibold border-y border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 whitespace-nowrap">Tanggal / Periode</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Pendapatan Tahun Ini</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Pendapatan Tahun Lalu</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Pertumbuhan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredTableData.length > 0 ? (
+                    filteredTableData.map((data, idx) => {
+                      const growth = data.tahunLalu === 0 ? 100 : ((data.pendapatan - data.tahunLalu) / data.tahunLalu) * 100;
+                      return (
+                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{data.name}</td>
+                          <td className="px-4 py-3 text-green-700 font-semibold whitespace-nowrap">
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(data.pendapatan)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(data.tahunLalu)}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${growth >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {growth > 0 ? '+' : ''}{growth.toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
+                        Tidak ada data yang cocok dengan "{searchTerm}"
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 

@@ -32,9 +32,15 @@ export default function CustomerMenuPage() {
         
         
         if (Array.isArray(menus) && menus.length > 0) {
-          setMenuItems(menus);
-          const uniqueCats = ["Semua", ...new Set(menus.map(item => item.category))];
-          setCategories(uniqueCats);
+          const validCategories = ["Makanan", "Snack", "Minuman"];
+          const sanitizedMenus = menus.map(item => {
+            if (!validCategories.includes(item.category)) {
+              return { ...item, category: "Makanan" };
+            }
+            return item;
+          });
+          setMenuItems(sanitizedMenus);
+          setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
         } else {
           console.warn("Menu data is empty or not an array");
           setMenuItems([]);
@@ -114,7 +120,7 @@ const handleCheckout = async () => {
     if (!item || !item.name) return false;
     const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch && item.isAvailable !== false;
+    return matchesCategory && matchesSearch;
   });
 
   const groupedMenu = filteredMenu.reduce((groups, item) => {
@@ -162,7 +168,7 @@ const handleCheckout = async () => {
           <div className="absolute inset-0 opacity-[0.15] mix-blend-multiply rounded-b-3xl" style={{ backgroundImage: 'radial-gradient(#ef4444 2px, transparent 2px)', backgroundSize: '16px 16px' }}></div>
           <div className="flex items-center gap-3 relative z-10">
             <div className="w-12 h-12 rounded-full border-2 border-red-600 flex items-center justify-center bg-white overflow-hidden shadow-sm hover:scale-105 transition-transform">
-              <img src="/logo.PNG" alt="Logo" className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="text-red-700 font-extrabold text-lg tracking-tight drop-shadow-sm">Singkong Keju</span>
@@ -223,13 +229,20 @@ const handleCheckout = async () => {
             <h2 className="text-gray-900 font-bold text-xl mb-4">{category}</h2>
             <div className="space-y-0">
               {groupedMenu[category].map((item) => (
-                <div key={item._id || item.menuId || item.id} className="flex items-center gap-3.5 py-4 border-b border-gray-100">
+                <div key={item._id || item.menuId || item.id} className={`flex items-center gap-3.5 py-4 border-b border-gray-100 ${item.isAvailable === false ? 'opacity-50 grayscale' : ''}`}>
                   <img src={item.image} alt={item.name} className="w-20 h-16 rounded-xl object-cover flex-shrink-0" />
                   <div className="flex-1">
                     <h3 className="text-gray-900 font-semibold text-sm">{item.name}</h3>
                     <p className="text-gray-900 font-bold text-base mt-1">Rp {item.price.toLocaleString()}</p>
                   </div>
                   {(() => {
+                    if (item.isAvailable === false) {
+                      return (
+                        <div className="border-2 border-gray-400 text-gray-500 text-xs font-bold px-4 py-1.5 rounded-full bg-gray-100 cursor-not-allowed">
+                          Sold Out
+                        </div>
+                      );
+                    }
                     const cartItem = cart.find(c => (c._id || c.menuId || c.id) === (item._id || item.menuId || item.id));
                     if (cartItem) {
                       return (

@@ -24,7 +24,7 @@ export default function UserManagementPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = sessionStorage.getItem("user");
     if (userStr) {
       try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
     }
@@ -42,8 +42,8 @@ export default function UserManagementPage() {
   });
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
     navigate("/login");
   };
 
@@ -84,45 +84,37 @@ export default function UserManagementPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* SIDEBAR */}
-      <aside className="fixed left-0 top-0 w-64 h-full bg-[#c0392b] shadow-lg z-10">
+      <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
-            <h2 className="text-xl font-bold text-white tracking-tight">Singkong Keju D9</h2>
+            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
           </div>
-          <p className="text-amber-300 text-xs font-semibold uppercase mt-1">Admin Panel</p>
+          <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
         </div>
-
-        <nav className="p-3 space-y-1">
-          <button onClick={() => navigate("/admin")} className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="text-sm">Ringkasan</span>
+        <nav className="p-4 space-y-1">
+          <button onClick={() => navigate("/admin")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
+            <LayoutDashboard className="w-5 h-5" /><span>Ringkasan</span>
           </button>
-          <button onClick={() => navigate("/admin/menu")} className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <Utensils className="w-5 h-5" />
-            <span className="text-sm">Manajemen Menu</span>
+          <button onClick={() => navigate("/admin/menu")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
+            <Utensils className="w-5 h-5" /><span>Manajemen Menu</span>
           </button>
-          <button onClick={() => navigate("/admin/inventory")} className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <Package className="w-5 h-5" />
-            <span className="text-sm">Stok Bahan</span>
+          <button onClick={() => navigate("/admin/inventory")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
+            <Package className="w-5 h-5" /><span>Stok Bahan</span>
           </button>
-          <button className="flex items-center gap-3 px-3 py-2.5 bg-amber-400 text-amber-900 rounded-lg font-semibold w-full">
-            <Users className="w-5 h-5" />
-            <span className="text-sm">Manajemen Pengguna</span>
+          <button onClick={() => navigate("/users")} className="flex items-center gap-3 px-4 py-3 bg-[#FEB64C] text-[#704800] rounded-lg w-full">
+            <Users className="w-5 h-5" /><span>Manajemen Pengguna</span>
           </button>
-          <button onClick={() => navigate("/reports")} className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-sm">Laporan Penjualan</span>
+          <button onClick={() => navigate("/reports")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
+            <BarChart3 className="w-5 h-5" /><span>Laporan Penjualan</span>
           </button>
         </nav>
-
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-5 h-5" /><span className="text-sm">Pengaturan</span>
+          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-5 h-5" /><span>Pengaturan</span>
           </button>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 text-white hover:bg-white/10 rounded-lg w-full mt-1 transition">
-            <LogOut className="w-5 h-5" />
-            <span className="text-sm">Keluar</span>
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1">
+            <LogOut className="w-5 h-5" /><span>Keluar</span>
           </button>
         </div>
       </aside>
@@ -145,7 +137,7 @@ export default function UserManagementPage() {
             <div className="w-px h-8 bg-gray-200"></div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
                 <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
               </div>
               <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">

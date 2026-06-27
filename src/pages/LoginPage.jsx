@@ -23,23 +23,23 @@ export default function LoginPage() {
 
       // HARDCODED MOCK LOGINS
       if (u === "admin" && p === "admin123") {
-        localStorage.setItem("token", "dummy-token-123");
-        localStorage.setItem("role", "admin");
-        localStorage.setItem("user", JSON.stringify({ userId: "admin", username: "admin", fullName: "Admin Sistem", role: "admin", profilePicture: "" }));
+        sessionStorage.setItem("token", "dummy-token-123");
+        sessionStorage.setItem("role", "admin");
+        sessionStorage.setItem("user", JSON.stringify({ userId: "admin", username: "admin", fullName: "Admin Sistem", role: "admin", profilePicture: "" }));
         if (rememberMe) localStorage.setItem("rememberedUser", username);
         navigate("/admin");
         return;
       } else if (u === "kasir" && p === "kasir123") {
-        localStorage.setItem("token", "kasir-token-123");
-        localStorage.setItem("role", "kasir");
-        localStorage.setItem("user", JSON.stringify({ userId: "kasir", username: "kasir", fullName: "Kasir", role: "kasir", profilePicture: "" }));
+        sessionStorage.setItem("token", "kasir-token-123");
+        sessionStorage.setItem("role", "kasir");
+        sessionStorage.setItem("user", JSON.stringify({ userId: "kasir", username: "kasir", fullName: "Kasir", role: "kasir", profilePicture: "" }));
         if (rememberMe) localStorage.setItem("rememberedUser", username);
         navigate("/cashier");
         return;
       } else if (u === "kitchen" && p === "kitchen123") {
-        localStorage.setItem("token", "kitchen-token-123");
-        localStorage.setItem("role", "kitchen");
-        localStorage.setItem("user", JSON.stringify({ userId: "kitchen", username: "kitchen", fullName: "Kitchen", role: "kitchen", profilePicture: "" }));
+        sessionStorage.setItem("token", "kitchen-token-123");
+        sessionStorage.setItem("role", "kitchen");
+        sessionStorage.setItem("user", JSON.stringify({ userId: "kitchen", username: "kitchen", fullName: "Kitchen", role: "kitchen", profilePicture: "" }));
         if (rememberMe) localStorage.setItem("rememberedUser", username);
         navigate("/kitchen/dashboard");
         return;
@@ -48,16 +48,19 @@ export default function LoginPage() {
       // API LOGIN (Untuk Karyawan Baru)
       const response = await api.login(username.trim(), password.trim());
       if (response.success) {
-        localStorage.setItem("token", response.token);
-        localStorage.setItem("role", response.role);
-        localStorage.setItem("user", JSON.stringify(response.user));
+        const rawRole = response.role || "";
+        const normalizedRole = rawRole.toLowerCase() === "cashier" ? "kasir" : rawRole.toLowerCase();
+
+        sessionStorage.setItem("token", response.token);
+        sessionStorage.setItem("role", normalizedRole);
+        sessionStorage.setItem("user", JSON.stringify(response.user));
         if (rememberMe) localStorage.setItem("rememberedUser", username);
         
-        if (response.role === "admin") {
+        if (normalizedRole === "admin") {
           navigate("/admin");
-        } else if (response.role === "kasir") {
+        } else if (normalizedRole === "kasir") {
           navigate("/cashier");
-        } else if (response.role === "kitchen") {
+        } else if (normalizedRole === "kitchen") {
           navigate("/kitchen/dashboard");
         } else {
           navigate("/"); // fallback

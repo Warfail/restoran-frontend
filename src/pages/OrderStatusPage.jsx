@@ -13,6 +13,7 @@ export default function OrderStatusPage() {
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState("customer");
   const [orderData, setOrderData] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const currentStatusRef = useRef(currentStatus);
 
   const statuses = [
@@ -62,12 +63,14 @@ export default function OrderStatusPage() {
       }
     } catch (error) {
       console.error("Failed to fetch order detail:", error);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
   // Cek role user
   useEffect(() => {
-    const userRole = localStorage.getItem("role") || "customer";
+    const userRole = sessionStorage.getItem("role") || "customer";
     setRole(userRole);
   }, []);
 
@@ -148,6 +151,43 @@ export default function OrderStatusPage() {
           <button onClick={() => navigate("/menu")} className="bg-red-500 text-white px-4 py-2 rounded-lg">
             Kembali ke Menu
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Tampilkan Skeleton Loading saat memuat data pertama kali
+  if (initialLoading || !orderData) {
+    return (
+      <div className="min-h-screen bg-gray-100 pb-6 max-w-md mx-auto">
+        <div className="w-full bg-white px-4 py-3.5 flex justify-between items-center rounded-b-xl mb-4 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-28"></div>
+          <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+        </div>
+        <div className="w-full bg-white rounded-xl shadow-sm p-6 mx-4 w-[calc(100%-2rem)] mb-4 animate-pulse">
+           <div className="h-5 bg-gray-200 rounded w-40 mb-3 mx-auto"></div>
+           <div className="h-7 bg-gray-200 rounded-full w-24 mx-auto mb-8"></div>
+           <div className="space-y-6">
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className="flex gap-4 items-start">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 space-y-2 py-1">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+           </div>
+        </div>
+        <div className="w-full bg-white rounded-xl shadow-sm p-4 mx-4 w-[calc(100%-2rem)] mb-4 animate-pulse">
+           <div className="flex justify-between mb-3">
+             <div className="h-4 bg-gray-200 rounded w-24"></div>
+             <div className="h-3 bg-gray-200 rounded w-16"></div>
+           </div>
+           <div className="flex justify-between">
+             <div className="h-5 bg-gray-200 rounded w-32"></div>
+             <div className="h-5 bg-gray-200 rounded w-24"></div>
+           </div>
         </div>
       </div>
     );

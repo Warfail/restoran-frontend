@@ -45,7 +45,7 @@ export default function SettingsModal({ isOpen, onClose, user, onUpdate }) {
       // For mock users, simulate update since they don't exist in DB
       if (["admin", "kasir", "kitchen"].includes(user.userId)) {
         const updatedUser = { ...user, fullName, profilePicture };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+        sessionStorage.setItem("user", JSON.stringify(updatedUser));
         onUpdate(updatedUser);
         toast.success("Profil berhasil diupdate (Local)");
         onClose();
@@ -58,7 +58,7 @@ export default function SettingsModal({ isOpen, onClose, user, onUpdate }) {
       
       if (res.success || res.detail === "User updated" || res) { // depends on API response
         const updatedUser = { ...user, fullName, profilePicture };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+        sessionStorage.setItem("user", JSON.stringify(updatedUser));
         onUpdate(updatedUser);
         toast.success("Profil berhasil diupdate");
         onClose();

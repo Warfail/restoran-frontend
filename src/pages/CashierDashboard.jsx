@@ -31,7 +31,7 @@ export default function CashierDashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = sessionStorage.getItem("user");
     if (userStr) {
       try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
     }
@@ -74,18 +74,14 @@ export default function CashierDashboard() {
   const [receiptData, setReceiptData] = useState(null);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
     navigate("/login");
   };
 
   const confirmOrder = async (orderId) => {
     try {
-      const response = await fetch(`http://localhost:8000/cashier/order/${orderId}/confirm`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-      });
-      const result = await response.json();
+      const result = await api.confirmOrder(orderId);
 
       if (result.success) {
         await fetchOrders();
@@ -140,8 +136,7 @@ export default function CashierDashboard() {
   const printReceipt = async (orderId) => {
     try {
       setCurrentPrintOrderId(orderId);
-      const res = await fetch(`http://localhost:8000/cashier/receipt/${orderId}`);
-      const result = await res.json();
+      const result = await api.getReceipt(orderId);
       if (result.success) {
         setReceiptData(result.data);
         setShowReceipt(true);
@@ -186,13 +181,7 @@ export default function CashierDashboard() {
     paid: currentOrders.filter(o => ["paid", "cooking", "completed", "done"].includes(o.status)).length
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">Loading orders...</div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -236,134 +225,161 @@ export default function CashierDashboard() {
 
       {/* Main Content */}
       <main className="ml-64 flex-1">
-        {/* Header */}
-        <div className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-800">{activeTab === "transaksi" ? "Transaksi" : "Riwayat Transaksi"}</h1>
-          <div className="flex items-center gap-4">
-            <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
-            <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
-                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+        {loading ? (
+          <div className="p-8 animate-pulse space-y-6">
+            <div className="flex justify-between items-center mb-6">
+              <div className="h-8 bg-gray-200 rounded w-48"></div>
+              <div className="h-10 bg-gray-200 rounded w-32"></div>
+            </div>
+            <div className="flex gap-4 mb-6">
+              <div className="h-10 bg-gray-200 rounded-lg w-full max-w-md"></div>
+            </div>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+               <div className="h-24 bg-gray-200 rounded-xl border border-gray-100"></div>
+               <div className="h-24 bg-gray-200 rounded-xl border border-gray-100"></div>
+               <div className="h-24 bg-gray-200 rounded-xl border border-gray-100"></div>
+               <div className="h-24 bg-gray-200 rounded-xl border border-gray-100"></div>
+            </div>
+            <div className="bg-white rounded-xl border p-4 space-y-4">
+               <div className="h-10 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-800">{activeTab === "transaksi" ? "Transaksi" : "Riwayat Transaksi"}</h1>
+              <div className="flex items-center gap-4">
+                <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
+                    <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+                  </div>
+                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                    {currentUser?.profilePicture ? (
+                      <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
-                {currentUser?.profilePicture ? (
-                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+            </div>
+
+            {/* Content */}
+            <div className="p-8">
+              {/* Search and Filter */}
+              <div className="mb-6 flex gap-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari order ID, customer, atau meja..."
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                {activeTab === "riwayat" && (
+                  <div className="w-48">
+                    <input
+                      type="date"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Content */}
-        <div className="p-8">
-          {/* Search and Filter */}
-          <div className="mb-6 flex gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari order ID, customer, atau meja..."
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            {activeTab === "riwayat" && (
-              <div className="w-48">
-                <input
-                  type="date"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-700"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                />
+              {/* Stats Summary */}
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="text-gray-500 text-xs font-medium">Total Order</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="text-gray-500 text-xs font-medium">Pending</div>
+                  <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="text-gray-500 text-xs font-medium">Confirmed</div>
+                  <div className="text-2xl font-bold text-blue-600">{stats.confirmed}</div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="text-gray-500 text-xs font-medium">Paid</div>
+                  <div className="text-2xl font-bold text-green-600">{stats.paid}</div>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Stats Summary */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-gray-500 text-xs font-medium">Total Order</div>
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+              {/* Orders Table */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">ID ORDER</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">MEJA</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">PELANGGAN</th>
+                        <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">TOTAL</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">STATUS</th>
+                        <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">AKSI</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredOrders.map((order) => (
+                        <tr key={order.orderId} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 font-mono text-sm font-medium text-gray-900">{order.orderId}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">Meja {order.tableNumber}</td>
+                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">{order.customerName}</td>
+                          <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Rp {order.totalAmount?.toLocaleString()}</td>
+                          <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {/* Tombol Bayar hanya muncul jika belum dibayar (pending/confirmed) */}
+                              {(order.status === "pending" || order.status === "confirmed") && (
+                                <button
+                                  onClick={() => openPaymentModal(order)}
+                                  className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+                                  title="Proses Pembayaran"
+                                >
+                                  <DollarSign className="w-3.5 h-3.5" />
+                                  Bayar
+                                </button>
+                              )}
+                              
+                              {/* Tombol Cetak / Cetak Ulang selalu muncul */}
+                              <button 
+                                onClick={() => printReceipt(order.orderId)} 
+                                className={`px-3 py-1.5 rounded-lg ${order.isPrinted ? "bg-gray-600 hover:bg-gray-700" : "bg-purple-600 hover:bg-purple-700"} text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm`} 
+                                title={order.isPrinted ? "Cetak Ulang Struk" : "Cetak Struk"}
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                                {order.isPrinted ? "Cetak Ulang" : "Cetak Struk"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredOrders.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="text-center py-8 text-gray-400">Belum ada order</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-gray-500 text-xs font-medium">Pending</div>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-gray-500 text-xs font-medium">Confirmed</div>
-              <div className="text-2xl font-bold text-blue-600">{stats.confirmed}</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-gray-500 text-xs font-medium">Paid</div>
-              <div className="text-2xl font-bold text-green-600">{stats.paid}</div>
-            </div>
-          </div>
-
-          {/* Orders Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">ID ORDER</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">MEJA</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">PELANGGAN</th>
-                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">TOTAL</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">STATUS</th>
-                    <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">AKSI</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filteredOrders.map((order) => (
-                    <tr key={order.orderId} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-mono text-sm font-medium text-gray-900">{order.orderId}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">Meja {order.tableNumber}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">{order.customerName}</td>
-                      <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Rp {order.totalAmount?.toLocaleString()}</td>
-                      <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* Tombol Bayar hanya muncul jika belum dibayar (pending/confirmed) */}
-                          {(order.status === "pending" || order.status === "confirmed") && (
-                            <button
-                              onClick={() => openPaymentModal(order)}
-                              className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
-                              title="Proses Pembayaran"
-                            >
-                              <DollarSign className="w-3.5 h-3.5" />
-                              Bayar
-                            </button>
-                          )}
-                          
-                          {/* Tombol Cetak / Cetak Ulang selalu muncul */}
-                          <button 
-                            onClick={() => printReceipt(order.orderId)} 
-                            className={`px-3 py-1.5 rounded-lg ${order.isPrinted ? "bg-gray-600 hover:bg-gray-700" : "bg-purple-600 hover:bg-purple-700"} text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm`} 
-                            title={order.isPrinted ? "Cetak Ulang Struk" : "Cetak Struk"}
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                            {order.isPrinted ? "Cetak Ulang" : "Cetak Struk"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredOrders.length === 0 && (
-                    <tr>
-                      <td colSpan="6" className="text-center py-8 text-gray-400">Belum ada order</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </main>
 
       {/* Payment Modal */}
@@ -467,50 +483,86 @@ export default function CashierDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Printable Area */}
-            <div id="receipt-content" className="p-6 bg-white text-gray-900 text-sm font-mono">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold">Singkong Keju D9</h2>
-                <p className="text-xs text-gray-500">Jl. Argowiyoto No.8A, Ledok, Kec. Argomulyo, Kota Salatiga, Jawa Tengah 50732</p>
-                <div className="border-b border-dashed border-gray-300 my-4"></div>
-              </div>
+            <div className="bg-gray-200 p-4 flex justify-center overflow-y-auto max-h-[60vh]">
+              <div id="receipt-content" className="bg-white p-4 text-gray-900 font-mono w-full max-w-[300px] shadow-sm">
+                <div className="text-center mb-4">
+                  <img src="/logo.png" alt="Logo" className="w-12 h-12 mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%)' }} />
+                  <h2 className="text-lg font-bold uppercase tracking-wider mb-1">Singkong Keju D9</h2>
+                  <p className="text-[10px]">Jl. Argowiyoto No.8A, Ledok</p>
+                  <p className="text-[10px]">Kec. Argomulyo, Kota Salatiga</p>
+                  <p className="text-[10px]">Jawa Tengah 50732</p>
+                  <p className="text-[10px] mt-1">081234567890</p>
+                </div>
 
-              <div className="mb-4">
-                <p>No: {receiptData.receiptId}</p>
-                <p>Tgl: {new Date(receiptData.paymentDate).toLocaleString()}</p>
-                <p>Meja: {receiptData.tableNumber}</p>
-                <p>Pelanggan: {receiptData.customerName}</p>
-              </div>
-
-              <div className="border-b border-dashed border-gray-300 my-4"></div>
-
-              <div className="space-y-2 mb-4">
-                {receiptData.items?.map((item, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <span>{item.quantity}x {item.menuName}</span>
-                    <span>Rp {(item.price * item.quantity).toLocaleString()}</span>
+                <div className="text-[11px] mb-3 flex flex-col gap-1">
+                  <div className="flex justify-between">
+                    <span>{new Date(receiptData.paymentDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span>{new Date(receiptData.paymentDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                ))}
-              </div>
-
-              <div className="border-b border-dashed border-gray-300 my-4"></div>
-
-              <div className="space-y-1 mb-6">
-                <div className="flex justify-between font-bold">
-                  <span>TOTAL</span>
-                  <span>Rp {receiptData.totalPrice?.toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span>Receipt Number</span>
+                    <span>{receiptData.receiptId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Order ID</span>
+                    <span>{receiptData.orderId || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Bill Name</span>
+                    <span>{receiptData.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Table</span>
+                    <span>{receiptData.tableNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Collected By</span>
+                    <span>{currentUser?.fullName || currentUser?.username || "Kasir"}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>DIBAYAR</span>
-                  <span>Rp {receiptData.amountPaid?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>KEMBALI</span>
-                  <span>Rp {receiptData.change?.toLocaleString()}</span>
-                </div>
-              </div>
 
-              <div className="text-center text-xs text-gray-500">
-                <p>Terima Kasih Atas Kunjungan Anda!</p>
+                <div className="text-center font-bold my-2 text-[11px]">* DINE IN *</div>
+
+                <div className="space-y-2 mb-3 text-[11px]">
+                  {receiptData.items?.map((item, idx) => (
+                    <div key={idx}>
+                      <div className="font-semibold">{item.menuName}</div>
+                      <div className="flex justify-between">
+                        <span>{item.quantity}x @{item.price.toLocaleString()}</span>
+                        <span>{(item.price * item.quantity).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-dashed border-gray-400 my-2"></div>
+                
+                <div className="space-y-1 mb-2 text-[11px]">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>Rp {receiptData.totalPrice?.toLocaleString()}</span>
+                  </div>
+                  <div className="border-t border-dashed border-gray-400 my-1"></div>
+                  <div className="flex justify-between font-bold">
+                    <span>Total</span>
+                    <span>Rp {receiptData.totalPrice?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tunai/Bayar</span>
+                    <span>Rp {receiptData.amountPaid?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Kembali</span>
+                    <span>Rp {receiptData.change?.toLocaleString()}</span>
+                  </div>
+                </div>
+                
+                <div className="border-t border-dashed border-gray-400 my-2"></div>
+
+                <div className="text-center text-[10px] mt-4 flex items-center justify-center gap-1">
+                  <img src="/logo.png" alt="Logo" className="w-4 h-4 grayscale" style={{ filter: 'grayscale(100%)' }} />
+                  <span>singkongkejud9</span>
+                </div>
               </div>
             </div>
 
@@ -526,7 +578,7 @@ export default function CashierDashboard() {
                 onClick={async () => {
                   if (currentPrintOrderId) {
                     try {
-                      await fetch(`http://localhost:8000/cashier/order/${currentPrintOrderId}/printed`, { method: "PUT" });
+                      await api.markAsPrinted(currentPrintOrderId);
                       fetchOrders(false); // update the list
                     } catch (e) {
                       console.error("Gagal update status isPrinted", e);
@@ -536,25 +588,74 @@ export default function CashierDashboard() {
                   const content = document.getElementById("receipt-content").innerHTML;
                   const printWindow = window.open('', '_blank', 'width=400,height=600');
                   printWindow.document.write(`
+                    <!DOCTYPE html>
                     <html>
                       <head>
                         <title>Cetak Struk - ${receiptData.receiptId}</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
                         <style>
-                          body { font-family: monospace; padding: 20px; color: #000; }
+                          @page { margin: 0; }
+                          body {
+                            font-family: 'Courier New', Courier, monospace;
+                            color: #000;
+                            margin: 0;
+                            padding: 10px;
+                            width: 58mm; /* Standard thermal printer width */
+                            font-size: 11px;
+                            line-height: 1.2;
+                            background: #fff;
+                          }
+                          * { box-sizing: border-box; }
+                          
+                          /* CSS Classes Used in Content */
                           .text-center { text-align: center; }
-                          .mb-6 { margin-bottom: 24px; }
+                          .mb-1 { margin-bottom: 4px; }
+                          .mb-2 { margin-bottom: 8px; }
+                          .mb-3 { margin-bottom: 12px; }
                           .mb-4 { margin-bottom: 16px; }
-                          .my-4 { margin-top: 16px; margin-bottom: 16px; }
-                          .border-b { border-bottom: 1px dashed #ccc; }
+                          .mt-1 { margin-top: 4px; }
+                          .mt-4 { margin-top: 16px; }
+                          .my-1 { margin-top: 4px; margin-bottom: 4px; }
+                          .my-2 { margin-top: 8px; margin-bottom: 8px; }
+                          .mx-auto { margin-left: auto; margin-right: auto; }
+                          .w-full { width: 100%; }
                           .flex { display: flex; }
                           .justify-between { justify-content: space-between; }
+                          .justify-center { justify-content: center; }
+                          .items-center { align-items: center; }
+                          .flex-col { flex-direction: column; }
+                          .gap-1 { gap: 4px; }
+                          .border-t { border-top: 1px dashed #000; }
+                          .border-dashed { border-style: dashed; }
                           .font-bold { font-weight: bold; }
+                          .font-semibold { font-weight: 600; }
+                          .uppercase { text-transform: uppercase; }
+                          .tracking-wider { letter-spacing: 0.05em; }
+                          .w-12 { width: 48px; }
+                          .h-12 { height: 48px; }
+                          .w-4 { width: 16px; }
+                          .h-4 { height: 16px; }
+                          .text-\\[10px\\] { font-size: 10px; }
+                          .text-\\[11px\\] { font-size: 11px; }
+                          .text-lg { font-size: 16px; }
                           .space-y-1 > * + * { margin-top: 4px; }
                           .space-y-2 > * + * { margin-top: 8px; }
+                          
+                          img { display: block; }
+                          
+                          @media print {
+                            body { width: auto; max-width: 58mm; padding: 0; margin-left: auto; margin-right: auto;}
+                          }
                         </style>
                       </head>
-                      <body onload="window.print(); window.close();">
+                      <body>
                         ${content}
+                        <script>
+                          setTimeout(() => {
+                            window.print();
+                            window.close();
+                          }, 500);
+                        </script>
                       </body>
                     </html>
                   `);

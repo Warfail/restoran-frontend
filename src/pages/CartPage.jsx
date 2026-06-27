@@ -104,7 +104,7 @@ export default function CartPage() {
           }
         });
       } else {
-        toast.error("Gagal membuat pesanan");
+        toast.error(response.detail || "Gagal membuat pesanan");
       }
     } catch (error) {
       console.error("Checkout failed:", error);

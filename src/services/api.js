@@ -1,7 +1,7 @@
 // const API_BASE = "http://127.0.0.1:8000";
 const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
 
-const getToken = () => localStorage.getItem("token");
+const getToken = () => sessionStorage.getItem("token");
 
 const fetchWithAuth = async (endpoint, options = {}) => {
   const token = getToken();
@@ -125,6 +125,26 @@ setPaymentMethod: async (orderId, method) => {
   processCashPayment: async (orderId, amountPaid) => {
     const res = await fetch(`${API_BASE}/cashier/payment?order_id=${orderId}&amount_paid=${amountPaid}`, {
       method: "POST",
+    });
+    return res.json();
+  },
+
+  getReceipt: async (orderId) => {
+    const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`);
+    return res.json();
+  },
+
+  confirmOrder: async (orderId) => {
+    const res = await fetch(`${API_BASE}/cashier/order/${orderId}/confirm`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.json();
+  },
+
+  markAsPrinted: async (orderId) => {
+    const res = await fetch(`${API_BASE}/cashier/order/${orderId}/printed`, {
+      method: "PUT",
     });
     return res.json();
   },
@@ -268,9 +288,18 @@ setPaymentMethod: async (orderId, method) => {
     const ordersData = orders.data || orders;
     const menusData = menus.data || menus;
     
+    let validOrders = [];
+    if (Array.isArray(ordersData)) {
+      validOrders = ordersData.filter(o => 
+        o.status === "completed" || 
+        o.payment_status === "paid" || 
+        o.status === "paid"
+      );
+    }
+    
     return {
-      totalSales: Array.isArray(ordersData) ? ordersData.reduce((sum, o) => sum + (o.totalAmount || 0), 0) : 0,
-      totalOrders: Array.isArray(ordersData) ? ordersData.length : 0,
+      totalSales: validOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+      totalOrders: validOrders.length,
       totalMenus: Array.isArray(menusData) ? menusData.length : 0,
       totalUsers: 0
     };

@@ -14,7 +14,7 @@ export default function InventoryPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = sessionStorage.getItem("user");
     if (userStr) {
       try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
     }
@@ -60,8 +60,8 @@ export default function InventoryPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
     navigate("/login");
   };
 
@@ -96,9 +96,7 @@ export default function InventoryPage() {
     return matchSearch && matchStatus;
   });
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading inventory...</div>;
-  }
+
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -140,132 +138,160 @@ export default function InventoryPage() {
 
       {/* Main Content */}
       <main className="ml-64 flex-1 overflow-y-auto">
-        <div className="flex justify-between items-center px-7 py-4 bg-white border-b">
-          <h1 className="text-2xl font-bold text-gray-900">Stok Bahan</h1>
-          <div className="flex items-center gap-3">
-            <img src="https://placehold.co/36x36/d97706/d97706" alt="Avatar" className="w-9 h-9 rounded-full object-cover" />
-          </div>
-        </div>
-
-        <div className="p-7">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl border p-4">
-              <div className="text-gray-500 text-xs">Total Bahan</div>
-              <div className="text-2xl font-bold">{stats.total}</div>
+        {loading ? (
+          <div className="p-7 animate-pulse space-y-6">
+            <div className="flex justify-between items-center mb-6 border-b pb-4">
+              <div className="h-8 bg-gray-200 rounded w-48"></div>
+              <div className="h-10 bg-gray-200 rounded-full w-10"></div>
             </div>
-            <div className="bg-white rounded-xl border p-4">
-              <div className="text-gray-500 text-xs">Kritis (≤5)</div>
-              <div className="text-2xl font-bold text-red-600">{stats.kritis}</div>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+               <div className="h-24 bg-gray-200 rounded-xl border"></div>
+               <div className="h-24 bg-gray-200 rounded-xl border"></div>
+               <div className="h-24 bg-gray-200 rounded-xl border"></div>
+               <div className="h-24 bg-gray-200 rounded-xl border"></div>
             </div>
-            <div className="bg-white rounded-xl border p-4">
-              <div className="text-gray-500 text-xs">Hampir Habis (≤10)</div>
-              <div className="text-2xl font-bold text-orange-500">{stats.hampirHabis}</div>
+            <div className="flex justify-between items-center mb-4">
+               <div className="h-10 bg-gray-200 rounded-lg w-72"></div>
+               <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
             </div>
-            <div className="bg-white rounded-xl border p-4">
-              <div className="text-gray-500 text-xs">Habis</div>
-              <div className="text-2xl font-bold text-gray-400">{stats.habis}</div>
+            <div className="bg-white rounded-xl border p-4 space-y-4">
+               <div className="h-10 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
+               <div className="h-12 bg-gray-100 rounded w-full"></div>
             </div>
           </div>
-
-          {/* Search & Filters */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Cari bahan..." 
-                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-              />
+        ) : (
+          <>
+            <div className="flex justify-between items-center px-7 py-4 bg-white border-b">
+              <h1 className="text-2xl font-bold text-gray-900">Stok Bahan</h1>
+              <div className="flex items-center gap-3">
+                <img src="https://placehold.co/36x36/d97706/d97706" alt="Avatar" className="w-9 h-9 rounded-full object-cover" />
+              </div>
             </div>
-            <div className="flex gap-2">
-              <select 
-                className="border rounded-lg px-3 py-2 text-sm" 
-                value={statusFilter} 
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option>Semua</option>
-                <option>Habis</option>
-                <option>Kritis</option>
-                <option>Hampir Habis</option>
-                <option>Aman</option>
-              </select>
-            </div>
-          </div>
 
-          {/* Table */}
-          <div className="bg-white rounded-xl border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="text-left px-5 py-3">Nama Bahan</th>
-                    <th className="text-left px-5 py-3">Kategori</th>
-                    <th className="text-left px-5 py-3">Stok</th>
-                    <th className="text-left px-5 py-3">Status</th>
-                    <th className="text-left px-5 py-3">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredInventory.map((item) => (
-                    <tr key={item._id || item.id} className="border-b hover:bg-gray-50">
-                      <td className="px-5 py-3 font-medium">{item.name}</td>
-                      <td className="px-5 py-3 text-gray-600">{item.category || "Bahan Baku"}</td>
-                      <td className="px-5 py-3">
-                        {editingItem === item._id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              value={editStock}
-                              onChange={(e) => setEditStock(e.target.value)}
-                              className="w-24 px-2 py-1 border rounded text-sm"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => updateStock(item._id, editStock)}
-                              className="px-2 py-1 bg-green-600 text-white rounded text-xs"
+            <div className="p-7">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border p-4">
+                  <div className="text-gray-500 text-xs">Total Bahan</div>
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                </div>
+                <div className="bg-white rounded-xl border p-4">
+                  <div className="text-gray-500 text-xs">Kritis (≤5)</div>
+                  <div className="text-2xl font-bold text-red-600">{stats.kritis}</div>
+                </div>
+                <div className="bg-white rounded-xl border p-4">
+                  <div className="text-gray-500 text-xs">Hampir Habis (≤10)</div>
+                  <div className="text-2xl font-bold text-orange-500">{stats.hampirHabis}</div>
+                </div>
+                <div className="bg-white rounded-xl border p-4">
+                  <div className="text-gray-500 text-xs">Habis</div>
+                  <div className="text-2xl font-bold text-gray-400">{stats.habis}</div>
+                </div>
+              </div>
+
+              {/* Search & Filters */}
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div className="relative w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari bahan..." 
+                    className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select 
+                    className="border rounded-lg px-3 py-2 text-sm" 
+                    value={statusFilter} 
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option>Semua</option>
+                    <option>Habis</option>
+                    <option>Kritis</option>
+                    <option>Hampir Habis</option>
+                    <option>Aman</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="bg-white rounded-xl border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="text-left px-5 py-3">Nama Bahan</th>
+                        <th className="text-left px-5 py-3">Kategori</th>
+                        <th className="text-left px-5 py-3">Stok</th>
+                        <th className="text-left px-5 py-3">Status</th>
+                        <th className="text-left px-5 py-3">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredInventory.map((item) => (
+                        <tr key={item._id || item.id} className="border-b hover:bg-gray-50">
+                          <td className="px-5 py-3 font-medium">{item.name}</td>
+                          <td className="px-5 py-3 text-gray-600">{item.category || "Bahan Baku"}</td>
+                          <td className="px-5 py-3">
+                            {editingItem === item._id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  value={editStock}
+                                  onChange={(e) => setEditStock(e.target.value)}
+                                  className="w-24 px-2 py-1 border rounded text-sm"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => updateStock(item._id, editStock)}
+                                  className="px-2 py-1 bg-green-600 text-white rounded text-xs"
+                                >
+                                  Simpan
+                                </button>
+                                <button
+                                  onClick={() => setEditingItem(null)}
+                                  className="px-2 py-1 bg-gray-300 rounded text-xs"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <span className={`font-semibold ${getStockColor(item.stock)}`}>
+                                {item.stock} {item.unit || "unit"}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3">{getStatusBadge(item.stock)}</td>
+                          <td className="px-5 py-3">
+                            <button 
+                              onClick={() => {
+                                setEditingItem(item._id);
+                                setEditStock(item.stock.toString());
+                              }}
+                              className="p-2 border rounded-md hover:bg-gray-50"
                             >
-                              Simpan
+                              <Pencil className="w-4 h-4 text-gray-500" />
                             </button>
-                            <button
-                              onClick={() => setEditingItem(null)}
-                              className="px-2 py-1 bg-gray-300 rounded text-xs"
-                            >
-                              Batal
-                            </button>
-                          </div>
-                        ) : (
-                          <span className={`font-semibold ${getStockColor(item.stock)}`}>
-                            {item.stock} {item.unit || "unit"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3">{getStatusBadge(item.stock)}</td>
-                      <td className="px-5 py-3">
-                        <button 
-  onClick={() => {
-    setEditingItem(item._id);
-    setEditStock(item.stock.toString());
-  }}
-  className="p-2 border rounded-md hover:bg-gray-50"
->
-  <Pencil className="w-4 h-4 text-gray-500" />
-</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredInventory.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="text-center py-8 text-gray-400">Belum ada data</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredInventory.length === 0 && (
+                        <tr>
+                          <td colSpan="5" className="text-center py-8 text-gray-400">Belum ada data</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </main>
     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />

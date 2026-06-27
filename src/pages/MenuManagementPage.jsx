@@ -15,7 +15,7 @@ export default function MenuManagementPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = sessionStorage.getItem("user");
     if (userStr) {
       try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
     }
@@ -76,14 +76,14 @@ export default function MenuManagementPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
     navigate("/login");
   };
 
   const filteredMenus = menus.filter(m => m.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -118,46 +118,65 @@ export default function MenuManagementPage() {
 
       {/* Main Content */}
       <main className="ml-64 flex-1 p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-green-700">Daftar Menu Cafe</h1>
-          <button onClick={() => navigate("/admin/menu/add")} className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg"><Plus className="w-4 h-4" />Tambah Menu</button>
-        </div>
+        {loading ? (
+          <div className="animate-pulse space-y-6">
+            <div className="flex justify-between items-center mb-6">
+               <div className="h-8 bg-gray-200 rounded w-48"></div>
+               <div className="h-10 bg-gray-200 rounded w-32"></div>
+            </div>
+            <div className="h-10 bg-gray-200 rounded w-80 mb-6"></div>
+            <div className="bg-white rounded-xl border p-4 space-y-4">
+               <div className="h-8 bg-gray-100 rounded w-full"></div>
+               <div className="h-8 bg-gray-100 rounded w-full"></div>
+               <div className="h-8 bg-gray-100 rounded w-full"></div>
+               <div className="h-8 bg-gray-100 rounded w-full"></div>
+               <div className="h-8 bg-gray-100 rounded w-full"></div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-green-700">Daftar Menu Cafe</h1>
+              <button onClick={() => navigate("/admin/menu/add")} className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg"><Plus className="w-4 h-4" />Tambah Menu</button>
+            </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 w-80 mb-6">
-          <Search className="w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Cari menu..." className="flex-1 text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-        </div>
+            {/* Search */}
+            <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 w-80 mb-6">
+              <Search className="w-4 h-4 text-gray-400" />
+              <input type="text" placeholder="Cari menu..." className="flex-1 text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr><th className="text-left px-5 py-3">Nama Menu</th><th className="text-left px-5 py-3">Kategori</th><th className="text-left px-5 py-3">Harga</th><th className="text-left px-5 py-3">Stok</th><th className="text-left px-5 py-3">Aksi</th></tr>
-            </thead>
-            <tbody>
-              {filteredMenus.map(menu => (
-                <tr key={menu._id || menu.menuId} className="border-b hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium">{menu.name}</td>
-                  <td className="px-5 py-3"><span className="px-2 py-1 rounded-full bg-gray-100 text-xs">{menu.category}</span></td>
-                  <td className="px-5 py-3">Rp {menu.price?.toLocaleString()}</td>
-                  <td className="px-5 py-3">{menu.stock || 0}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex gap-2">
-                      <button onClick={() => openUpdateModal(menu)} className="p-2 border rounded-md hover:bg-gray-50">
-                        <Pencil className="w-4 h-4 text-gray-500" />
-                      </button>
-                      <button onClick={() => deleteMenu(menu._id, menu.name)} className="p-2 border rounded-md hover:bg-red-50">
-                        <Trash className="w-4 h-4 text-gray-500" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredMenus.length === 0 && <tr><td colSpan="5" className="text-center py-8 text-gray-400">Belum ada menu</td></tr>}
-            </tbody>
-          </table>
-        </div>
+            {/* Table */}
+            <div className="bg-white rounded-xl border overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr><th className="text-left px-5 py-3">Nama Menu</th><th className="text-left px-5 py-3">Kategori</th><th className="text-left px-5 py-3">Harga</th><th className="text-left px-5 py-3">Stok</th><th className="text-left px-5 py-3">Aksi</th></tr>
+                </thead>
+                <tbody>
+                  {filteredMenus.map(menu => (
+                    <tr key={menu._id || menu.menuId} className="border-b hover:bg-gray-50">
+                      <td className="px-5 py-3 font-medium">{menu.name}</td>
+                      <td className="px-5 py-3"><span className="px-2 py-1 rounded-full bg-gray-100 text-xs">{menu.category}</span></td>
+                      <td className="px-5 py-3">Rp {menu.price?.toLocaleString()}</td>
+                      <td className="px-5 py-3">{menu.stock || 0}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => openUpdateModal(menu)} className="p-2 border rounded-md hover:bg-gray-50">
+                            <Pencil className="w-4 h-4 text-gray-500" />
+                          </button>
+                          <button onClick={() => deleteMenu(menu._id, menu.name)} className="p-2 border rounded-md hover:bg-red-50">
+                            <Trash className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredMenus.length === 0 && <tr><td colSpan="5" className="text-center py-8 text-gray-400">Belum ada menu</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
       </main>

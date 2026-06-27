@@ -14,7 +14,7 @@ export default function AdminDashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = sessionStorage.getItem("user");
     if (userStr) {
       try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
     }
@@ -202,39 +202,49 @@ export default function AdminDashboard() {
     }
   ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <main className="ml-64 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Selamat datang, {currentUser?.fullName || currentUser?.username || "Admin"}</p>
-        </div>
+        {loading ? (
+          <div className="animate-pulse space-y-8">
+            <div className="h-8 bg-gray-200 rounded w-64"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+               <div className="h-32 bg-gray-200 rounded-xl"></div>
+               <div className="h-32 bg-gray-200 rounded-xl"></div>
+               <div className="h-32 bg-gray-200 rounded-xl"></div>
+               <div className="h-32 bg-gray-200 rounded-xl"></div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+               <div className="h-64 bg-gray-200 rounded-xl"></div>
+               <div className="h-64 bg-gray-200 rounded-xl"></div>
+            </div>
+            <div className="h-80 bg-gray-200 rounded-xl"></div>
+          </div>
+        ) : (
+          <>
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+              <p className="text-gray-500 mt-1">Selamat datang, {currentUser?.fullName || currentUser?.username || "Admin"}</p>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statsCards.map((stat, idx) => (
-            <StatsCard key={idx} {...stat} />
-          ))}
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {statsCards.map((stat, idx) => (
+                <StatsCard key={idx} {...stat} />
+              ))}
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <TopMenuList menus={topMenus} />
-          <BottomMenuList menus={[]} />
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <TopMenuList menus={topMenus} />
+              <BottomMenuList menus={[]} />
+            </div>
 
-        <RecentOrdersTable orders={recentOrders} />
-        <Footer />
+            <RecentOrdersTable orders={recentOrders} />
+            <Footer />
+          </>
+        )}
       </main>
     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />

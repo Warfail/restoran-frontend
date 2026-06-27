@@ -21,8 +21,8 @@ export default function KitchenLoginPage() {
       const u = username.trim().toLowerCase();
       const p = password.trim();
       if (u === "kitchen" && p === "kitchen123") {
-        localStorage.setItem("token", "kitchen-token-123");
-        localStorage.setItem("role", "kitchen");
+        sessionStorage.setItem("token", "kitchen-token-123");
+        sessionStorage.setItem("role", "kitchen");
         if (rememberMe) {
           localStorage.setItem("rememberedUser", username);
         }

@@ -7,9 +7,12 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
     category: "",
     price: 0,
     stock: 0,
+    image: "",
     isAvailable: true
   });
   const [loading, setLoading] = useState(false);
+
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     if (menu) {
@@ -18,8 +21,10 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
         category: menu.category || "",
         price: menu.price || 0,
         stock: menu.stock || 0,
+        image: menu.image || "",
         isAvailable: menu.isAvailable !== false
       });
+      setImagePreview(menu.image || null);
     }
   }, [menu]);
 
@@ -28,6 +33,18 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setFormData(prev => ({ ...prev, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async () => {
@@ -102,6 +119,23 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
+          </div>
+
+          <div>
+            <label className="text-gray-700 text-sm font-medium mb-1 block">Foto Menu (Opsional)</label>
+            <div className="flex items-center gap-4">
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+              ) : (
+                <div className="w-16 h-16 bg-gray-100 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs">No img</div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+              />
+            </div>
           </div>
 
           <div className="flex justify-between items-center bg-gray-50 rounded-lg p-3">

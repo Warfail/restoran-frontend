@@ -9,7 +9,7 @@ export default function InventoryPageNew() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = sessionStorage.getItem("user");
     if (userStr) {
       try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
     }
@@ -51,8 +51,8 @@ export default function InventoryPageNew() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
     navigate("/login");
   };
 
@@ -90,9 +90,7 @@ export default function InventoryPageNew() {
     return matchSearch && matchStatus && matchCategory;
   });
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
+
 
   return (
     <div className="flex h-screen w-full font-['Inter',sans-serif] bg-gray-50 overflow-hidden">
@@ -143,7 +141,7 @@ export default function InventoryPageNew() {
             <div className="w-px h-8 bg-gray-200"></div>
             <div className="flex items-center gap-2.5">
               <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || "Loading..."}</div>
+                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
                 <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
               </div>
               <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
@@ -163,92 +161,119 @@ export default function InventoryPageNew() {
             <h1 className="text-2xl font-bold text-gray-900">Stok Bahan</h1>
           </div>
 
-          {/* Stats Cards - Data Real dari MongoDB */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
-              <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center"><i className="ti ti-package text-2xl text-green-700"></i></div>
-              <div><div className="text-xs text-gray-500 font-medium">Total SKU</div><div className="text-2xl font-bold">{stats.total} Item</div></div>
-            </div>
-            <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
-              <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center"><i className="ti ti-alert-triangle text-2xl text-orange-700"></i></div>
-              <div><div className="text-xs text-gray-500 font-medium">Kritis (≤5)</div><div className="text-2xl font-bold text-orange-600">{stats.kritis} Item</div></div>
-            </div>
-            <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
-              <div className="w-12 h-12 rounded-lg bg-yellow-50 flex items-center justify-center"><i className="ti ti-hourglass text-2xl text-yellow-700"></i></div>
-              <div><div className="text-xs text-gray-500 font-medium">Hampir Habis (≤10)</div><div className="text-2xl font-bold text-yellow-600">{stats.hampirHabis} Item</div></div>
-            </div>
-            <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
-              <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center"><i className="ti ti-clipboard-list text-2xl text-red-700"></i></div>
-              <div><div className="text-xs text-gray-500 font-medium">Habis</div><div className="text-2xl font-bold text-red-600">{stats.habis} Item</div></div>
-            </div>
-          </div>
-
-          {/* Search & Filters */}
-          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base"></i>
-              <input type="text" placeholder="Cari...." className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            </div>
-            <div className="flex gap-2">
-              <div className="relative">
-                <select className="pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                  <option>Semua</option><option>Habis</option><option>Kritis</option><option>Menipis</option><option>Aman</option>
-                </select>
-                <i className="ti ti-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+          {loading ? (
+            <div className="animate-pulse space-y-6">
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border p-5 h-24 shadow-sm"></div>
+                <div className="bg-white rounded-xl border p-5 h-24 shadow-sm"></div>
+                <div className="bg-white rounded-xl border p-5 h-24 shadow-sm"></div>
+                <div className="bg-white rounded-xl border p-5 h-24 shadow-sm"></div>
               </div>
-              <div className="relative">
-                <select className="pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                  <option>Semua</option><option>Bahan Baku</option><option>Topping</option>
-                </select>
-                <i className="ti ti-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <div className="h-10 bg-gray-200 rounded-lg w-48"></div>
+                <div className="flex gap-2">
+                  <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+                  <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border shadow-sm p-4 space-y-4">
+                <div className="h-10 bg-gray-100 rounded w-full"></div>
+                <div className="h-12 bg-gray-100 rounded w-full"></div>
+                <div className="h-12 bg-gray-100 rounded w-full"></div>
+                <div className="h-12 bg-gray-100 rounded w-full"></div>
+                <div className="h-12 bg-gray-100 rounded w-full"></div>
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Stats Cards - Data Real dari MongoDB */}
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center"><i className="ti ti-package text-2xl text-green-700"></i></div>
+                  <div><div className="text-xs text-gray-500 font-medium">Total SKU</div><div className="text-2xl font-bold">{stats.total} Item</div></div>
+                </div>
+                <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center"><i className="ti ti-alert-triangle text-2xl text-orange-700"></i></div>
+                  <div><div className="text-xs text-gray-500 font-medium">Kritis (≤5)</div><div className="text-2xl font-bold text-orange-600">{stats.kritis} Item</div></div>
+                </div>
+                <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-yellow-50 flex items-center justify-center"><i className="ti ti-hourglass text-2xl text-yellow-700"></i></div>
+                  <div><div className="text-xs text-gray-500 font-medium">Hampir Habis (≤10)</div><div className="text-2xl font-bold text-yellow-600">{stats.hampirHabis} Item</div></div>
+                </div>
+                <div className="bg-white rounded-xl border p-5 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center"><i className="ti ti-clipboard-list text-2xl text-red-700"></i></div>
+                  <div><div className="text-xs text-gray-500 font-medium">Habis</div><div className="text-2xl font-bold text-red-600">{stats.habis} Item</div></div>
+                </div>
+              </div>
 
-          {/* Table */}
-          <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">ITEM NAME</th>
-                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">KATEGORI</th>
-                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">CURRENT STOCK</th>
-                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">SAFETY LIMIT</th>
-                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">STATUS</th>
-                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredInventory.map((item) => (
-                    <tr key={item._id} className="border-b border-gray-50">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center"><i className="ti ti-package text-gray-500"></i></div>
-                          <span className="font-semibold text-gray-900">{item.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-4 text-gray-700">{item.category || "Bahan Baku"}</td>
-                      <td className="px-3 py-4"><span className={`font-semibold ${getStockColor(item.stock)}`}>{item.stock} {item.unit || "unit"}</span></td>
-                      <td className="px-3 py-4 text-gray-700">{item.minStock || 10} {item.unit || "unit"}</td>
-                      <td className="px-3 py-4">{getStatusBadge(item.stock)}</td>
-                      <td className="px-3 py-4">
-                        <div className="flex items-center gap-3">
-                          <i className="ti ti-pencil text-gray-400 cursor-pointer hover:text-gray-600" onClick={() => {
-                            const newStock = prompt("Update stok:", item.stock);
-                            if (newStock !== null) updateStock(item._id, parseInt(newStock));
-                          }}></i>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredInventory.length === 0 && (
-                    <tr><td colSpan="6" className="text-center py-8 text-gray-400">Belum ada data inventory</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+              {/* Search & Filters */}
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
+                  <i className="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base"></i>
+                  <input type="text" placeholder="Cari...." className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <select className="pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                      <option>Semua</option><option>Habis</option><option>Kritis</option><option>Menipis</option><option>Aman</option>
+                    </select>
+                    <i className="ti ti-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                  </div>
+                  <div className="relative">
+                    <select className="pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                      <option>Semua</option><option>Bahan Baku</option><option>Topping</option>
+                    </select>
+                    <i className="ti ti-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">ITEM NAME</th>
+                        <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">KATEGORI</th>
+                        <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">CURRENT STOCK</th>
+                        <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">SAFETY LIMIT</th>
+                        <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">STATUS</th>
+                        <th className="text-left px-3 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredInventory.map((item) => (
+                        <tr key={item._id} className="border-b border-gray-50">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center"><i className="ti ti-package text-gray-500"></i></div>
+                              <span className="font-semibold text-gray-900">{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-4 text-gray-700">{item.category || "Bahan Baku"}</td>
+                          <td className="px-3 py-4"><span className={`font-semibold ${getStockColor(item.stock)}`}>{item.stock} {item.unit || "unit"}</span></td>
+                          <td className="px-3 py-4 text-gray-700">{item.minStock || 10} {item.unit || "unit"}</td>
+                          <td className="px-3 py-4">{getStatusBadge(item.stock)}</td>
+                          <td className="px-3 py-4">
+                            <div className="flex items-center gap-3">
+                              <i className="ti ti-pencil text-gray-400 cursor-pointer hover:text-gray-600" onClick={() => {
+                                const newStock = prompt("Update stok:", item.stock);
+                                if (newStock !== null) updateStock(item._id, parseInt(newStock));
+                              }}></i>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredInventory.length === 0 && (
+                        <tr><td colSpan="6" className="text-center py-8 text-gray-400">Belum ada data inventory</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     

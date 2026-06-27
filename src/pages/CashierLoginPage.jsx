@@ -21,8 +21,8 @@ export default function CashierLoginPage() {
       const u = username.trim().toLowerCase();
       const p = password.trim();
       if (u === "kasir" && p === "kasir123") {
-        localStorage.setItem("token", "kasir-token-123");
-        localStorage.setItem("role", "kasir");
+        sessionStorage.setItem("token", "kasir-token-123");
+        sessionStorage.setItem("role", "kasir");
         if (rememberMe) {
           localStorage.setItem("rememberedUser", username);
         }
