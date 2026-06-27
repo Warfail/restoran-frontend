@@ -304,4 +304,12 @@ setPaymentMethod: async (orderId, method) => {
       totalUsers: 0
     };
   },
+  // ========== CASHIER ==========
+getReceipt: async (orderId) => {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  return res.json();
+},
 };
