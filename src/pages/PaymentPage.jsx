@@ -44,8 +44,39 @@ export default function PaymentPage() {
 
     setLoading(true);
     try {
-      await api.setPaymentMethod(orderId, selectedMethod);
-      setShowInstructionModal(true);
+      if (selectedMethod === "qris") {
+        const payload = {
+          orderId,
+          totalAmount,
+          customerName,
+          customerEmail: `${(customerName || 'guest').replace(/\s+/g, '').toLowerCase()}@restorand9.com`
+        };
+        const res = await api.createMidtransTransaction(payload);
+        if (res.success && res.token) {
+          window.snap.pay(res.token, {
+            onSuccess: function(result) {
+              console.log("Midtrans success:", result);
+              setShowInstructionModal(true);
+            },
+            onPending: function(result) {
+              console.log("Midtrans pending:", result);
+              toast.error("Pembayaran masih tertunda.");
+            },
+            onError: function(result) {
+              console.error("Midtrans error:", result);
+              toast.error("Pembayaran gagal!");
+            },
+            onClose: function() {
+              toast.error("Anda menutup popup sebelum menyelesaikan pembayaran.");
+            }
+          });
+        } else {
+          toast.error(res.detail || "Gagal memuat pembayaran QRIS.");
+        }
+      } else {
+        await api.setPaymentMethod(orderId, selectedMethod);
+        setShowInstructionModal(true);
+      }
     } catch (error) {
       console.error("Payment failed:", error);
       toast.error("Terjadi kesalahan. Silakan coba lagi.");
@@ -110,14 +141,10 @@ export default function PaymentPage() {
             </div>
           </div>
           
-          {/* Show QR Image if selected */}
+          {/* Show message if selected */}
           {selectedMethod === "qris" && (
             <div className="mt-4 flex flex-col items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600 mb-2 font-medium">Scan QR Code di bawah ini:</p>
-              <img src={qrisImg} alt="QRIS" className="w-48 h-48 object-contain bg-white rounded shadow-sm p-2" onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "https://placehold.co/200x200/ffffff/000000?text=QR+Code+Anda";
-              }} />
+              <p className="text-sm text-gray-600 font-medium">Klik tombol di bawah untuk menampilkan QRIS Anda</p>
             </div>
           )}
         </div>
@@ -164,7 +191,7 @@ export default function PaymentPage() {
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
-          {loading ? "Memproses..." : selectedMethod === "qris" ? "Konfirmasi Sudah Bayar" : "Konfirmasi Pembayaran"}
+          {loading ? "Memproses..." : selectedMethod === "qris" ? "Tampilkan QRIS" : "Konfirmasi Pembayaran"}
         </button>
       </div>
 
@@ -182,12 +209,20 @@ export default function PaymentPage() {
               )}
             </div>
             <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">
-              Instruksi Pembayaran {selectedMethod === "qris" ? "QRIS" : selectedMethod === "debit" ? "Debit" : "Tunai"}
+              {selectedMethod === "qris" ? "Pembayaran Berhasil!" : `Instruksi Pembayaran ${selectedMethod === "debit" ? "Debit" : "Tunai"}`}
             </h3>
             <p className="text-gray-500 text-sm text-center mb-7">
-              Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda
-              <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span>
-              {selectedMethod === "qris" ? " beserta bukti pembayaran QRIS Anda" : ""} untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan langsung otomatis dimasak oleh dapur.
+              {selectedMethod === "qris" ? (
+                <>
+                  Pesanan Anda telah <b>Lunas</b> dan diteruskan ke Dapur. Kasir akan segera mencetak struk Anda untuk Meja <span className="text-gray-900 font-semibold">{tableNumber}</span>.
+                </>
+              ) : (
+                <>
+                  Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda
+                  <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span>
+                  {" "}untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan otomatis dimasak oleh dapur.
+                </>
+              )}
             </p>
             <button
               onClick={closeModal}
