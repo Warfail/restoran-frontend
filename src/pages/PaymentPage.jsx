@@ -4,15 +4,17 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Clock, QrCode, Landmark, DollarSign } from "lucide-react";
 import { api } from "../services/api";
 
+// Pastikan gambar QRIS disimpan di src/assets/qris.jpeg
+import qrisImg from "../assets/qris.jpeg"; 
+
 export default function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { orderId, totalAmount, customerName, tableNumber, items } = location.state || {};
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 59);
-  const [showCashInstructionModal, setShowCashInstructionModal] = useState(false);
+  const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [snapLoaded, setSnapLoaded] = useState(false);
 
   // Timer countdown
   useEffect(() => {
@@ -28,93 +30,32 @@ export default function PaymentPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Load Midtrans Snap script
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
-    script.setAttribute("data-client-key", import.meta.env.VITE_MIDTRANS_CLIENT_KEY || "SB-Mid-client-xxx");
-    script.onload = () => setSnapLoaded(true);
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-const handlePayment = async () => {
-  if (!selectedMethod) {
-    toast.error("Pilih metode pembayaran terlebih dahulu!");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    if (selectedMethod === "cash" || selectedMethod === "debit") {
-      await api.setPaymentMethod(orderId, selectedMethod);
-      setShowCashInstructionModal(true);
-    } else {
-      const response = await api.createMidtransTransaction({
-        orderId: orderId,
-        totalAmount: totalAmount,
-        customerName: customerName,
-        customerEmail: "customer@example.com",
-        items: items || [],
-      });
-
-      console.log("Midtrans response:", response);
-
-      if (response.success && response.token) {
-        if (!snapLoaded || !window.snap) {
-          toast.error("Payment gateway belum siap. Silakan refresh halaman.");
-          setLoading(false);
-          return;
-        }
-
-        window.snap.pay(response.token, {
-          onSuccess: function (result) {
-            console.log("Payment success:", result);
-            navigate("/payment-success", {
-              state: {
-                orderId: orderId,
-                totalAmount: totalAmount,
-                customerName: customerName,
-                tableNumber: tableNumber,
-                paymentMethod: selectedMethod === "qris" ? "QRIS" : "Transfer Bank"
-              }
-            });
-          },
-          onPending: function (result) {
-            console.log("Payment pending:", result);
-            navigate(`/order-status?orderId=${orderId}`);
-          },
-          onError: function (result) {
-            console.error("Payment error:", result);
-            toast.error("Pembayaran gagal.");
-          },
-          onClose: function () {
-            console.log("Payment popup closed");
-          },
-        });
-      } else {
-        toast.error("Gagal membuat transaksi pembayaran.");
-      }
+  const handlePayment = async () => {
+    if (!selectedMethod) {
+      toast.error("Pilih metode pembayaran terlebih dahulu!");
+      return;
     }
-  } catch (error) {
-    console.error("Payment failed:", error);
-    toast.error("Terjadi kesalahan. Silakan coba lagi.");
-  } finally {
-    setLoading(false);
-  }
-};
 
-  const closeCashModal = () => {
-    setShowCashInstructionModal(false);
+    setLoading(true);
+    try {
+      await api.setPaymentMethod(orderId, selectedMethod);
+      setShowInstructionModal(true);
+    } catch (error) {
+      console.error("Payment failed:", error);
+      toast.error("Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowInstructionModal(false);
     navigate(`/order-status?orderId=${orderId}`);
   };
 
@@ -159,42 +100,26 @@ const handlePayment = async () => {
             selectedMethod === "qris" ? "border-2 border-green-500" : "border border-gray-200"
           }`}
         >
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                <QrCode className="w-5.5 h-5.5 text-white" />
-              </div>
-              <div>
-                <p className="text-gray-900 font-semibold text-sm">QRIS</p>
-                <p className="text-gray-500 text-xs">(Verifikasi Otomatis)</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-7 h-5 bg-blue-900 rounded flex items-center justify-center">
-                <span className="text-white text-[8px] font-bold">Midtrans</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Transfer Virtual Account */}
-        <div
-          onClick={() => setSelectedMethod("transfer")}
-          className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${
-            selectedMethod === "transfer" ? "border-2 border-green-500" : "border border-gray-200"
-          }`}
-        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Landmark className="w-5.5 h-5.5 text-gray-500" />
+            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+              <QrCode className="w-5.5 h-5.5 text-white" />
             </div>
-            <div className="flex-1 flex justify-between items-center">
-              <span className="text-gray-900 font-medium text-sm">Transfer Virtual Account</span>
-              <div className="w-9 h-5.5 bg-blue-900 rounded flex items-center justify-center">
-                <span className="text-white text-[9px] font-bold">Midtrans</span>
-              </div>
+            <div>
+              <p className="text-gray-900 font-semibold text-sm">QRIS</p>
+              <p className="text-gray-500 text-xs">Scan menggunakan e-wallet atau m-banking</p>
             </div>
           </div>
+          
+          {/* Show QR Image if selected */}
+          {selectedMethod === "qris" && (
+            <div className="mt-4 flex flex-col items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-2 font-medium">Scan QR Code di bawah ini:</p>
+              <img src={qrisImg} alt="QRIS" className="w-48 h-48 object-contain bg-white rounded shadow-sm p-2" onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://placehold.co/200x200/ffffff/000000?text=QR+Code+Anda";
+              }} />
+            </div>
+          )}
         </div>
 
         {/* Tunai */}
@@ -239,36 +164,36 @@ const handlePayment = async () => {
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
-          {loading ? "Memproses..." : "Konfirmasi Pembayaran"}
+          {loading ? "Memproses..." : selectedMethod === "qris" ? "Konfirmasi Sudah Bayar" : "Konfirmasi Pembayaran"}
         </button>
       </div>
 
-      {/* MODAL INSTRUKSI TUNAI / DEBIT */}
-      {showCashInstructionModal && (
+      {/* MODAL INSTRUKSI */}
+      {showInstructionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 flex flex-col items-center">
             <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-5">
-              <DollarSign className="w-8 h-8 text-white" />
+              {selectedMethod === "qris" ? (
+                <QrCode className="w-8 h-8 text-white" />
+              ) : selectedMethod === "debit" ? (
+                <Landmark className="w-8 h-8 text-white" />
+              ) : (
+                <DollarSign className="w-8 h-8 text-white" />
+              )}
             </div>
             <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">
-              {selectedMethod === "debit" ? "Instruksi Pembayaran Debit" : "Instruksi Pembayaran Tunai"}
+              Instruksi Pembayaran {selectedMethod === "qris" ? "QRIS" : selectedMethod === "debit" ? "Debit" : "Tunai"}
             </h3>
             <p className="text-gray-500 text-sm text-center mb-7">
               Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda
               <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span>
-              untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan langsung otomatis dimasak oleh dapur.
+              {selectedMethod === "qris" ? " beserta bukti pembayaran QRIS Anda" : ""} untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan langsung otomatis dimasak oleh dapur.
             </p>
             <button
-              onClick={closeCashModal}
+              onClick={closeModal}
               className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3.5 rounded-xl transition mb-3"
             >
               Saya Mengerti
-            </button>
-            <button
-              onClick={() => setShowCashInstructionModal(false)}
-              className="text-gray-500 text-sm font-medium"
-            >
-              Kembali
             </button>
           </div>
         </div>

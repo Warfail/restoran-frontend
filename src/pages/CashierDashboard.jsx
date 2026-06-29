@@ -484,84 +484,109 @@ export default function CashierDashboard() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Printable Area */}
             <div className="bg-gray-200 p-4 flex justify-center overflow-y-auto max-h-[60vh]">
-              <div id="receipt-content" className="bg-white p-4 text-gray-900 font-mono w-full max-w-[300px] shadow-sm">
-                <div className="text-center mb-4">
-                  <img src="/logo.png" alt="Logo" className="w-12 h-12 mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%)' }} />
-                  <h2 className="text-lg font-bold uppercase tracking-wider mb-1">Singkong Keju D9</h2>
-                  <p className="text-[10px]">Jl. Argowiyoto No.8A, Ledok</p>
-                  <p className="text-[10px]">Kec. Argomulyo, Kota Salatiga</p>
-                  <p className="text-[10px]">Jawa Tengah 50732</p>
-                  <p className="text-[10px] mt-1">081234567890</p>
+              <div id="receipt-content" className="bg-white p-4 text-gray-900 font-mono w-full max-w-[300px] shadow-sm text-[11px] leading-tight whitespace-pre-wrap">
+                <div className="text-center mb-2">
+                  <img src="/logo.png" alt="Logo" className="w-12 h-12 mx-auto mb-1 grayscale" style={{ filter: 'grayscale(100%)' }} />
+                  <div className="text-lg font-bold uppercase tracking-wider">Singkong Keju D9</div>
+                  <div>Jl. Argowiyoto No.8A, Ledok</div>
+                  <div>Kec. Argomulyo, Kota Salatiga</div>
+                  <div>089654485375</div>
                 </div>
 
-                <div className="text-[11px] mb-3 flex flex-col gap-1">
-                  <div className="flex justify-between">
-                    <span>{new Date(receiptData.paymentDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                    <span>{new Date(receiptData.paymentDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                <div className="text-center mb-2">
+                  ================================
+                </div>
+
+                <div className="mb-2">
+                  <div className="flex">
+                    <span className="w-[75px] shrink-0">No Nota</span>
+                    <span className="mr-1">:</span>
+                    <span className="flex-1 break-all">{receiptData.receiptId}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Receipt Number</span>
-                    <span>{receiptData.receiptId}</span>
+                  <div className="flex">
+                    <span className="w-[75px] shrink-0">Waktu</span>
+                    <span className="mr-1">:</span>
+                    <span>{new Date(receiptData.paymentDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })} {new Date(receiptData.paymentDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Order ID</span>
-                    <span>{receiptData.orderId || "N/A"}</span>
+                  <div className="flex">
+                    <span className="w-[75px] shrink-0">Order</span>
+                    <span className="mr-1">:</span>
+                    <span>Meja {receiptData.tableNumber}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Bill Name</span>
-                    <span>{receiptData.customerName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Table</span>
-                    <span>{receiptData.tableNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Collected By</span>
+                  <div className="flex">
+                    <span className="w-[75px] shrink-0">Kasir</span>
+                    <span className="mr-1">:</span>
                     <span>{currentUser?.fullName || currentUser?.username || "Kasir"}</span>
                   </div>
+                  <div className="flex">
+                    <span className="w-[75px] shrink-0">Jenis Order</span>
+                    <span className="mr-1">:</span>
+                    <span>Dine In</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-[75px] shrink-0">Nama Order</span>
+                    <span className="mr-1">:</span>
+                    <span>{receiptData.customerName}</span>
+                  </div>
                 </div>
 
-                <div className="text-center font-bold my-2 text-[11px]">* DINE IN *</div>
+                <div className="text-center mb-2">
+                  --------------------------------
+                </div>
 
-                <div className="space-y-2 mb-3 text-[11px]">
+                <div className="mb-2">
                   {receiptData.items?.map((item, idx) => (
-                    <div key={idx}>
-                      <div className="font-semibold">{item.menuName}</div>
-                      <div className="flex justify-between">
-                        <span>{item.quantity}x @{item.price.toLocaleString()}</span>
-                        <span>{(item.price * item.quantity).toLocaleString()}</span>
-                      </div>
+                    <div key={idx} className="flex justify-between items-start">
+                      <span className="flex-1 pr-2">{item.quantity} {item.menuName || item.name}</span>
+                      <span className="whitespace-nowrap">{(item.price * item.quantity).toLocaleString('id-ID')}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="border-t border-dashed border-gray-400 my-2"></div>
+                <div className="text-center mb-2">
+                  --------------------------------
+                </div>
                 
-                <div className="space-y-1 mb-2 text-[11px]">
+                <div className="mb-2">
                   <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>Rp {receiptData.totalPrice?.toLocaleString()}</span>
+                    <span>Subtotal {receiptData.items?.reduce((acc, item) => acc + item.quantity, 0) || 0} Produk</span>
+                    <span>{receiptData.totalPrice?.toLocaleString('id-ID')}</span>
                   </div>
-                  <div className="border-t border-dashed border-gray-400 my-1"></div>
                   <div className="flex justify-between font-bold">
                     <span>Total</span>
-                    <span>Rp {receiptData.totalPrice?.toLocaleString()}</span>
+                    <span>{receiptData.totalPrice?.toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+
+                <div className="text-center mb-2">
+                  --------------------------------
+                </div>
+
+                <div className="mb-2">
+                  <div className="flex justify-between">
+                    <span>Metode Bayar</span>
+                    <span className="capitalize">{receiptData.paymentMethod === 'cash' ? 'Tunai' : (receiptData.paymentMethod || 'Tunai')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tunai/Bayar</span>
-                    <span>Rp {receiptData.amountPaid?.toLocaleString()}</span>
+                    <span>{receiptData.amountPaid?.toLocaleString('id-ID')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Kembali</span>
-                    <span>Rp {receiptData.change?.toLocaleString()}</span>
+                    <span>{receiptData.change?.toLocaleString('id-ID')}</span>
                   </div>
                 </div>
-                
-                <div className="border-t border-dashed border-gray-400 my-2"></div>
 
-                <div className="text-center text-[10px] mt-4 flex items-center justify-center gap-1">
-                  <img src="/logo.png" alt="Logo" className="w-4 h-4 grayscale" style={{ filter: 'grayscale(100%)' }} />
-                  <span>singkongkejud9</span>
+                <div className="text-center mb-2">
+                  ================================
+                </div>
+
+                <div className="text-center mt-2">
+                  <div>Kritik dan Saran</div>
+                  <div>089654485375</div>
+                  <div className="mt-4 mb-2">Terima Kasih</div>
+                  <div>Terbayar {new Date(receiptData.paymentDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} {new Date(receiptData.paymentDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div>dicetak: {currentUser?.fullName || currentUser?.username || "Kasir"}</div>
                 </div>
               </div>
             </div>
@@ -584,82 +609,97 @@ export default function CashierDashboard() {
                       console.error("Gagal update status isPrinted", e);
                     }
                   }
-                  setShowReceipt(false); // Langsung tutup modal struk
                   const content = document.getElementById("receipt-content").innerHTML;
+                  setShowReceipt(false); // Langsung tutup modal struk setelah ambil content
+                  
                   const printWindow = window.open('', '_blank', 'width=400,height=600');
-                  printWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                      <head>
-                        <title>Cetak Struk - ${receiptData.receiptId}</title>
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <style>
-                          @page { margin: 0; }
-                          body {
-                            font-family: 'Courier New', Courier, monospace;
-                            color: #000;
-                            margin: 0;
-                            padding: 10px;
-                            width: 58mm; /* Standard thermal printer width */
-                            font-size: 11px;
-                            line-height: 1.2;
-                            background: #fff;
-                          }
-                          * { box-sizing: border-box; }
-                          
-                          /* CSS Classes Used in Content */
-                          .text-center { text-align: center; }
-                          .mb-1 { margin-bottom: 4px; }
-                          .mb-2 { margin-bottom: 8px; }
-                          .mb-3 { margin-bottom: 12px; }
-                          .mb-4 { margin-bottom: 16px; }
-                          .mt-1 { margin-top: 4px; }
-                          .mt-4 { margin-top: 16px; }
-                          .my-1 { margin-top: 4px; margin-bottom: 4px; }
-                          .my-2 { margin-top: 8px; margin-bottom: 8px; }
-                          .mx-auto { margin-left: auto; margin-right: auto; }
-                          .w-full { width: 100%; }
-                          .flex { display: flex; }
-                          .justify-between { justify-content: space-between; }
-                          .justify-center { justify-content: center; }
-                          .items-center { align-items: center; }
-                          .flex-col { flex-direction: column; }
-                          .gap-1 { gap: 4px; }
-                          .border-t { border-top: 1px dashed #000; }
-                          .border-dashed { border-style: dashed; }
-                          .font-bold { font-weight: bold; }
-                          .font-semibold { font-weight: 600; }
-                          .uppercase { text-transform: uppercase; }
-                          .tracking-wider { letter-spacing: 0.05em; }
-                          .w-12 { width: 48px; }
-                          .h-12 { height: 48px; }
-                          .w-4 { width: 16px; }
-                          .h-4 { height: 16px; }
-                          .text-\\[10px\\] { font-size: 10px; }
-                          .text-\\[11px\\] { font-size: 11px; }
-                          .text-lg { font-size: 16px; }
-                          .space-y-1 > * + * { margin-top: 4px; }
-                          .space-y-2 > * + * { margin-top: 8px; }
-                          
-                          img { display: block; }
-                          
-                          @media print {
-                            body { width: auto; max-width: 58mm; padding: 0; margin-left: auto; margin-right: auto;}
-                          }
-                        </style>
-                      </head>
-                      <body>
-                        ${content}
-                        <script>
-                          setTimeout(() => {
-                            window.print();
-                            window.close();
-                          }, 500);
-                        </script>
-                      </body>
-                    </html>
-                  `);
-                  printWindow.document.close();
+                  if (printWindow) {
+                    printWindow.document.write(`
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <title>Cetak Struk - ${receiptData.receiptId}</title>
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                          <style>
+                            @page { margin: 0; }
+                            body {
+                              font-family: monospace;
+                              font-weight: 600; /* Bikin font lebih tebal */
+                              color: #000;
+                              margin: 0;
+                              padding: 10px;
+                              width: 58mm; /* Standard thermal printer width */
+                              font-size: 11px;
+                              line-height: 1.2;
+                              background: #fff;
+                            }
+                            * { box-sizing: border-box; }
+                            
+                            /* CSS Classes Used in Content */
+                            .text-center { text-align: center; }
+                            .mb-1 { margin-bottom: 4px; }
+                            .mb-2 { margin-bottom: 8px; }
+                            .mb-3 { margin-bottom: 12px; }
+                            .mb-4 { margin-bottom: 16px; }
+                            .mt-1 { margin-top: 4px; }
+                            .mt-4 { margin-top: 16px; }
+                            .my-1 { margin-top: 4px; margin-bottom: 4px; }
+                            .my-2 { margin-top: 8px; margin-bottom: 8px; }
+                            .mx-auto { margin-left: auto; margin-right: auto; }
+                            .w-full { width: 100%; }
+                            .flex { display: flex; }
+                            .justify-between { justify-content: space-between; }
+                            .justify-center { justify-content: center; }
+                            .items-start { align-items: flex-start; }
+                            .items-center { align-items: center; }
+                            .flex-col { flex-direction: column; }
+                            .flex-1 { flex: 1; }
+                            .shrink-0 { flex-shrink: 0; }
+                            .mr-1 { margin-right: 4px; }
+                            .pr-2 { padding-right: 8px; }
+                            .gap-1 { gap: 4px; }
+                            .break-all { word-break: break-all; }
+                            .whitespace-nowrap { white-space: nowrap; }
+                            .whitespace-pre-wrap { white-space: pre-wrap; }
+                            .leading-tight { line-height: 1.25; }
+                            .border-t { border-top: 1px dashed #000; }
+                            .border-dashed { border-style: dashed; }
+                            .font-bold { font-weight: 900; }
+                            .font-semibold { font-weight: 700; }
+                            .uppercase { text-transform: uppercase; }
+                            .tracking-wider { letter-spacing: 0.05em; }
+                            .w-12 { width: 48px; }
+                            .h-12 { height: 48px; }
+                            .w-4 { width: 16px; }
+                            .h-4 { height: 16px; }
+                            .text-\\[10px\\] { font-size: 10px; }
+                            .text-\\[11px\\] { font-size: 11px; }
+                            .text-lg { font-size: 16px; }
+                            .w-\\[75px\\] { width: 75px; }
+                            .space-y-1 > * + * { margin-top: 4px; }
+                            .space-y-2 > * + * { margin-top: 8px; }
+                            
+                            img { display: block; }
+                            
+                            @media print {
+                              body { width: auto; max-width: 58mm; padding: 0; margin-left: auto; margin-right: auto;}
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          ${content}
+                          <script>
+                            setTimeout(() => {
+                              window.print();
+                              window.close();
+                            }, 500);
+                          </script>
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.focus();
+                  }
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition"
               >
