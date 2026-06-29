@@ -30,67 +30,69 @@ export default function KitchenDashboard() {
   const [menuList, setMenuList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchOrders = async (menus = menuList) => {
-    try {
-      let currentMenus = menus;
-      if (!currentMenus || currentMenus.length === 0) {
-        currentMenus = await api.getMenu();
-        if (Array.isArray(currentMenus)) setMenuList(currentMenus);
-      }
-      
-      const menuDict = {};
-      if (Array.isArray(currentMenus)) {
-        currentMenus.forEach(m => {
-          menuDict[m.name] = m.category;
-        });
-      }
-
-      const response = await api.getKitchenOrders();
-      const ordersData = response?.data || response || [];
-      const ordersArray = Array.isArray(ordersData) ? ordersData : [];
-      
-      // Sort orders by time ascending (FIFO)
-      ordersArray.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-      
-      const newOrdersList = [];
-      const makanan = [];
-      const snack = [];
-      const minuman = [];
-      
-      const savedCompleted = JSON.parse(localStorage.getItem("kitchenCompletedSections") || "{}");
-      
-      ordersArray.forEach(order => {
-        if (order.status === "paid" || order.status === "pending") {
-          newOrdersList.push(order);
-        } else if (order.status === "cooking") {
-          const getCat = (item) => (menuDict[item.name] || item.category || "Makanan").toLowerCase();
-          
-          const hasMakanan = order.items?.some(item => getCat(item) === "makanan");
-          const hasSnack = order.items?.some(item => getCat(item) === "snack");
-          const hasMinuman = order.items?.some(item => getCat(item) === "minuman");
-          
-          const completedForOrder = savedCompleted[order.orderId || order._id] || [];
-          
-          if (hasMakanan && !completedForOrder.includes("makanan")) {
-            makanan.push({ ...order, originalItems: order.items, items: order.items.filter(item => getCat(item) === "makanan") });
-          }
-          if (hasSnack && !completedForOrder.includes("snack")) {
-            snack.push({ ...order, originalItems: order.items, items: order.items.filter(item => getCat(item) === "snack") });
-          }
-          if (hasMinuman && !completedForOrder.includes("minuman")) {
-            minuman.push({ ...order, originalItems: order.items, items: order.items.filter(item => getCat(item) === "minuman") });
-          }
-        }
-      });
-      
-      setNewOrders(newOrdersList);
-      setFoodCooking(makanan);
-      setSnackCooking(snack);
-      setDrinkCooking(minuman);
-    } catch (error) {
-      console.error("Failed to fetch orders:", error);
+const fetchOrders = async () => {
+  try {
+    // 🔥 Ambil menuList dulu
+    const menus = await api.getMenu();
+    console.log("📦 Menus from API:", menus);
+    
+    if (Array.isArray(menus)) {
+      setMenuList(menus);
     }
-  };
+    
+    const menuDict = {};
+    if (Array.isArray(menus)) {
+      menus.forEach(m => {
+        menuDict[m.name] = m.category;
+      });
+    }
+    console.log("📖 menuDict:", menuDict);
+    const response = await api.getKitchenOrders();
+    const ordersData = response?.data || response || [];
+    const ordersArray = Array.isArray(ordersData) ? ordersData : [];
+    
+    // Sort orders by time ascending (FIFO)
+    ordersArray.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    
+    const newOrdersList = [];
+    const makanan = [];
+    const snack = [];
+    const minuman = [];
+    
+    const savedCompleted = JSON.parse(localStorage.getItem("kitchenCompletedSections") || "{}");
+    
+    ordersArray.forEach(order => {
+      if (order.status === "paid" || order.status === "pending") {
+        newOrdersList.push(order);
+      } else if (order.status === "cooking") {
+        const getCat = (item) => (menuDict[item.name] || item.category || "Makanan").toLowerCase();
+        
+        const hasMakanan = order.items?.some(item => getCat(item) === "makanan");
+        const hasSnack = order.items?.some(item => getCat(item) === "snack");
+        const hasMinuman = order.items?.some(item => getCat(item) === "minuman");
+        
+        const completedForOrder = savedCompleted[order.orderId || order._id] || [];
+        
+        if (hasMakanan && !completedForOrder.includes("makanan")) {
+          makanan.push({ ...order, originalItems: order.items, items: order.items.filter(item => getCat(item) === "makanan") });
+        }
+        if (hasSnack && !completedForOrder.includes("snack")) {
+          snack.push({ ...order, originalItems: order.items, items: order.items.filter(item => getCat(item) === "snack") });
+        }
+        if (hasMinuman && !completedForOrder.includes("minuman")) {
+          minuman.push({ ...order, originalItems: order.items, items: order.items.filter(item => getCat(item) === "minuman") });
+        }
+      }
+    });
+    
+    setNewOrders(newOrdersList);
+    setFoodCooking(makanan);
+    setSnackCooking(snack);
+    setDrinkCooking(minuman);
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+  }
+};
 
   const toggleCheck = (orderId, idx) => {
     const key = `${orderId}-${idx}`;
