@@ -54,8 +54,13 @@ export default function PaymentPage() {
         const res = await api.createMidtransTransaction(payload);
         if (res.success && res.token) {
           window.snap.pay(res.token, {
-            onSuccess: function(result) {
+            onSuccess: async function(result) {
               console.log("Midtrans success:", result);
+              try {
+                await api.syncLocalPaymentSuccess(orderId);
+              } catch (e) {
+                console.error("Failed to sync success locally", e);
+              }
               setShowInstructionModal(true);
             },
             onPending: function(result) {

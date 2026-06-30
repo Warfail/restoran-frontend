@@ -96,6 +96,15 @@ createMidtransTransaction: async (data) => {
   return res.json();
 },
 
+syncLocalPaymentSuccess: async (orderId) => {
+  const res = await fetch(`${API_BASE}/payment/local-success`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId }),
+  });
+  return res.json();
+},
+
 setPaymentMethod: async (orderId, method) => {
   const res = await fetch(`${API_BASE}/payment/set-method`, {
     method: "POST",
