@@ -154,16 +154,21 @@ export default function KitchenDashboard() {
     }
   };
 
-  const fetchMenus = async () => {
-    try {
-      const menus = await api.getMenu();
-      if (Array.isArray(menus)) {
-        setMenuList(menus);
-      }
-    } catch (error) {
-      console.error("Failed to fetch menus:", error);
+ const fetchMenus = async () => {
+  try {
+    const response = await api.getKitchenOrders();
+    const orders = response?.data || response || [];
+    // Ambil menu dari orders (item names)
+    const menuNames = [...new Set(orders.flatMap(o => o.items?.map(i => i.name) || []))];
+    // Atau tetap pake api.getMenu() TAPI dengan fallback
+    const menus = await api.getMenu().catch(() => []);
+    if (Array.isArray(menus)) {
+      setMenuList(menus);
     }
-  };
+  } catch (error) {
+    console.error("Failed to fetch menus:", error);
+  }
+};
 
   useEffect(() => {
     const loadData = async () => {
