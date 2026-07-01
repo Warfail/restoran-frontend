@@ -250,7 +250,14 @@ export default function CustomerMenuPage() {
               <div className="space-y-0">
                 {groupedMenu[category].map((item) => (
                   <div key={item._id || item.menuId || item.id} className={`flex items-center gap-3.5 py-4 border-b border-gray-100 ${item.isAvailable === false ? 'opacity-50 grayscale' : ''}`}>
-                    <img src={item.image} alt={item.name} className="w-20 h-16 rounded-xl object-cover flex-shrink-0" />
+                        <img 
+                        src={item.image} 
+                        alt={item.name} 
+                        className="w-20 h-16 rounded-xl object-cover flex-shrink-0" 
+                        loading="lazy"  // 
+                        width="80"      // 
+                        height="64"     // 
+                      />
                     <div className="flex-1">
                       <h3 className="text-gray-900 font-semibold text-sm">{item.name}</h3>
                       <p className="text-gray-900 font-bold text-base mt-1">Rp {item.price.toLocaleString()}</p>

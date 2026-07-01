@@ -801,7 +801,14 @@ const startCooking = async (orderId) => {
                  {filteredMenuList.map(menu => (
                    <div key={menu._id || menu.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border justify-between">
                      <div className="flex items-center gap-3">
-                       <img src={menu.image} alt={menu.name} className="w-12 h-12 rounded object-cover border" />
+                       <img 
+                          src={menu.image} 
+                          alt={menu.name} 
+                          className="w-12 h-12 rounded object-cover border" 
+                          loading="lazy"
+                          width="48"
+                          height="48"
+                        />
                        <div>
                          <div className="font-semibold text-gray-800">{menu.name}</div>
                          <div className="text-xs text-gray-500">{menu.category}</div>
