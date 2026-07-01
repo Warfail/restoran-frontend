@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import {
-  
   Search, Plus, Pencil,
   LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut
 } from "lucide-react";
@@ -27,6 +26,13 @@ export default function InventoryPage() {
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [editingItem, setEditingItem] = useState(null);
   const [editStock, setEditStock] = useState("");
+
+  // 🔥 FUNGSI FORMAT ANGKA STOK
+  const formatStock = (value) => {
+    if (value === undefined || value === null) return '0';
+    const rounded = Math.round(value * 100) / 100;
+    return rounded.toString();
+  };
 
   useEffect(() => {
     fetchInventory();

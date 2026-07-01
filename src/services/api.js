@@ -1,5 +1,5 @@
-const API_BASE = "http://127.0.0.1:8000";
-// const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
+// const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
 
 const getToken = () => sessionStorage.getItem("token");
 
@@ -121,6 +121,14 @@ setPaymentMethod: async (orderId, method) => {
     const res = await fetch(`${API_BASE}/cashier/orders`);
     return res.json();
   },
+
+  getStockLogs: async () => {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/stock-logs/`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  return res.json();
+},
 
   updateOrderStatus: async (orderId, status) => {
     const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {

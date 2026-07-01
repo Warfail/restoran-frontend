@@ -1,11 +1,8 @@
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Clock, QrCode, Landmark, DollarSign } from "lucide-react";
+import { ArrowLeft, Clock, QrCode, Landmark, DollarSign, Smartphone } from "lucide-react";
 import { api } from "../services/api";
-
-// Pastikan gambar QRIS disimpan di src/assets/qris.jpeg
-import qrisImg from "../assets/qris.jpeg"; 
 
 export default function PaymentPage() {
   const navigate = useNavigate();
@@ -15,6 +12,20 @@ export default function PaymentPage() {
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 59);
   const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [snapLoaded, setSnapLoaded] = useState(false);
+
+  // Load Midtrans Snap script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
+    script.setAttribute("data-client-key", import.meta.env.VITE_MIDTRANS_CLIENT_KEY || "SB-Mid-client-xxx");
+    script.onload = () => setSnapLoaded(true);
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   // Timer countdown
   useEffect(() => {
@@ -44,43 +55,65 @@ export default function PaymentPage() {
 
     setLoading(true);
     try {
-      if (selectedMethod === "qris") {
-        const payload = {
-          orderId,
-          totalAmount,
-          customerName,
-          customerEmail: `${(customerName || 'guest').replace(/\s+/g, '').toLowerCase()}@restorand9.com`
-        };
-        const res = await api.createMidtransTransaction(payload);
-        if (res.success && res.token) {
-          window.snap.pay(res.token, {
-            onSuccess: async function(result) {
-              console.log("Midtrans success:", result);
-              try {
-                await api.syncLocalPaymentSuccess(orderId);
-              } catch (e) {
-                console.error("Failed to sync success locally", e);
-              }
-              setShowInstructionModal(true);
-            },
-            onPending: function(result) {
-              console.log("Midtrans pending:", result);
-              toast.error("Pembayaran masih tertunda.");
-            },
-            onError: function(result) {
-              console.error("Midtrans error:", result);
-              toast.error("Pembayaran gagal!");
-            },
-            onClose: function() {
-              toast.error("Anda menutup popup sebelum menyelesaikan pembayaran.");
-            }
-          });
-        } else {
-          toast.error(res.detail || "Gagal memuat pembayaran QRIS.");
-        }
-      } else {
+      if (selectedMethod === "cash" || selectedMethod === "debit") {
+        // TUNAI / DEBIT
         await api.setPaymentMethod(orderId, selectedMethod);
         setShowInstructionModal(true);
+      } else {
+        // DIGITAL (GoPay / QRIS / Transfer)
+        const response = await api.createMidtransTransaction({
+          orderId: orderId,
+          totalAmount: totalAmount,
+          customerName: customerName,
+          customerEmail: "customer@example.com",
+          items: items || [],
+        });
+
+        console.log("Midtrans response:", response);
+
+        if (response.success && response.token) {
+          if (!snapLoaded || !window.snap) {
+            toast.error("Payment gateway belum siap. Silakan refresh halaman.");
+            setLoading(false);
+            return;
+          }
+
+          window.snap.pay(response.token, {
+            onSuccess: function (result) {
+              console.log("Payment success:", result);
+              toast.success("✅ Pembayaran berhasil!");
+              
+              api.syncLocalPaymentSuccess(orderId);
+              
+              navigate("/payment-success", {
+                state: {
+                  orderId: result.order_id || orderId,
+                  totalAmount: result.gross_amount || totalAmount,
+                  customerName: customerName,
+                  tableNumber: tableNumber,
+                  paymentMethod: selectedMethod === "gopay" ? "GoPay" : 
+                                selectedMethod === "qris" ? "QRIS" : "Transfer Bank",
+                  transactionStatus: result.transaction_status,
+                }
+              });
+            },
+            onPending: function (result) {
+              console.log("Payment pending:", result);
+              toast.info("⏳ Menunggu pembayaran...");
+              navigate(`/order-status?orderId=${result.order_id || orderId}`);
+            },
+            onError: function (result) {
+              console.error("Payment error:", result);
+              toast.error("❌ Pembayaran gagal.");
+            },
+            onClose: function () {
+              console.log("Payment popup closed");
+              toast.info("Pembayaran dibatalkan.");
+            },
+          });
+        } else {
+          toast.error("Gagal membuat transaksi pembayaran.");
+        }
       }
     } catch (error) {
       console.error("Payment failed:", error);
@@ -129,6 +162,24 @@ export default function PaymentPage() {
 
       {/* Payment Methods */}
       <div className="p-4 space-y-3">
+        {/* GoPay */}
+        <div
+          onClick={() => setSelectedMethod("gopay")}
+          className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${
+            selectedMethod === "gopay" ? "border-2 border-green-500" : "border border-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+              <Smartphone className="w-5.5 h-5.5 text-white" />
+            </div>
+            <div>
+              <p className="text-gray-900 font-semibold text-sm">GoPay</p>
+              <p className="text-gray-500 text-xs">Bayar pake GoPay</p>
+            </div>
+          </div>
+        </div>
+
         {/* QRIS */}
         <div
           onClick={() => setSelectedMethod("qris")}
@@ -145,13 +196,24 @@ export default function PaymentPage() {
               <p className="text-gray-500 text-xs">Scan menggunakan e-wallet atau m-banking</p>
             </div>
           </div>
-          
-          {/* Show message if selected */}
-          {selectedMethod === "qris" && (
-            <div className="mt-4 flex flex-col items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600 font-medium">Klik tombol di bawah untuk menampilkan QRIS Anda</p>
+        </div>
+
+        {/* Transfer Virtual Account */}
+        <div
+          onClick={() => setSelectedMethod("transfer")}
+          className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${
+            selectedMethod === "transfer" ? "border-2 border-green-500" : "border border-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Landmark className="w-5.5 h-5.5 text-white" />
             </div>
-          )}
+            <div>
+              <p className="text-gray-900 font-semibold text-sm">Transfer Virtual Account</p>
+              <p className="text-gray-500 text-xs">BCA, BNI, BRI, Permata</p>
+            </div>
+          </div>
         </div>
 
         {/* Tunai */}
@@ -196,7 +258,7 @@ export default function PaymentPage() {
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
-          {loading ? "Memproses..." : selectedMethod === "qris" ? "Tampilkan QRIS" : "Konfirmasi Pembayaran"}
+          {loading ? "Memproses..." : "Konfirmasi Pembayaran"}
         </button>
       </div>
 
@@ -205,29 +267,19 @@ export default function PaymentPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 flex flex-col items-center">
             <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-5">
-              {selectedMethod === "qris" ? (
-                <QrCode className="w-8 h-8 text-white" />
-              ) : selectedMethod === "debit" ? (
+              {selectedMethod === "debit" ? (
                 <Landmark className="w-8 h-8 text-white" />
               ) : (
                 <DollarSign className="w-8 h-8 text-white" />
               )}
             </div>
             <h3 className="text-gray-900 font-bold text-lg mb-3 text-center">
-              {selectedMethod === "qris" ? "Pembayaran Berhasil!" : `Instruksi Pembayaran ${selectedMethod === "debit" ? "Debit" : "Tunai"}`}
+              {selectedMethod === "debit" ? "Instruksi Pembayaran Debit" : "Instruksi Pembayaran Tunai"}
             </h3>
             <p className="text-gray-500 text-sm text-center mb-7">
-              {selectedMethod === "qris" ? (
-                <>
-                  Pesanan Anda telah <b>Lunas</b> dan diteruskan ke Dapur. Kasir akan segera mencetak struk Anda untuk Meja <span className="text-gray-900 font-semibold">{tableNumber}</span>.
-                </>
-              ) : (
-                <>
-                  Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda
-                  <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span>
-                  {" "}untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan otomatis dimasak oleh dapur.
-                </>
-              )}
+              Pesanan Anda telah disimpan. Silakan menuju ke Kasir dan tunjukkan nomor meja Anda
+              <span className="text-gray-900 font-semibold"> (Meja {tableNumber})</span>
+              {" "}untuk menyelesaikan pembayaran. Setelah kasir mengonfirmasi, pesanan akan otomatis dimasak oleh dapur.
             </p>
             <button
               onClick={closeModal}

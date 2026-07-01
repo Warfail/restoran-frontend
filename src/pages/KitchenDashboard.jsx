@@ -23,12 +23,47 @@ export default function KitchenDashboard() {
   
   // State for checkboxes (local only)
   const [checkedItems, setCheckedItems] = useState({});
+  const [stockLogs, setStockLogs] = useState([]);
 
   // Inventory & Menus
   const [inventory, setInventory] = useState([]);
   const [counters, setCounters] = useState({});
   const [menuList, setMenuList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // 🔥 FUNGSI FORMAT ANGKA STOK
+  const formatStock = (value) => {
+    if (value === undefined || value === null) return '0';
+    const rounded = Math.round(value * 100) / 100;
+    return rounded.toString();
+  };
+
+  const fetchStockLogs = async () => {
+  try {
+    const response = await api.getStockLogs();
+    setStockLogs(response.data || []);
+  } catch (error) {
+    console.error("Failed to fetch stock logs:", error);
+  }
+};
+
+const convertToSmallUnit = (stock, unit) => {
+  const conversions = {
+    "kg": { multiplier: 1000, smallUnit: "gr" },
+    "liter": { multiplier: 1000, smallUnit: "ml" },
+    "dus": { multiplier: 24, smallUnit: "pcs" },
+    "karung": { multiplier: 50, smallUnit: "kg" },
+  };
+  
+  if (conversions[unit]) {
+    return {
+      value: stock * conversions[unit].multiplier,
+      unit: conversions[unit].smallUnit
+    };
+  }
+  return { value: stock, unit: unit };
+};
+
 
   const fetchOrders = async (menus = menuList) => {
     try {
@@ -124,7 +159,7 @@ export default function KitchenDashboard() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchOrders(), fetchInventory(), fetchMenus()]);
+      await Promise.all([fetchOrders(), fetchInventory(), fetchMenus(), fetchStockLogs()]);
       setLoading(false);
     };
     loadData();
@@ -148,6 +183,8 @@ export default function KitchenDashboard() {
     sessionStorage.removeItem("role");
     navigate("/kitchen/login");
   };
+
+  
 
 const startCooking = async (orderId) => {
   try {
@@ -360,25 +397,32 @@ const startCooking = async (orderId) => {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex gap-1">
-            <button 
-              onClick={() => setActiveTab("antrean")} 
-              className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
-            >
-              Antrean
-            </button>
-            <button 
-              onClick={() => setActiveTab("stokmenu")} 
-              className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
-            >
-              Stok Menu
-            </button>
-            <button 
-              onClick={() => setActiveTab("kelolastokbahan")} 
-              className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
-            >
-              Stok Bahan
-            </button>
-          </div>
+  <button 
+    onClick={() => setActiveTab("antrean")} 
+    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
+  >
+    Antrean
+  </button>
+  <button 
+    onClick={() => setActiveTab("stokmenu")} 
+    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
+  >
+    Stok Menu
+  </button>
+  <button 
+    onClick={() => setActiveTab("kelolastokbahan")} 
+    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
+  >
+    Stok Bahan
+  </button>
+  {/* 🔥 TAMBAHKAN TAB STOK LOG */}
+  <button 
+    onClick={() => setActiveTab("stocklog")} 
+    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
+  >
+    Log Stok
+  </button>
+</div>
           <span className="text-sm font-medium">{currentTime}</span>
           <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
           <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600">
@@ -639,67 +683,74 @@ const startCooking = async (orderId) => {
           )}
 
           {/* Stok Bahan Section */}
-          {activeTab === "kelolastokbahan" && (
-            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl p-5 shadow-sm border">
-                  <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL BAHAN</div>
-                  <div className="text-green-500 text-4xl font-bold">{stats.total}</div>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border">
-                  <div className="text-gray-500 text-xs font-semibold uppercase">STOK MENIPIS</div>
-                  <div className="text-orange-500 text-4xl font-bold">{stats.menipis}</div>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border">
-                  <div className="text-gray-500 text-xs font-semibold uppercase">STOK HABIS</div>
-                  <div className="text-red-500 text-4xl font-bold">{stats.habis}</div>
-                </div>
-              </div>
+{activeTab === "kelolastokbahan" && (
+  <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+    {/* Stats Cards */}
+    <div className="grid grid-cols-3 gap-4">
+      <div className="bg-white rounded-xl p-5 shadow-sm border">
+        <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL BAHAN</div>
+        <div className="text-green-500 text-4xl font-bold">{stats.total}</div>
+      </div>
+      <div className="bg-white rounded-xl p-5 shadow-sm border">
+        <div className="text-gray-500 text-xs font-semibold uppercase">STOK MENIPIS</div>
+        <div className="text-orange-500 text-4xl font-bold">{stats.menipis}</div>
+      </div>
+      <div className="bg-white rounded-xl p-5 shadow-sm border">
+        <div className="text-gray-500 text-xs font-semibold uppercase">STOK HABIS</div>
+        <div className="text-red-500 text-4xl font-bold">{stats.habis}</div>
+      </div>
+    </div>
 
-              <div className="relative w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Cari bahan..." 
-                  className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                />
-              </div>
+    {/* Search */}
+    <div className="relative w-72">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <input 
+        type="text" 
+        placeholder="Cari bahan..." 
+        className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" 
+        value={searchTerm} 
+        onChange={(e) => setSearchTerm(e.target.value)} 
+      />
+    </div>
 
-              <div className="space-y-2">
-                {filteredInventory.map(item => (
-                  <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border">
-                    <div className="flex-1 min-w-[120px]">
-                      <div className="font-semibold text-gray-800">{item.name}</div>
-                      <div className="text-xs text-gray-500">{item.category || "Bahan Baku"}</div>
-                    </div>
-                    <div className="flex flex-col items-center gap-1 min-w-[80px]">
-                      <span className={`text-xl font-bold ${getStockColor(item.stock)}`}>
-                        {item.stock} {item.unit || "unit"}
-                      </span>
-                      {getStatusBadge(item.stock)}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="w-10 text-center font-semibold">{counters[item._id || item.id] || 0}</div>
-                      <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700">
-                      <RefreshCw className="w-3.5 h-3.5" /> Update
-                    </button>
-                  </div>
-                ))}
-                {filteredInventory.length === 0 && (
-                  <div className="text-center text-gray-400 py-8">Tidak ada bahan</div>
-                )}
-              </div>
+    {/* Bahan List - PAKE convertToSmallUnit */}
+    <div className="space-y-2">
+      {filteredInventory.map(item => {
+        const displayStock = convertToSmallUnit(item.stock, item.unit);
+        return (
+          <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border">
+            <div className="flex-1 min-w-[120px]">
+              <div className="font-semibold text-gray-800">{item.name}</div>
+              <div className="text-xs text-gray-500">{item.category || "Bahan Baku"}</div>
             </div>
-          )}
+            <div className="flex flex-col items-center gap-1 min-w-[80px]">
+              <span className={`text-xl font-bold ${getStockColor(item.stock)}`}>
+                {formatStock(displayStock.value)} {displayStock.unit}
+              </span>
+              {getStatusBadge(item.stock)}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <div className="w-10 text-center font-semibold">{counters[item._id || item.id] || 0}</div>
+              <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700">
+              <RefreshCw className="w-3.5 h-3.5" /> Update
+            </button>
+          </div>
+        );
+      })}
+      {filteredInventory.length === 0 && (
+        <div className="text-center text-gray-400 py-8">Tidak ada bahan</div>
+      )}
+    </div>
+  </div>
+)}
+
 
           {/* Stok Menu Section */}
           {activeTab === "stokmenu" && (
@@ -708,6 +759,8 @@ const startCooking = async (orderId) => {
                 <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL MENU</div>
                 <div className="text-blue-500 text-4xl font-bold">{menuList.length}</div>
               </div>
+
+              
 
               <div className="relative w-72 mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -766,6 +819,73 @@ const startCooking = async (orderId) => {
               </div>
             </div>
           )}
+
+          {/* Log Stok Section */}
+{activeTab === "stocklog" && (
+  <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+    <div className="bg-white rounded-xl shadow-sm border p-4">
+      <h3 className="font-bold text-gray-800 text-lg mb-4">📋 Log Pemakaian Bahan</h3>
+      <div className="space-y-2 max-h-[600px] overflow-y-auto">
+        {stockLogs.length === 0 ? (
+          <div className="text-center text-gray-400 py-8">Belum ada log pemakaian</div>
+        ) : (
+          stockLogs.map((log, idx) => {
+            const displayLog = convertToSmallUnit(log.quantity, log.unit || "gr");
+            return (
+              <div key={idx} className="flex justify-between items-center text-sm border-b py-3 hover:bg-gray-50 px-2 rounded">
+                <div className="flex-1">
+                  <span className="font-medium text-gray-800">{log.menuName || "Menu"}</span>
+                  <span className="text-gray-500 text-xs ml-2">
+                    {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : ""}
+                  </span>
+                </div>
+                <div className="flex-1 text-center">
+                  <span className="text-gray-600">
+                    {formatStock(displayLog.value)} {displayLog.unit}
+                  </span>
+                </div>
+                <div className="flex-1 text-right">
+                  <span className="text-gray-500 text-xs">
+                    {log.ingredientName || ""}
+                  </span>
+                  <span className="text-gray-400 text-xs ml-2">
+                    {log.performedBy || "kitchen"}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+      
+      {/* Summary Stats */}
+      <div className="mt-4 pt-3 border-t grid grid-cols-3 gap-4 text-center">
+        <div>
+          <div className="text-xs text-gray-500">Total Log</div>
+          <div className="font-bold">{stockLogs.length}</div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-500">Total Bahan Terpakai</div>
+          <div className="font-bold text-orange-600">
+            {formatStock(stockLogs.reduce((sum, log) => sum + (log.quantity || 0), 0))} unit
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-500">Menu Terbanyak</div>
+          <div className="font-bold text-sm truncate">
+            {stockLogs.length > 0 ? 
+              Object.entries(stockLogs.reduce((acc, log) => {
+                acc[log.menuName] = (acc[log.menuName] || 0) + 1;
+                return acc;
+              }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || "-" 
+              : "-"
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
         </>
       )}
     </div>
