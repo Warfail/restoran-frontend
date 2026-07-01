@@ -25,16 +25,25 @@ export default function CustomerMenuPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // 🔥 AMBIL API_URL DARI ENV
+  const API_URL = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
+
   // Fetch menu dari API
   useEffect(() => {
     const fetchMenu = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/menu/?page=${page}&limit=10`);
+        const response = await fetch(`${API_URL}/menu/?page=${page}&limit=10`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log("Menu data:", data);
         
         if (data.success) {
-          const menus = data.data;
+          const menus = data.data || [];
           if (Array.isArray(menus) && menus.length > 0) {
             const validCategories = ["Makanan", "Snack", "Minuman"];
             const sanitizedMenus = menus.map(item => {
@@ -49,9 +58,13 @@ export default function CustomerMenuPage() {
             setMenuItems([]);
           }
           setTotalPages(data.pagination?.totalPages || 1);
+        } else {
+          console.warn("API returned success: false", data);
+          setMenuItems([]);
         }
       } catch (error) {
         console.error("Failed to fetch menu:", error);
+        toast.error("Gagal memuat menu. Silakan refresh.");
         setMenuItems([]);
       } finally {
         setLoading(false);
@@ -228,73 +241,79 @@ export default function CustomerMenuPage() {
 
       {/* Menu List */}
       <div className="flex-1 bg-white rounded-t-3xl px-4 py-5">
-        {Object.keys(groupedMenu).map((category) => (
-          <div key={category} className="mb-6">
-            <h2 className="text-gray-900 font-bold text-xl mb-4">{category}</h2>
-            <div className="space-y-0">
-              {groupedMenu[category].map((item) => (
-                <div key={item._id || item.menuId || item.id} className={`flex items-center gap-3.5 py-4 border-b border-gray-100 ${item.isAvailable === false ? 'opacity-50 grayscale' : ''}`}>
-                  <img src={item.image} alt={item.name} className="w-20 h-16 rounded-xl object-cover flex-shrink-0" />
-                  <div className="flex-1">
-                    <h3 className="text-gray-900 font-semibold text-sm">{item.name}</h3>
-                    <p className="text-gray-900 font-bold text-base mt-1">Rp {item.price.toLocaleString()}</p>
+        {Object.keys(groupedMenu).length === 0 ? (
+          <div className="text-center text-gray-400 py-8">Tidak ada menu yang cocok</div>
+        ) : (
+          Object.keys(groupedMenu).map((category) => (
+            <div key={category} className="mb-6">
+              <h2 className="text-gray-900 font-bold text-xl mb-4">{category}</h2>
+              <div className="space-y-0">
+                {groupedMenu[category].map((item) => (
+                  <div key={item._id || item.menuId || item.id} className={`flex items-center gap-3.5 py-4 border-b border-gray-100 ${item.isAvailable === false ? 'opacity-50 grayscale' : ''}`}>
+                    <img src={item.image} alt={item.name} className="w-20 h-16 rounded-xl object-cover flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-gray-900 font-semibold text-sm">{item.name}</h3>
+                      <p className="text-gray-900 font-bold text-base mt-1">Rp {item.price.toLocaleString()}</p>
+                    </div>
+                    {(() => {
+                      if (item.isAvailable === false) {
+                        return (
+                          <div className="border-2 border-gray-400 text-gray-500 text-xs font-bold px-4 py-1.5 rounded-full bg-gray-100 cursor-not-allowed">
+                            Sold Out
+                          </div>
+                        );
+                      }
+                      const cartItem = cart.find(c => (c._id || c.menuId || c.id) === (item._id || item.menuId || item.id));
+                      if (cartItem) {
+                        return (
+                          <div className="flex items-center bg-gray-100 rounded-full p-0.5 shadow-sm">
+                            <button onClick={() => updateQuantity(item._id || item.menuId || item.id, -1)} className="w-7 h-7 rounded-full bg-white text-gray-600 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"><Minus className="w-3.5 h-3.5" /></button>
+                            <span className="w-7 text-center font-bold text-gray-700 text-sm">{cartItem.quantity}</span>
+                            <button onClick={() => updateQuantity(item._id || item.menuId || item.id, 1)} className="w-7 h-7 rounded-full bg-red-500 text-white shadow-sm flex items-center justify-center hover:bg-red-600 transition-colors active:scale-95"><Plus className="w-3.5 h-3.5" /></button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={() => addToCart(item)}
+                          className="border-2 border-red-600 text-red-600 text-xs font-bold px-5 py-1.5 rounded-full hover:bg-red-600 hover:text-white transition active:scale-95"
+                        >
+                          Tambah
+                        </button>
+                      );
+                    })()}
                   </div>
-                  {(() => {
-                    if (item.isAvailable === false) {
-                      return (
-                        <div className="border-2 border-gray-400 text-gray-500 text-xs font-bold px-4 py-1.5 rounded-full bg-gray-100 cursor-not-allowed">
-                          Sold Out
-                        </div>
-                      );
-                    }
-                    const cartItem = cart.find(c => (c._id || c.menuId || c.id) === (item._id || item.menuId || item.id));
-                    if (cartItem) {
-                      return (
-                        <div className="flex items-center bg-gray-100 rounded-full p-0.5 shadow-sm">
-                          <button onClick={() => updateQuantity(item._id || item.menuId || item.id, -1)} className="w-7 h-7 rounded-full bg-white text-gray-600 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"><Minus className="w-3.5 h-3.5" /></button>
-                          <span className="w-7 text-center font-bold text-gray-700 text-sm">{cartItem.quantity}</span>
-                          <button onClick={() => updateQuantity(item._id || item.menuId || item.id, 1)} className="w-7 h-7 rounded-full bg-red-500 text-white shadow-sm flex items-center justify-center hover:bg-red-600 transition-colors active:scale-95"><Plus className="w-3.5 h-3.5" /></button>
-                        </div>
-                      );
-                    }
-                    return (
-                      <button
-                        onClick={() => addToCart(item)}
-                        className="border-2 border-red-600 text-red-600 text-xs font-bold px-5 py-1.5 rounded-full hover:bg-red-600 hover:text-white transition active:scale-95"
-                      >
-                        Tambah
-                      </button>
-                    );
-                  })()}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* 🔥 PAGINATION */}
-      <div className="flex justify-center items-center gap-4 mt-6 pb-4">
-        <button
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="p-3 rounded-xl border border-gray-200 disabled:opacity-30"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        
-        <span className="text-sm font-medium text-gray-600">
-          {page} / {totalPages}
-        </span>
-        
-        <button
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
-          className="p-3 rounded-xl border border-gray-200 disabled:opacity-30"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-6 pb-4">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="p-3 rounded-xl border border-gray-200 disabled:opacity-30"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <span className="text-sm font-medium text-gray-600">
+            {page} / {totalPages}
+          </span>
+          
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="p-3 rounded-xl border border-gray-200 disabled:opacity-30"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* FLOATING CHECKOUT BAR */}
       {cart.length > 0 && !showCart && (
