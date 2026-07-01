@@ -186,16 +186,10 @@ export default function CartPage() {
               <div key={itemId} className="bg-white rounded-xl p-3 shadow-sm">
                 <div className="flex gap-3">
                   <img 
-                  src={item.image || "https://placehold.co/72x72/e8c97a/e8c97a"} 
-                  alt={item.name} 
-                  className="w-[72px] h-[72px] rounded-lg object-cover" 
-                  loading="lazy"
-                  width="72"
-                  height="72"
-                  onError={(e) => {
-                    e.target.src = "https://placehold.co/72x72/e8c97a/e8c97a";
-                      }}
-                    />
+                    src={item.image || "https://placehold.co/72x72/e8c97a/e8c97a"} 
+                    alt={item.name} 
+                    className="w-[72px] h-[72px] rounded-lg object-cover" 
+                  />
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
