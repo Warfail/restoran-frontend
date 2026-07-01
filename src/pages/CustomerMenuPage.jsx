@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, CheckCircle } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, X, Search, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "../services/api";
 
 export default function CustomerMenuPage() {
@@ -20,30 +20,35 @@ export default function CustomerMenuPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState(["Semua"]);
+  
+  // 🔥 PAGINATION STATE
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Fetch menu dari API
   useEffect(() => {
     const fetchMenu = async () => {
       try {
         setLoading(true);
-        const menus = await api.getMenu();
-        console.log("Menus:", menus);
-        console.log("Raw menu data:", menus);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/menu/?page=${page}&limit=10`);
+        const data = await response.json();
         
-        
-        if (Array.isArray(menus) && menus.length > 0) {
-          const validCategories = ["Makanan", "Snack", "Minuman"];
-          const sanitizedMenus = menus.map(item => {
-            if (!validCategories.includes(item.category)) {
-              return { ...item, category: "Makanan" };
-            }
-            return item;
-          });
-          setMenuItems(sanitizedMenus);
-          setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
-        } else {
-          console.warn("Menu data is empty or not an array");
-          setMenuItems([]);
+        if (data.success) {
+          const menus = data.data;
+          if (Array.isArray(menus) && menus.length > 0) {
+            const validCategories = ["Makanan", "Snack", "Minuman"];
+            const sanitizedMenus = menus.map(item => {
+              if (!validCategories.includes(item.category)) {
+                return { ...item, category: "Makanan" };
+              }
+              return item;
+            });
+            setMenuItems(sanitizedMenus);
+            setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
+          } else {
+            setMenuItems([]);
+          }
+          setTotalPages(data.pagination?.totalPages || 1);
         }
       } catch (error) {
         console.error("Failed to fetch menu:", error);
@@ -54,42 +59,43 @@ export default function CustomerMenuPage() {
     };
     
     fetchMenu();
-  }, []);
+  }, [page]);
 
-const addToCart = (item) => {
-  const itemId = item._id || item.menuId || item.id;
-  const existing = cart.find(cartItem => (cartItem._id || cartItem.menuId || cartItem.id) === itemId);
-  
-  if (existing) {
-    setCart(cart.map(cartItem => 
-      (cartItem._id || cartItem.menuId || cartItem.id) === itemId
-        ? { ...cartItem, quantity: cartItem.quantity + 1, subtotal: (cartItem.quantity + 1) * cartItem.price }
-        : cartItem
-    ));
-  } else {
-    setCart([...cart, { 
-      ...item, 
-      quantity: 1, 
-      subtotal: item.price,
-      category: item.category || "Makanan" // ← TAMBAHKAN INI
-    }]);
-  }
-};
-const updateQuantity = (itemId, change) => {
-  const item = cart.find(i => (i._id || i.menuId || i.id) === itemId);
-  if (item) {
-    const newQuantity = item.quantity + change;
-    if (newQuantity <= 0) {
-      removeFromCart(itemId);
-    } else {
-      setCart(cart.map(i => 
-        (i._id || i.menuId || i.id) === itemId
-          ? { ...i, quantity: newQuantity, subtotal: newQuantity * i.price }
-          : i
+  const addToCart = (item) => {
+    const itemId = item._id || item.menuId || item.id;
+    const existing = cart.find(cartItem => (cartItem._id || cartItem.menuId || cartItem.id) === itemId);
+    
+    if (existing) {
+      setCart(cart.map(cartItem => 
+        (cartItem._id || cartItem.menuId || cartItem.id) === itemId
+          ? { ...cartItem, quantity: cartItem.quantity + 1, subtotal: (cartItem.quantity + 1) * cartItem.price }
+          : cartItem
       ));
+    } else {
+      setCart([...cart, { 
+        ...item, 
+        quantity: 1, 
+        subtotal: item.price,
+        category: item.category || "Makanan"
+      }]);
     }
-  }
-};
+  };
+
+  const updateQuantity = (itemId, change) => {
+    const item = cart.find(i => (i._id || i.menuId || i.id) === itemId);
+    if (item) {
+      const newQuantity = item.quantity + change;
+      if (newQuantity <= 0) {
+        removeFromCart(itemId);
+      } else {
+        setCart(cart.map(i => 
+          (i._id || i.menuId || i.id) === itemId
+            ? { ...i, quantity: newQuantity, subtotal: newQuantity * i.price }
+            : i
+        ));
+      }
+    }
+  };
 
   const removeFromCart = (itemId) => {
     setCart(cart.filter(i => (i._id || i.menuId || i.id) !== itemId));
@@ -97,24 +103,22 @@ const updateQuantity = (itemId, change) => {
 
   const totalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
 
-const handleCheckout = async () => {
-  if (cart.length === 0) {
-    toast.error("Keranjang kosong!");
-    return;
-  }
-
-  // Simpan cart ke localStorage
-  localStorage.setItem("cart", JSON.stringify(cart));
-  
-  // Navigasi ke CartPage
-  navigate("/cart", {
-    state: {
-      customerName: customerName,
-      tableNumber: tableNumber,
-      orderType: orderType
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      toast.error("Keranjang kosong!");
+      return;
     }
-  });
-};
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    
+    navigate("/cart", {
+      state: {
+        customerName: customerName,
+        tableNumber: tableNumber,
+        orderType: orderType
+      }
+    });
+  };
 
   const filteredMenu = menuItems.filter(item => {
     if (!item || !item.name) return false;
@@ -268,6 +272,30 @@ const handleCheckout = async () => {
           </div>
         ))}
       </div>
+
+      {/* 🔥 PAGINATION */}
+      <div className="flex justify-center items-center gap-4 mt-6 pb-4">
+        <button
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="p-3 rounded-xl border border-gray-200 disabled:opacity-30"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        
+        <span className="text-sm font-medium text-gray-600">
+          {page} / {totalPages}
+        </span>
+        
+        <button
+          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          disabled={page === totalPages}
+          className="p-3 rounded-xl border border-gray-200 disabled:opacity-30"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
       {/* FLOATING CHECKOUT BAR */}
       {cart.length > 0 && !showCart && (
         <div className="fixed bottom-0 left-0 right-0 p-4 z-40 bg-gradient-to-t from-white via-white/80 to-transparent pt-12 pb-6 pointer-events-none">
@@ -311,7 +339,7 @@ const handleCheckout = async () => {
               ) : (
                 <div className="space-y-3">
                   {cart.map((item) => (
-  <div key={item._id || item.menuId || item.id} className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-xl p-3 hover:shadow-md transition-shadow">
+                    <div key={item._id || item.menuId || item.id} className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-xl p-3 hover:shadow-md transition-shadow">
                       <img src={item.image} alt={item.name} className="w-14 h-14 rounded-lg object-cover" />
                       <div className="flex-1">
                         <div className="font-semibold text-gray-800 text-sm leading-tight mb-1">{item.name}</div>
