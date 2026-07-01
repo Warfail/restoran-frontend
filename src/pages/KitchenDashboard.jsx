@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { 
@@ -11,7 +11,11 @@ export default function KitchenDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("antrean");
   const [currentTime, setCurrentTime] = useState("");
-  const [nowTime, setNowTime] = useState(new Date());
+  // Use a ref for nowTime so the 1-second clock tick does NOT trigger
+  // a full component re-render (which would re-render all cooking cards).
+  const nowTimeRef = useRef(new Date());
+  // Only used for timer display; updated once per second but isolated.
+  const [tickCount, setTickCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
   // Data orders
@@ -30,6 +34,15 @@ export default function KitchenDashboard() {
   const [counters, setCounters] = useState({});
   const [menuList, setMenuList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  // Cache cooking start times from localStorage to avoid reading it on every render
+  const [cookingStartTimes, setCookingStartTimes] = useState({});
+
+  // Memoize menu dictionary to prevent recalculation on every render
+  const menuDict = useMemo(() => {
+    const dict = {};
+    menuList.forEach(m => { dict[m.name] = m.category; });
+    return dict;
+  }, [menuList]);
 
   // 🔥 FUNGSI FORMAT ANGKA STOK
   const formatStock = (value) => {
@@ -39,73 +52,66 @@ export default function KitchenDashboard() {
   };
 
   const fetchStockLogs = async () => {
-  try {
-    const response = await api.getStockLogs();
-    setStockLogs(response.data || []);
-  } catch (error) {
-    console.error("Failed to fetch stock logs:", error);
-  }
-};
-
-const convertToSmallUnit = (stock, unit) => {
-  const conversions = {
-    "kg": { multiplier: 1000, smallUnit: "gr" },
-    "liter": { multiplier: 1000, smallUnit: "ml" },
-    "dus": { multiplier: 24, smallUnit: "pcs" },
-    "karung": { multiplier: 50, smallUnit: "kg" },
-  };
-  
-  if (conversions[unit]) {
-    return {
-      value: stock * conversions[unit].multiplier,
-      unit: conversions[unit].smallUnit
-    };
-  }
-  return { value: stock, unit: unit };
-};
-
-
-  const fetchOrders = async (menus = menuList) => {
     try {
-      let currentMenus = menus;
-      if (!currentMenus || currentMenus.length === 0) {
-        currentMenus = await api.getMenu();
-        if (Array.isArray(currentMenus)) setMenuList(currentMenus);
-      }
-      
-      const menuDict = {};
+      const response = await api.getStockLogs();
+      setStockLogs(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch stock logs:", error);
+    }
+  };
+
+  const convertToSmallUnit = (stock, unit) => {
+    const conversions = {
+      "kg": { multiplier: 1000, smallUnit: "gr" },
+      "liter": { multiplier: 1000, smallUnit: "ml" },
+      "dus": { multiplier: 24, smallUnit: "pcs" },
+      "karung": { multiplier: 50, smallUnit: "kg" },
+    };
+    if (conversions[unit]) {
+      return {
+        value: stock * conversions[unit].multiplier,
+        unit: conversions[unit].smallUnit
+      };
+    }
+    return { value: stock, unit: unit };
+  };
+
+
+  const fetchOrders = async (currentMenus = menuList) => {
+    try {
+      // Build menuDict from the passed-in menus (already fetched separately)
+      const dict = {};
       if (Array.isArray(currentMenus)) {
-        currentMenus.forEach(m => {
-          menuDict[m.name] = m.category;
-        });
+        currentMenus.forEach(m => { dict[m.name] = m.category; });
       }
 
       const response = await api.getKitchenOrders();
       const ordersData = response?.data || response || [];
       const ordersArray = Array.isArray(ordersData) ? ordersData : [];
-      
-      // Sort orders by time ascending (FIFO)
+
+      // Backend already sorts by createdAt ascending, but sort client-side as fallback
       ordersArray.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-      
+
       const newOrdersList = [];
       const makanan = [];
       const snack = [];
       const minuman = [];
-      
+
+      // Read localStorage ONCE per fetch, not inside .map() on every render
       const savedCompleted = JSON.parse(localStorage.getItem("kitchenCompletedSections") || "{}");
-      
+
       ordersArray.forEach(order => {
         if (order.status === "paid" || order.status === "pending") {
           newOrdersList.push(order);
         } else if (order.status === "cooking") {
-          const getCat = (item) => (menuDict[item.name] || item.category || "Makanan").toLowerCase();
-          
+          const getCat = (item) => (dict[item.name] || item.category || "Makanan").toLowerCase();
+
           const hasMakanan = order.items?.some(item => getCat(item) === "makanan");
           const hasSnack = order.items?.some(item => getCat(item) === "snack");
           const hasMinuman = order.items?.some(item => getCat(item) === "minuman");
-          
+
           const completedForOrder = savedCompleted[order.orderId || order._id] || [];
-          
+
           if (hasMakanan && !completedForOrder.includes("makanan")) {
             makanan.push({ ...order, originalItems: order.items, items: order.items.filter(item => getCat(item) === "makanan") });
           }
@@ -117,11 +123,14 @@ const convertToSmallUnit = (stock, unit) => {
           }
         }
       });
-      
+
       setNewOrders(newOrdersList);
       setFoodCooking(makanan);
       setSnackCooking(snack);
       setDrinkCooking(minuman);
+
+      // Sync cookingStartTimes from localStorage into state (once per fetch, not on every render)
+      setCookingStartTimes(JSON.parse(localStorage.getItem("kitchenCookingStartTimes") || "{}"));
     } catch (error) {
       console.error("Failed to fetch orders:", error);
     }
@@ -159,18 +168,26 @@ const convertToSmallUnit = (stock, unit) => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchOrders(), fetchInventory(), fetchMenus(), fetchStockLogs()]);
+      // Fetch menus once and pass them into fetchOrders so it doesn't refetch
+      const menus = await api.getMenu().catch(() => []);
+      if (Array.isArray(menus)) setMenuList(menus);
+      await Promise.all([fetchOrders(menus), fetchInventory(), fetchStockLogs()]);
       setLoading(false);
     };
     loadData();
 
+    // Clock timer: update ref every second, only trigger a state update to
+    // re-render the clock display — NOT the whole dashboard.
     const timer = setInterval(() => {
       const now = new Date();
+      nowTimeRef.current = now;
       setCurrentTime(now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-      setNowTime(now);
+      // Increment tick so timer badges on cooking cards re-render each second
+      setTickCount(t => t + 1);
     }, 1000);
 
-    const interval = setInterval(fetchOrders, 5000);
+    // Poll only orders every 5 seconds (menus don't change that often)
+    const interval = setInterval(() => fetchOrders(), 5000);
     
     return () => {
       clearInterval(timer);
@@ -190,7 +207,6 @@ const startCooking = async (orderId) => {
   try {
     // 1. Kurangi stok bahan baku
     const stockResult = await api.reduceStock(orderId);
-    console.log("Reduce stock result:", stockResult);
     
     if (!stockResult.success) {
       toast.error(`Stok tidak cukup: ${stockResult.errors?.join(", ")}`);
@@ -199,12 +215,11 @@ const startCooking = async (orderId) => {
     
     // 2. Update status jadi cooking
     const response = await api.updateKitchenStatus(orderId, "cooking");
-    console.log("Start cooking response:", response);
     
     if (response.success || response) {
-      const startTimes = JSON.parse(localStorage.getItem("kitchenCookingStartTimes") || "{}");
-      startTimes[orderId] = new Date().toISOString();
-      localStorage.setItem("kitchenCookingStartTimes", JSON.stringify(startTimes));
+      const newStartTimes = { ...cookingStartTimes, [orderId]: new Date().toISOString() };
+      localStorage.setItem("kitchenCookingStartTimes", JSON.stringify(newStartTimes));
+      setCookingStartTimes(newStartTimes);
 
       await fetchOrders();
       toast.success("Order mulai dimasak!");
@@ -340,9 +355,11 @@ const startCooking = async (orderId) => {
   );
 
   const getCookingStartTime = (orderId, fallbackDate) => {
-    const startTimes = JSON.parse(localStorage.getItem("kitchenCookingStartTimes") || "{}");
-    if (startTimes[orderId]) {
-      return new Date(startTimes[orderId]);
+    // Read from state (synced from localStorage on each fetchOrders)
+    // — no more JSON.parse on every render.
+    const nowTime = nowTimeRef.current;
+    if (cookingStartTimes[orderId]) {
+      return new Date(cookingStartTimes[orderId]);
     }
     
     // Fallback date with timezone fix
@@ -359,6 +376,8 @@ const startCooking = async (orderId) => {
   };
 
   const getTimerInfo = (order, category) => {
+    // Use ref so this function doesn't need nowTime in React state
+    const nowTime = nowTimeRef.current;
     const start = getCookingStartTime(order.orderId || order._id, order.updatedAt || order.createdAt || Date.now());
     const elapsedMs = nowTime - start;
     
