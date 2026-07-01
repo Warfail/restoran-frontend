@@ -1,6 +1,11 @@
 // const API_BASE = "http://127.0.0.1:8000";
 const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
 
+// 🔥 MENU CACHE
+let menuCache = null;
+let menuCacheTime = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 menit
+
 const getToken = () => sessionStorage.getItem("token");
 
 const fetchWithAuth = async (endpoint, options = {}) => {
@@ -24,9 +29,6 @@ const fetchWithAuth = async (endpoint, options = {}) => {
   return response.json();
 };
 
-
-
-
 export const api = {
   // ========== AUTH ==========
   login: async (username, password) => {
@@ -39,26 +41,30 @@ export const api = {
   },
 
   // ========== MENU (Public) ==========
-getMenu: async () => {
-  const res = await fetch(`${API_BASE}/menu/`);
-  const data = await res.json();
-  console.log("Raw response:", data);
-  
-  // 🔥 PASTIKAN FORMAT RESPONSE
-  if (data && data.success && Array.isArray(data.data)) {
-    console.log("✅ Menu data found:", data.data.length);
-    return data.data;
-  }
-  
-  // Fallback kalau response langsung array
-  if (Array.isArray(data)) {
-    console.log("✅ Menu data (array):", data.length);
-    return data;
-  }
-  
-  console.warn("❌ Menu data is empty or not an array");
-  return [];
-},
+  getMenu: async () => {
+    // 🔥 Cek cache dulu
+    if (menuCache && menuCacheTime && (Date.now() - menuCacheTime < CACHE_DURATION)) {
+      console.log("✅ Using cached menu");
+      return menuCache;
+    }
+    
+    const res = await fetch(`${API_BASE}/menu/?limit=30`);
+    const data = await res.json();
+    console.log("Raw response:", data);
+    
+    let menus = [];
+    if (data && data.success && Array.isArray(data.data)) {
+      menus = data.data;
+    } else if (Array.isArray(data)) {
+      menus = data;
+    }
+    
+    // 🔥 Simpan cache
+    menuCache = menus;
+    menuCacheTime = Date.now();
+    
+    return menus;
+  },
 
   // ========== ORDERS (Customer) ==========
   createOrder: async (orderData) => {
@@ -86,24 +92,24 @@ getMenu: async () => {
     return res.json();
   },
 
-// ========== MIDTRANS ==========
-createMidtransTransaction: async (data) => {
-  const res = await fetch(`${API_BASE}/payment/create-transaction`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return res.json();
-},
+  // ========== MIDTRANS ==========
+  createMidtransTransaction: async (data) => {
+    const res = await fetch(`${API_BASE}/payment/create-transaction`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
 
-syncLocalPaymentSuccess: async (orderId) => {
-  const res = await fetch(`${API_BASE}/payment/local-success`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId }),
-  });
-  return res.json();
-},
+  syncLocalPaymentSuccess: async (orderId) => {
+    const res = await fetch(`${API_BASE}/payment/local-success`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    });
+    return res.json();
+  },
 
   setPaymentMethod: async (orderId, method) => {
     const res = await fetch(`${API_BASE}/orders/${orderId}/payment-method`, {
@@ -114,8 +120,6 @@ syncLocalPaymentSuccess: async (orderId) => {
     return res.json();
   },
 
-  
-
   // ========== CASHIER ==========
   getOrders: async () => {
     const res = await fetch(`${API_BASE}/cashier/orders`);
@@ -123,12 +127,12 @@ syncLocalPaymentSuccess: async (orderId) => {
   },
 
   getStockLogs: async () => {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}/stock-logs/`, {
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-  return res.json();
-},
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/stock-logs/`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    return res.json();
+  },
 
   updateOrderStatus: async (orderId, status) => {
     const res = await fetch(`${API_BASE}/cashier/order/${orderId}/status`, {
@@ -236,17 +240,17 @@ syncLocalPaymentSuccess: async (orderId) => {
   },
 
   reduceStock: async (orderId) => {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}/inventory/reduce`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify({ orderId })
-  });
-  return res.json();
-},
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/inventory/reduce`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ orderId })
+    });
+    return res.json();
+  },
 
   updateStock: async (itemId, newStock) => {
     const token = getToken();
@@ -334,12 +338,12 @@ syncLocalPaymentSuccess: async (orderId) => {
       totalUsers: 0
     };
   },
-  // ========== CASHIER ==========
-getReceipt: async (orderId) => {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`, {
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-  return res.json();
-},
+
+  getReceipt: async (orderId) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    return res.json();
+  },
 };
