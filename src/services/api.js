@@ -105,14 +105,14 @@ syncLocalPaymentSuccess: async (orderId) => {
   return res.json();
 },
 
-setPaymentMethod: async (orderId, method) => {
-  const res = await fetch(`${API_BASE}/payment/set-method`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId, method }),
-  });
-  return res.json();
-},
+  setPaymentMethod: async (orderId, method) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}/payment-method`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method }),
+    });
+    return res.json();
+  },
 
   
 
@@ -131,7 +131,7 @@ setPaymentMethod: async (orderId, method) => {
 },
 
   updateOrderStatus: async (orderId, status) => {
-    const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+    const res = await fetch(`${API_BASE}/cashier/order/${orderId}/status`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
