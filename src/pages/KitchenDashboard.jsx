@@ -11,40 +11,29 @@ export default function KitchenDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("antrean");
   const [currentTime, setCurrentTime] = useState("");
-  // Use a ref for nowTime so the 1-second clock tick does NOT trigger
-  // a full component re-render (which would re-render all cooking cards).
-  const nowTimeRef = useRef(new Date());
-  // Only used for timer display; updated once per second but isolated.
+  const [nowTime, setNowTime] = useState(new Date());
   const [tickCount, setTickCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
-  // Data orders
   const [newOrders, setNewOrders] = useState([]);
-  
   const [foodCooking, setFoodCooking] = useState([]);
   const [snackCooking, setSnackCooking] = useState([]);
   const [drinkCooking, setDrinkCooking] = useState([]);
   
-  // State for checkboxes (local only)
   const [checkedItems, setCheckedItems] = useState({});
   const [stockLogs, setStockLogs] = useState([]);
-
-  // Inventory & Menus
   const [inventory, setInventory] = useState([]);
   const [counters, setCounters] = useState({});
   const [menuList, setMenuList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  // Cache cooking start times from localStorage to avoid reading it on every render
   const [cookingStartTimes, setCookingStartTimes] = useState({});
 
-  // Memoize menu dictionary to prevent recalculation on every render
   const menuDict = useMemo(() => {
     const dict = {};
     menuList.forEach(m => { dict[m.name] = m.category; });
     return dict;
   }, [menuList]);
 
-  // 🔥 FUNGSI FORMAT ANGKA STOK
   const formatStock = (value) => {
     if (value === undefined || value === null) return '0';
     const rounded = Math.round(value * 100) / 100;
@@ -76,10 +65,8 @@ export default function KitchenDashboard() {
     return { value: stock, unit: unit };
   };
 
-
   const fetchOrders = async (currentMenus = menuList) => {
     try {
-      // Build menuDict from the passed-in menus (already fetched separately)
       const dict = {};
       if (Array.isArray(currentMenus)) {
         currentMenus.forEach(m => { dict[m.name] = m.category; });
@@ -89,7 +76,6 @@ export default function KitchenDashboard() {
       const ordersData = response?.data || response || [];
       const ordersArray = Array.isArray(ordersData) ? ordersData : [];
 
-      // Backend already sorts by createdAt ascending, but sort client-side as fallback
       ordersArray.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
       const newOrdersList = [];
@@ -97,7 +83,6 @@ export default function KitchenDashboard() {
       const snack = [];
       const minuman = [];
 
-      // Read localStorage ONCE per fetch, not inside .map() on every render
       const savedCompleted = JSON.parse(localStorage.getItem("kitchenCompletedSections") || "{}");
 
       ordersArray.forEach(order => {
@@ -129,7 +114,6 @@ export default function KitchenDashboard() {
       setSnackCooking(snack);
       setDrinkCooking(minuman);
 
-      // Sync cookingStartTimes from localStorage into state (once per fetch, not on every render)
       setCookingStartTimes(JSON.parse(localStorage.getItem("kitchenCookingStartTimes") || "{}"));
     } catch (error) {
       console.error("Failed to fetch orders:", error);
@@ -154,45 +138,42 @@ export default function KitchenDashboard() {
     }
   };
 
- const fetchMenus = async () => {
-  try {
-    const response = await api.getKitchenOrders();
-    const orders = response?.data || response || [];
-    // Ambil menu dari orders (item names)
-    const menuNames = [...new Set(orders.flatMap(o => o.items?.map(i => i.name) || []))];
-    // Atau tetap pake api.getMenu() TAPI dengan fallback
-    const menus = await api.getMenu().catch(() => []);
-    if (Array.isArray(menus)) {
-      setMenuList(menus);
+  const fetchMenus = async () => {
+    try {
+      const menus = await api.getMenu().catch(() => []);
+      if (Array.isArray(menus)) {
+        setMenuList(menus);
+      }
+    } catch (error) {
+      console.error("Failed to fetch menus:", error);
     }
-  } catch (error) {
-    console.error("Failed to fetch menus:", error);
-  }
-};
+  };
 
+  // 🔥 LOAD DATA AWAL
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      // Fetch menus once and pass them into fetchOrders so it doesn't refetch
-      const menus = await api.getMenu().catch(() => []);
-      if (Array.isArray(menus)) setMenuList(menus);
-      await Promise.all([fetchOrders(menus), fetchInventory(), fetchStockLogs()]);
+      try {
+        const menus = await api.getMenu().catch(() => []);
+        if (Array.isArray(menus)) setMenuList(menus);
+        await Promise.all([fetchOrders(menus), fetchInventory(), fetchStockLogs()]);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
       setLoading(false);
     };
     loadData();
 
-    // Clock timer: update ref every second, only trigger a state update to
-    // re-render the clock display — NOT the whole dashboard.
+    // Timer update waktu
     const timer = setInterval(() => {
       const now = new Date();
-      nowTimeRef.current = now;
+      setNowTime(now);
       setCurrentTime(now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-      // Increment tick so timer badges on cooking cards re-render each second
       setTickCount(t => t + 1);
     }, 1000);
 
-    // Poll only orders every 5 seconds (menus don't change that often)
-    const interval = setInterval(() => fetchOrders(), 5000);
+    // 🔥 POLLING JADI 10 DETIK (BIAR GA BERAT)
+    const interval = setInterval(() => fetchOrders(), 10000);
     
     return () => {
       clearInterval(timer);
@@ -206,36 +187,39 @@ export default function KitchenDashboard() {
     navigate("/kitchen/login");
   };
 
-  
+  const startCooking = async (orderId) => {
+    try {
+      const stockResult = await api.reduceStock(orderId);
+      
+      if (!stockResult.success) {
+        toast.error(`Stok tidak cukup: ${stockResult.errors?.join(", ")}`);
+        return;
+      }
+      
+      // 🔥 NOTIFIKASI MENU YANG DI-DISABLE
+      if (stockResult.disabled_menus && stockResult.disabled_menus.length > 0) {
+        toast.warning(
+          `⚠️ Menu dinonaktifkan (bahan habis): ${stockResult.disabled_menus.join(", ")}`
+        );
+      }
+      
+      const response = await api.updateKitchenStatus(orderId, "cooking");
+      
+      if (response.success || response) {
+        const newStartTimes = { ...cookingStartTimes, [orderId]: new Date().toISOString() };
+        localStorage.setItem("kitchenCookingStartTimes", JSON.stringify(newStartTimes));
+        setCookingStartTimes(newStartTimes);
 
-const startCooking = async (orderId) => {
-  try {
-    // 1. Kurangi stok bahan baku
-    const stockResult = await api.reduceStock(orderId);
-    
-    if (!stockResult.success) {
-      toast.error(`Stok tidak cukup: ${stockResult.errors?.join(", ")}`);
-      return;
+        await fetchOrders();
+        toast.success("Order mulai dimasak!");
+      } else {
+        toast.error("Gagal mulai masak: " + (response.message || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Failed to start cooking:", error);
+      toast.error("Gagal mulai masak: " + (error.message || "Unknown error"));
     }
-    
-    // 2. Update status jadi cooking
-    const response = await api.updateKitchenStatus(orderId, "cooking");
-    
-    if (response.success || response) {
-      const newStartTimes = { ...cookingStartTimes, [orderId]: new Date().toISOString() };
-      localStorage.setItem("kitchenCookingStartTimes", JSON.stringify(newStartTimes));
-      setCookingStartTimes(newStartTimes);
-
-      await fetchOrders();
-      toast.success("Order mulai dimasak!");
-    } else {
-      toast.error("Gagal mulai masak: " + (response.message || "Unknown error"));
-    }
-  } catch (error) {
-    console.error("Failed to start cooking:", error);
-    toast.error("Gagal mulai masak: " + (error.message || "Unknown error"));
-  }
-};
+  };
 
   const completeSection = async (order, category) => {
     try {
@@ -247,7 +231,6 @@ const startCooking = async (orderId) => {
         orderCompleted.push(category);
       }
       
-      // Determine what categories this order originally had
       const itemsToEvaluate = order.originalItems || order.items;
       const menuDict = {};
       menuList.forEach(m => menuDict[m.name] = m.category);
@@ -265,7 +248,6 @@ const startCooking = async (orderId) => {
       const isAllDone = requiredCats.every(cat => orderCompleted.includes(cat));
       
       if (isAllDone) {
-        // Complete the order in the backend
         const response = await api.updateKitchenStatus(orderId, "completed");
         if (response.success || response) {
           toast.success(`Pesanan Meja ${order.tableNumber} telah selesai total!`);
@@ -325,7 +307,6 @@ const startCooking = async (orderId) => {
       const newStatus = !currentStatus;
       await api.updateMenu(id, { isAvailable: newStatus });
       toast.success(newStatus ? "Menu diaktifkan" : "Menu dinonaktifkan");
-      await fetchMenus();
     } catch (error) {
       console.error("Failed to update menu:", error);
       toast.error("Gagal update status menu");
@@ -360,20 +341,14 @@ const startCooking = async (orderId) => {
   );
 
   const getCookingStartTime = (orderId, fallbackDate) => {
-    // Read from state (synced from localStorage on each fetchOrders)
-    // — no more JSON.parse on every render.
-    const nowTime = nowTimeRef.current;
     if (cookingStartTimes[orderId]) {
       return new Date(cookingStartTimes[orderId]);
     }
     
-    // Fallback date with timezone fix
     let start = new Date(fallbackDate);
-    // If backend date is interpreted as future (due to UTC vs WIB mismatch), subtract 7 hours
     if (start.getTime() > nowTime.getTime() + 60000) {
       start = new Date(start.getTime() - 7 * 60 * 60 * 1000);
     }
-    // Final safety fallback
     if (start.getTime() > nowTime.getTime()) {
       start = nowTime;
     }
@@ -381,19 +356,15 @@ const startCooking = async (orderId) => {
   };
 
   const getTimerInfo = (order, category) => {
-    // Use ref so this function doesn't need nowTime in React state
-    const nowTime = nowTimeRef.current;
     const start = getCookingStartTime(order.orderId || order._id, order.updatedAt || order.createdAt || Date.now());
     const elapsedMs = nowTime - start;
     
-    // Default alert targets in minutes
     let targetMins = 15;
     if (category === "snack") targetMins = 10;
     if (category === "minuman") targetMins = 5;
     
     const targetMs = targetMins * 60 * 1000;
     
-    // Alert when it exceeds the target time
     const isAlert = elapsedMs >= targetMs;
     const isOverdue = isAlert;
     
@@ -421,32 +392,11 @@ const startCooking = async (orderId) => {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex gap-1">
-  <button 
-    onClick={() => setActiveTab("antrean")} 
-    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
-  >
-    Antrean
-  </button>
-  <button 
-    onClick={() => setActiveTab("stokmenu")} 
-    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
-  >
-    Stok Menu
-  </button>
-  <button 
-    onClick={() => setActiveTab("kelolastokbahan")} 
-    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
-  >
-    Stok Bahan
-  </button>
-  {/* 🔥 TAMBAHKAN TAB STOK LOG */}
-  <button 
-    onClick={() => setActiveTab("stocklog")} 
-    className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}
-  >
-    Log Stok
-  </button>
-</div>
+            <button onClick={() => setActiveTab("antrean")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Antrean</button>
+            <button onClick={() => setActiveTab("stokmenu")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Menu</button>
+            <button onClick={() => setActiveTab("kelolastokbahan")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Bahan</button>
+            <button onClick={() => setActiveTab("stocklog")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Log Stok</button>
+          </div>
           <span className="text-sm font-medium">{currentTime}</span>
           <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
           <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600">
@@ -459,20 +409,20 @@ const startCooking = async (orderId) => {
         <div className="flex-1 p-6 animate-pulse space-y-6 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-sm border p-4">
-               <div className="h-8 bg-gray-200 rounded w-32 mb-4"></div>
-               <div className="space-y-3">
-                  <div className="h-24 bg-gray-100 rounded-lg"></div>
-                  <div className="h-24 bg-gray-100 rounded-lg"></div>
-                  <div className="h-24 bg-gray-100 rounded-lg"></div>
-               </div>
+              <div className="h-8 bg-gray-200 rounded w-32 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+              </div>
             </div>
             <div className="bg-white rounded-xl shadow-sm border p-4">
-               <div className="h-8 bg-gray-200 rounded w-32 mb-4"></div>
-               <div className="space-y-3">
-                  <div className="h-24 bg-gray-100 rounded-lg"></div>
-                  <div className="h-24 bg-gray-100 rounded-lg"></div>
-                  <div className="h-24 bg-gray-100 rounded-lg"></div>
-               </div>
+              <div className="h-8 bg-gray-200 rounded w-32 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -482,20 +432,13 @@ const startCooking = async (orderId) => {
           {activeTab === "antrean" && (
             <div className="flex-1 p-6 overflow-y-auto">
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
-                
-                {/* LEFT COLUMN: ANTREAN BARU */}
                 <div className="lg:col-span-1 bg-[#F9FAFB] rounded-xl shadow-sm border p-4 flex flex-col h-full border-green-200">
                   <div className="flex items-center gap-2 mb-4 border-b border-green-200 pb-3">
                     <h2 className="font-bold text-lg text-gray-800 uppercase tracking-wide">Antrean Baru</h2>
-                    <span className="ml-auto bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
-                      {newOrders.length}
-                    </span>
+                    <span className="ml-auto bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">{newOrders.length}</span>
                   </div>
-                  
                   <div className="space-y-4 overflow-y-auto flex-1 pr-1">
-                    {newOrders.length === 0 && (
-                      <div className="text-center text-gray-400 py-8 text-sm">Tidak ada antrean baru</div>
-                    )}
+                    {newOrders.length === 0 && <div className="text-center text-gray-400 py-8 text-sm">Tidak ada antrean baru</div>}
                     {newOrders.map(order => {
                       const orderTime = new Date(order.createdAt || Date.now()).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
                       return (
@@ -504,23 +447,15 @@ const startCooking = async (orderId) => {
                             <span className="font-bold text-gray-800 text-lg">Meja {order.tableNumber}</span>
                             <span className="text-xs font-bold text-gray-500">{orderTime}</span>
                           </div>
-                          
                           <div className="space-y-1.5 mb-4">
                             {order.items?.map((item, idx) => (
                               <div key={idx} className="text-sm text-gray-700 font-medium flex items-start gap-2">
-                                <span className="font-bold">{item.quantity}x</span> 
-                                <span>{item.name}</span>
+                                <span className="font-bold">{item.quantity}x</span> <span>{item.name}</span>
                               </div>
                             ))}
                           </div>
-                          
                           <div className="flex justify-end">
-                            <button 
-                              onClick={() => startCooking(order.orderId || order._id)} 
-                              className="bg-white border-2 border-red-400 hover:bg-red-50 text-gray-800 px-4 py-1.5 rounded-lg text-sm font-bold transition shadow-sm"
-                            >
-                              Mulai Masak
-                            </button>
+                            <button onClick={() => startCooking(order.orderId || order._id)} className="bg-white border-2 border-red-400 hover:bg-red-50 text-gray-800 px-4 py-1.5 rounded-lg text-sm font-bold transition shadow-sm">Mulai Masak</button>
                           </div>
                         </div>
                       );
@@ -528,253 +463,160 @@ const startCooking = async (orderId) => {
                   </div>
                 </div>
 
-                {/* RIGHT COLUMNS: SEDANG DIMASAK (3 Columns) */}
                 <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                  
-                  {/* SECTION MAKANAN (COOKING) */}
-                  
+                  {/* Makanan */}
                   <div className="bg-white rounded-xl shadow-sm border p-4 flex flex-col">
                     <div className="flex items-center gap-2 mb-4 border-b pb-3">
                       <UtensilsCrossed className="w-5 h-5 text-orange-600" />
                       <h2 className="font-bold text-lg text-gray-800">Makanan</h2>
-                      <span className="ml-auto bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full">
-                        {foodCooking.length} Dimasak
-                      </span>
+                      <span className="ml-auto bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full">{foodCooking.length} Dimasak</span>
                     </div>
-                    
                     <div className="space-y-3 overflow-y-auto flex-1">
-                      {foodCooking.length === 0 && (
-                        <div className="text-center text-gray-400 text-sm py-8">Tidak ada makanan dimasak</div>
-                      )}
+                      {foodCooking.length === 0 && <div className="text-center text-gray-400 text-sm py-8">Tidak ada makanan dimasak</div>}
                       {foodCooking.map(order => {
                         const timerInfo = getTimerInfo(order, "makanan");
                         return (
-                        <div key={order.orderId || order._id} className={`rounded-lg p-3 border transition-colors ${timerInfo.isAlert ? (timerInfo.isOverdue ? 'bg-red-100 border-red-500 animate-pulse' : 'bg-red-50 border-red-400') : 'bg-orange-50 border-orange-200'}`}>
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
-                              <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
+                          <div key={order.orderId || order._id} className={`rounded-lg p-3 border transition-colors ${timerInfo.isAlert ? (timerInfo.isOverdue ? 'bg-red-100 border-red-500 animate-pulse' : 'bg-red-50 border-red-400') : 'bg-orange-50 border-orange-200'}`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
+                                <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
+                              </div>
+                              <div className={`text-xs font-bold px-2 py-1 rounded-full flex flex-col items-center shadow-sm ${timerInfo.isAlert ? 'bg-red-500 text-white' : 'bg-white border text-gray-700'}`}>
+                                <span>{timerInfo.timeString}</span>
+                                {timerInfo.isAlert && <span className="text-[10px] leading-none uppercase">Kritis</span>}
+                              </div>
                             </div>
-                            <div className={`text-xs font-bold px-2 py-1 rounded-full flex flex-col items-center shadow-sm ${timerInfo.isAlert ? 'bg-red-500 text-white' : 'bg-white border text-gray-700'}`}>
-                              <span>{timerInfo.timeString}</span>
-                              {timerInfo.isAlert && <span className="text-[10px] leading-none uppercase">Kritis</span>}
+                            <div className="space-y-2 mb-3">
+                              {order.items?.map((item, idx) => (
+                                <label key={idx} className="flex items-center gap-2 cursor-pointer group">
+                                  <input type="checkbox" checked={!!checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`]} onChange={() => toggleCheck(`${order.orderId || order._id}-${item.name}`, idx)} className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
+                                  <span className={`text-sm font-medium ${checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`] ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.quantity}x {item.name}</span>
+                                </label>
+                              ))}
                             </div>
+                            <button onClick={() => completeSection(order, "makanan")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai Makanan</button>
                           </div>
-                          
-                          <div className="space-y-2 mb-3">
-                            {order.items?.map((item, idx) => (
-                              <label key={idx} className="flex items-center gap-2 cursor-pointer group">
-                                <input 
-                                  type="checkbox" 
-                                  checked={!!checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`]}
-                                  onChange={() => toggleCheck(`${order.orderId || order._id}-${item.name}`, idx)}
-                                  className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" 
-                                />
-                                <span className={`text-sm font-medium ${checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                                  {item.quantity}x {item.name}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                          
-                          <button 
-                            onClick={() => completeSection(order, "makanan")} 
-                            className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1"
-                          >
-                            Selesai Makanan
-                          </button>
-                        </div>
-                      )})}
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* SECTION SNACK (COOKING) */}
+                  {/* Snack */}
                   <div className="bg-white rounded-xl shadow-sm border p-4 flex flex-col">
                     <div className="flex items-center gap-2 mb-4 border-b pb-3">
                       <UtensilsCrossed className="w-5 h-5 text-yellow-600" />
                       <h2 className="font-bold text-lg text-gray-800">Snack</h2>
-                      <span className="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full">
-                        {snackCooking.length} Dimasak
-                      </span>
+                      <span className="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full">{snackCooking.length} Dimasak</span>
                     </div>
-                    
                     <div className="space-y-3 overflow-y-auto flex-1">
-                      {snackCooking.length === 0 && (
-                        <div className="text-center text-gray-400 text-sm py-8">Tidak ada snack dimasak</div>
-                      )}
+                      {snackCooking.length === 0 && <div className="text-center text-gray-400 text-sm py-8">Tidak ada snack dimasak</div>}
                       {snackCooking.map(order => {
                         const timerInfo = getTimerInfo(order, "snack");
                         return (
-                        <div key={order.orderId || order._id} className={`rounded-lg p-3 border transition-colors ${timerInfo.isAlert ? (timerInfo.isOverdue ? 'bg-red-100 border-red-500 animate-pulse' : 'bg-red-50 border-red-400') : 'bg-yellow-50 border-yellow-200'}`}>
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
-                              <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
+                          <div key={order.orderId || order._id} className={`rounded-lg p-3 border transition-colors ${timerInfo.isAlert ? (timerInfo.isOverdue ? 'bg-red-100 border-red-500 animate-pulse' : 'bg-red-50 border-red-400') : 'bg-yellow-50 border-yellow-200'}`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
+                                <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
+                              </div>
+                              <div className={`text-xs font-bold px-2 py-1 rounded-full flex flex-col items-center shadow-sm ${timerInfo.isAlert ? 'bg-red-500 text-white' : 'bg-white border text-gray-700'}`}>
+                                <span>{timerInfo.timeString}</span>
+                                {timerInfo.isAlert && <span className="text-[10px] leading-none uppercase">Kritis</span>}
+                              </div>
                             </div>
-                            <div className={`text-xs font-bold px-2 py-1 rounded-full flex flex-col items-center shadow-sm ${timerInfo.isAlert ? 'bg-red-500 text-white' : 'bg-white border text-gray-700'}`}>
-                              <span>{timerInfo.timeString}</span>
-                              {timerInfo.isAlert && <span className="text-[10px] leading-none uppercase">Kritis</span>}
+                            <div className="space-y-2 mb-3">
+                              {order.items?.map((item, idx) => (
+                                <label key={idx} className="flex items-center gap-2 cursor-pointer group">
+                                  <input type="checkbox" checked={!!checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`]} onChange={() => toggleCheck(`${order.orderId || order._id}-${item.name}`, idx)} className="w-4 h-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" />
+                                  <span className={`text-sm font-medium ${checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`] ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.quantity}x {item.name}</span>
+                                </label>
+                              ))}
                             </div>
+                            <button onClick={() => completeSection(order, "snack")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai Snack</button>
                           </div>
-                          
-                          <div className="space-y-2 mb-3">
-                            {order.items?.map((item, idx) => (
-                              <label key={idx} className="flex items-center gap-2 cursor-pointer group">
-                                <input 
-                                  type="checkbox" 
-                                  checked={!!checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`]}
-                                  onChange={() => toggleCheck(`${order.orderId || order._id}-${item.name}`, idx)}
-                                  className="w-4 h-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" 
-                                />
-                                <span className={`text-sm font-medium ${checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                                  {item.quantity}x {item.name}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                          
-                          <button 
-                            onClick={() => completeSection(order, "snack")} 
-                            className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1"
-                          >
-                            Selesai Snack
-                          </button>
-                        </div>
-                      )})}
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* SECTION MINUMAN (COOKING) */}
+                  {/* Minuman */}
                   <div className="bg-white rounded-xl shadow-sm border p-4 flex flex-col">
                     <div className="flex items-center gap-2 mb-4 border-b pb-3">
                       <Coffee className="w-5 h-5 text-blue-600" />
                       <h2 className="font-bold text-lg text-gray-800">Minuman</h2>
-                      <span className="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">
-                        {drinkCooking.length} Dibuat
-                      </span>
+                      <span className="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">{drinkCooking.length} Dibuat</span>
                     </div>
-                    
                     <div className="space-y-3 overflow-y-auto flex-1">
-                      {drinkCooking.length === 0 && (
-                        <div className="text-center text-gray-400 text-sm py-8">Tidak ada minuman dibuat</div>
-                      )}
+                      {drinkCooking.length === 0 && <div className="text-center text-gray-400 text-sm py-8">Tidak ada minuman dibuat</div>}
                       {drinkCooking.map(order => {
                         const timerInfo = getTimerInfo(order, "minuman");
                         return (
-                        <div key={order.orderId || order._id} className={`rounded-lg p-3 border transition-colors ${timerInfo.isAlert ? (timerInfo.isOverdue ? 'bg-red-100 border-red-500 animate-pulse' : 'bg-red-50 border-red-400') : 'bg-blue-50 border-blue-200'}`}>
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
-                              <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
+                          <div key={order.orderId || order._id} className={`rounded-lg p-3 border transition-colors ${timerInfo.isAlert ? (timerInfo.isOverdue ? 'bg-red-100 border-red-500 animate-pulse' : 'bg-red-50 border-red-400') : 'bg-blue-50 border-blue-200'}`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="font-bold text-gray-800">Meja {order.tableNumber}</span>
+                                <span className="text-xs text-gray-500 ml-2">{order.customerName || "Guest"}</span>
+                              </div>
+                              <div className={`text-xs font-bold px-2 py-1 rounded-full flex flex-col items-center shadow-sm ${timerInfo.isAlert ? 'bg-red-500 text-white' : 'bg-white border text-gray-700'}`}>
+                                <span>{timerInfo.timeString}</span>
+                                {timerInfo.isAlert && <span className="text-[10px] leading-none uppercase">Kritis</span>}
+                              </div>
                             </div>
-                            <div className={`text-xs font-bold px-2 py-1 rounded-full flex flex-col items-center shadow-sm ${timerInfo.isAlert ? 'bg-red-500 text-white' : 'bg-white border text-gray-700'}`}>
-                              <span>{timerInfo.timeString}</span>
-                              {timerInfo.isAlert && <span className="text-[10px] leading-none uppercase">Kritis</span>}
+                            <div className="space-y-2 mb-3">
+                              {order.items?.map((item, idx) => (
+                                <label key={idx} className="flex items-center gap-2 cursor-pointer group">
+                                  <input type="checkbox" checked={!!checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`]} onChange={() => toggleCheck(`${order.orderId || order._id}-${item.name}`, idx)} className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500" />
+                                  <span className={`text-sm font-medium ${checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`] ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.quantity}x {item.name}</span>
+                                </label>
+                              ))}
                             </div>
+                            <button onClick={() => completeSection(order, "minuman")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai Minuman</button>
                           </div>
-                          
-                          <div className="space-y-2 mb-3">
-                            {order.items?.map((item, idx) => (
-                              <label key={idx} className="flex items-center gap-2 cursor-pointer group">
-                                <input 
-                                  type="checkbox" 
-                                  checked={!!checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`]}
-                                  onChange={() => toggleCheck(`${order.orderId || order._id}-${item.name}`, idx)}
-                                  className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500" 
-                                />
-                                <span className={`text-sm font-medium ${checkedItems[`${order.orderId || order._id}-${item.name}-${idx}`] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                                  {item.quantity}x {item.name}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-
-                          <button 
-                            onClick={() => completeSection(order, "minuman")} 
-                            className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1"
-                          >
-                            Selesai Minuman
-                          </button>
-                        </div>
-                      )})}
+                        );
+                      })}
                     </div>
                   </div>
-                  
                 </div>
-
               </div>
             </div>
           )}
 
           {/* Stok Bahan Section */}
-{activeTab === "kelolastokbahan" && (
-  <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-    {/* Stats Cards */}
-    <div className="grid grid-cols-3 gap-4">
-      <div className="bg-white rounded-xl p-5 shadow-sm border">
-        <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL BAHAN</div>
-        <div className="text-green-500 text-4xl font-bold">{stats.total}</div>
-      </div>
-      <div className="bg-white rounded-xl p-5 shadow-sm border">
-        <div className="text-gray-500 text-xs font-semibold uppercase">STOK MENIPIS</div>
-        <div className="text-orange-500 text-4xl font-bold">{stats.menipis}</div>
-      </div>
-      <div className="bg-white rounded-xl p-5 shadow-sm border">
-        <div className="text-gray-500 text-xs font-semibold uppercase">STOK HABIS</div>
-        <div className="text-red-500 text-4xl font-bold">{stats.habis}</div>
-      </div>
-    </div>
-
-    {/* Search */}
-    <div className="relative w-72">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-      <input 
-        type="text" 
-        placeholder="Cari bahan..." 
-        className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" 
-        value={searchTerm} 
-        onChange={(e) => setSearchTerm(e.target.value)} 
-      />
-    </div>
-
-    {/* Bahan List - PAKE convertToSmallUnit */}
-    <div className="space-y-2">
-      {filteredInventory.map(item => {
-        const displayStock = convertToSmallUnit(item.stock, item.unit);
-        return (
-          <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border">
-            <div className="flex-1 min-w-[120px]">
-              <div className="font-semibold text-gray-800">{item.name}</div>
-              <div className="text-xs text-gray-500">{item.category || "Bahan Baku"}</div>
+          {activeTab === "kelolastokbahan" && (
+            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white rounded-xl p-5 shadow-sm border"><div className="text-gray-500 text-xs font-semibold uppercase">TOTAL BAHAN</div><div className="text-green-500 text-4xl font-bold">{stats.total}</div></div>
+                <div className="bg-white rounded-xl p-5 shadow-sm border"><div className="text-gray-500 text-xs font-semibold uppercase">STOK MENIPIS</div><div className="text-orange-500 text-4xl font-bold">{stats.menipis}</div></div>
+                <div className="bg-white rounded-xl p-5 shadow-sm border"><div className="text-gray-500 text-xs font-semibold uppercase">STOK HABIS</div><div className="text-red-500 text-4xl font-bold">{stats.habis}</div></div>
+              </div>
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input type="text" placeholder="Cari bahan..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                {filteredInventory.map(item => {
+                  const displayStock = convertToSmallUnit(item.stock, item.unit);
+                  return (
+                    <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border">
+                      <div className="flex-1 min-w-[120px]"><div className="font-semibold text-gray-800">{item.name}</div><div className="text-xs text-gray-500">{item.category || "Bahan Baku"}</div></div>
+                      <div className="flex flex-col items-center gap-1 min-w-[80px]">
+                        <span className={`text-xl font-bold ${getStockColor(item.stock)}`}>{formatStock(displayStock.value)} {displayStock.unit}</span>
+                        {getStatusBadge(item.stock)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Minus className="w-3.5 h-3.5" /></button>
+                        <div className="w-10 text-center font-semibold">{counters[item._id || item.id] || 0}</div>
+                        <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
+                      </div>
+                      <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"><RefreshCw className="w-3.5 h-3.5" /> Update</button>
+                    </div>
+                  );
+                })}
+                {filteredInventory.length === 0 && <div className="text-center text-gray-400 py-8">Tidak ada bahan</div>}
+              </div>
             </div>
-            <div className="flex flex-col items-center gap-1 min-w-[80px]">
-              <span className={`text-xl font-bold ${getStockColor(item.stock)}`}>
-                {formatStock(displayStock.value)} {displayStock.unit}
-              </span>
-              {getStatusBadge(item.stock)}
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <div className="w-10 text-center font-semibold">{counters[item._id || item.id] || 0}</div>
-              <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50">
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700">
-              <RefreshCw className="w-3.5 h-3.5" /> Update
-            </button>
-          </div>
-        );
-      })}
-      {filteredInventory.length === 0 && (
-        <div className="text-center text-gray-400 py-8">Tidak ada bahan</div>
-      )}
-    </div>
-  </div>
-)}
-
+          )}
 
           {/* Stok Menu Section */}
           {activeTab === "stokmenu" && (
@@ -783,133 +625,78 @@ const startCooking = async (orderId) => {
                 <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL MENU</div>
                 <div className="text-blue-500 text-4xl font-bold">{menuList.length}</div>
               </div>
-
-              
-
               <div className="relative w-72 mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Cari menu..." 
-                  className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                />
+                <input type="text" placeholder="Cari menu..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
-
               <div className="space-y-2">
-                 {filteredMenuList.map(menu => (
-                   <div key={menu._id || menu.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border justify-between">
-                     <div className="flex items-center gap-3">
-                       <img src={menu.image} alt={menu.name} className="w-12 h-12 rounded object-cover border" />
-                       <div>
-                         <div className="font-semibold text-gray-800">{menu.name}</div>
-                         <div className="text-xs text-gray-500">{menu.category}</div>
-                       </div>
-                     </div>
-                     
-                     <div className="flex items-center gap-4">
-                       <span className={`px-2 py-1 text-xs font-bold rounded-full ${menu.isAvailable !== false ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                         {menu.isAvailable !== false ? "AKTIF" : "HABIS"}
-                       </span>
-                       <button 
-                         onClick={() => toggleMenuAvailability(menu._id || menu.id, menu.isAvailable !== false)}
-                         className={`relative inline-flex items-center h-8 rounded-full w-16 transition-colors duration-300 focus:outline-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] ${
-                           menu.isAvailable !== false ? "bg-green-100" : "bg-red-100"
-                         }`}
-                       >
-                         <span
-                           className={`inline-flex items-center justify-center w-8 h-8 transform rounded-full transition-transform duration-300 shadow-[0_2px_5px_rgba(0,0,0,0.2)] ${
-                             menu.isAvailable !== false ? "translate-x-8 bg-gradient-to-br from-green-400 to-green-600" : "translate-x-0 bg-gradient-to-br from-red-400 to-red-600"
-                           }`}
-                         >
-                           {menu.isAvailable !== false ? (
-                             <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                             </svg>
-                           ) : (
-                             <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                             </svg>
-                           )}
-                         </span>
-                       </button>
-                     </div>
-                   </div>
-                 ))}
-                 {filteredMenuList.length === 0 && (
-                   <div className="text-center text-gray-400 py-8">Tidak ada menu ditemukan</div>
-                 )}
+                {filteredMenuList.map(menu => (
+                  <div key={menu._id || menu.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border justify-between">
+                    <div className="flex items-center gap-3">
+                      <img src={menu.image} alt={menu.name} className="w-12 h-12 rounded object-cover border" loading="lazy" />
+                      <div>
+                        <div className="font-semibold text-gray-800">{menu.name}</div>
+                        <div className="text-xs text-gray-500">{menu.category}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className={`px-2 py-1 text-xs font-bold rounded-full ${menu.isAvailable !== false ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        {menu.isAvailable !== false ? "AKTIF" : "HABIS"}
+                      </span>
+                      <button onClick={() => toggleMenuAvailability(menu._id || menu.id, menu.isAvailable !== false)} className={`relative inline-flex items-center h-8 rounded-full w-16 transition-colors duration-300 focus:outline-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] ${menu.isAvailable !== false ? "bg-green-100" : "bg-red-100"}`}>
+                        <span className={`inline-flex items-center justify-center w-8 h-8 transform rounded-full transition-transform duration-300 shadow-[0_2px_5px_rgba(0,0,0,0.2)] ${menu.isAvailable !== false ? "translate-x-8 bg-gradient-to-br from-green-400 to-green-600" : "translate-x-0 bg-gradient-to-br from-red-400 to-red-600"}`}>
+                          {menu.isAvailable !== false ? (
+                            <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          )}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {filteredMenuList.length === 0 && <div className="text-center text-gray-400 py-8">Tidak ada menu ditemukan</div>}
               </div>
             </div>
           )}
 
           {/* Log Stok Section */}
-{activeTab === "stocklog" && (
-  <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-    <div className="bg-white rounded-xl shadow-sm border p-4">
-      <h3 className="font-bold text-gray-800 text-lg mb-4">📋 Log Pemakaian Bahan</h3>
-      <div className="space-y-2 max-h-[600px] overflow-y-auto">
-        {stockLogs.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">Belum ada log pemakaian</div>
-        ) : (
-          stockLogs.map((log, idx) => {
-            const displayLog = convertToSmallUnit(log.quantity, log.unit || "gr");
-            return (
-              <div key={idx} className="flex justify-between items-center text-sm border-b py-3 hover:bg-gray-50 px-2 rounded">
-                <div className="flex-1">
-                  <span className="font-medium text-gray-800">{log.menuName || "Menu"}</span>
-                  <span className="text-gray-500 text-xs ml-2">
-                    {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : ""}
-                  </span>
+          {activeTab === "stocklog" && (
+            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-sm border p-4">
+                <h3 className="font-bold text-gray-800 text-lg mb-4">📋 Log Pemakaian Bahan</h3>
+                <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                  {stockLogs.length === 0 ? (
+                    <div className="text-center text-gray-400 py-8">Belum ada log pemakaian</div>
+                  ) : (
+                    stockLogs.map((log, idx) => {
+                      const displayLog = convertToSmallUnit(log.quantity, log.unit || "gr");
+                      return (
+                        <div key={idx} className="flex justify-between items-center text-sm border-b py-3 hover:bg-gray-50 px-2 rounded">
+                          <div className="flex-1">
+                            <span className="font-medium text-gray-800">{log.menuName || "Menu"}</span>
+                            <span className="text-gray-500 text-xs ml-2">{log.timestamp ? new Date(log.timestamp).toLocaleDateString() : ""}</span>
+                          </div>
+                          <div className="flex-1 text-center">
+                            <span className="text-gray-600">{formatStock(displayLog.value)} {displayLog.unit}</span>
+                          </div>
+                          <div className="flex-1 text-right">
+                            <span className="text-gray-500 text-xs">{log.ingredientName || ""}</span>
+                            <span className="text-gray-400 text-xs ml-2">{log.performedBy || "kitchen"}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
-                <div className="flex-1 text-center">
-                  <span className="text-gray-600">
-                    {formatStock(displayLog.value)} {displayLog.unit}
-                  </span>
-                </div>
-                <div className="flex-1 text-right">
-                  <span className="text-gray-500 text-xs">
-                    {log.ingredientName || ""}
-                  </span>
-                  <span className="text-gray-400 text-xs ml-2">
-                    {log.performedBy || "kitchen"}
-                  </span>
+                <div className="mt-4 pt-3 border-t grid grid-cols-3 gap-4 text-center">
+                  <div><div className="text-xs text-gray-500">Total Log</div><div className="font-bold">{stockLogs.length}</div></div>
+                  <div><div className="text-xs text-gray-500">Total Bahan Terpakai</div><div className="font-bold text-orange-600">{formatStock(stockLogs.reduce((sum, log) => sum + (log.quantity || 0), 0))} unit</div></div>
+                  <div><div className="text-xs text-gray-500">Menu Terbanyak</div><div className="font-bold text-sm truncate">{stockLogs.length > 0 ? Object.entries(stockLogs.reduce((acc, log) => { acc[log.menuName] = (acc[log.menuName] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || "-" : "-"}</div></div>
                 </div>
               </div>
-            );
-          })
-        )}
-      </div>
-      
-      {/* Summary Stats */}
-      <div className="mt-4 pt-3 border-t grid grid-cols-3 gap-4 text-center">
-        <div>
-          <div className="text-xs text-gray-500">Total Log</div>
-          <div className="font-bold">{stockLogs.length}</div>
-        </div>
-        <div>
-          <div className="text-xs text-gray-500">Total Bahan Terpakai</div>
-          <div className="font-bold text-orange-600">
-            {formatStock(stockLogs.reduce((sum, log) => sum + (log.quantity || 0), 0))} unit
-          </div>
-        </div>
-        <div>
-          <div className="text-xs text-gray-500">Menu Terbanyak</div>
-          <div className="font-bold text-sm truncate">
-            {stockLogs.length > 0 ? 
-              Object.entries(stockLogs.reduce((acc, log) => {
-                acc[log.menuName] = (acc[log.menuName] || 0) + 1;
-                return acc;
-              }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || "-" 
-              : "-"
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+            </div>
+          )}
         </>
       )}
     </div>

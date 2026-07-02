@@ -21,19 +21,23 @@ export default function CustomerMenuPage() {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState(["Semua"]);
   
-  // 🔥 PAGINATION STATE
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // 🔥 AMBIL API_URL DARI ENV
   const API_URL = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
 
-  // Fetch menu dari API
+  // 🔥 FETCH MENU DENGAN FILTER KATEGORI + PAGINATION
   useEffect(() => {
     const fetchMenu = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/menu/?page=${page}&limit=10`);
+        
+        let url = `${API_URL}/menu/?page=${page}&limit=10`;
+        if (selectedCategory !== "Semua") {
+          url += `&category=${encodeURIComponent(selectedCategory)}`;
+        }
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -45,13 +49,23 @@ export default function CustomerMenuPage() {
         if (data.success) {
           const menus = data.data || [];
           if (Array.isArray(menus) && menus.length > 0) {
-            const validCategories = ["Makanan", "Snack", "Minuman"];
+            // 🔥 SANITASI KATEGORI (PASTIKAN MINUMAN KELUAR!)
             const sanitizedMenus = menus.map(item => {
-              if (!validCategories.includes(item.category)) {
-                return { ...item, category: "Makanan" };
+              let category = item.category || "Makanan";
+              // 🔥 NORMALISASI: "minuman" → "Minuman"
+              if (category.toLowerCase() === "minuman") {
+                category = "Minuman";
               }
-              return item;
+              // 🔥 VALIDASI: KALO GA VALID → "Makanan"
+              const validCategories = ["Makanan", "Snack", "Minuman"];
+              if (!validCategories.includes(category)) {
+                category = "Makanan";
+              }
+              return { ...item, category };
             });
+            
+            console.log("✅ After sanitize:", sanitizedMenus);
+            
             setMenuItems(sanitizedMenus);
             setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
           } else {
@@ -72,7 +86,13 @@ export default function CustomerMenuPage() {
     };
     
     fetchMenu();
-  }, [page]);
+  }, [page, selectedCategory]);
+
+  // 🔥 HANDLE KLIK KATEGORI
+  const handleCategoryClick = (cat) => {
+    setSelectedCategory(cat);
+    setPage(1);
+  };
 
   const addToCart = (item) => {
     const itemId = item._id || item.menuId || item.id;
@@ -133,11 +153,11 @@ export default function CustomerMenuPage() {
     });
   };
 
+  // 🔥 FILTER BERDASARKAN SEARCH (TANPA MENGACAUKAN PAGINATION)
   const filteredMenu = menuItems.filter(item => {
     if (!item || !item.name) return false;
-    const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesSearch;
   });
 
   const groupedMenu = filteredMenu.reduce((groups, item) => {
@@ -226,7 +246,7 @@ export default function CustomerMenuPage() {
           {categories.map((cat, index) => (
             <button
               key={index}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => handleCategoryClick(cat)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${
                 selectedCategory === cat
                   ? "bg-white text-gray-900 border border-gray-200 shadow-sm"
@@ -250,14 +270,14 @@ export default function CustomerMenuPage() {
               <div className="space-y-0">
                 {groupedMenu[category].map((item) => (
                   <div key={item._id || item.menuId || item.id} className={`flex items-center gap-3.5 py-4 border-b border-gray-100 ${item.isAvailable === false ? 'opacity-50 grayscale' : ''}`}>
-                        <img 
-                        src={item.image} 
-                        alt={item.name} 
-                        className="w-20 h-16 rounded-xl object-cover flex-shrink-0" 
-                        loading="lazy"  // 
-                        width="80"      // 
-                        height="64"     // 
-                      />
+                    <img 
+                      src={item.image} 
+                      alt={item.name} 
+                      className="w-20 h-16 rounded-xl object-cover flex-shrink-0" 
+                      loading="lazy"
+                      width="80"
+                      height="64"
+                    />
                     <div className="flex-1">
                       <h3 className="text-gray-900 font-semibold text-sm">{item.name}</h3>
                       <p className="text-gray-900 font-bold text-base mt-1">Rp {item.price.toLocaleString()}</p>
@@ -366,7 +386,14 @@ export default function CustomerMenuPage() {
                 <div className="space-y-3">
                   {cart.map((item) => (
                     <div key={item._id || item.menuId || item.id} className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-xl p-3 hover:shadow-md transition-shadow">
-                      <img src={item.image} alt={item.name} className="w-14 h-14 rounded-lg object-cover" />
+                      <img 
+                        src={item.image} 
+                        alt={item.name} 
+                        className="w-14 h-14 rounded-lg object-cover"
+                        loading="lazy"
+                        width="56"
+                        height="56"
+                      />
                       <div className="flex-1">
                         <div className="font-semibold text-gray-800 text-sm leading-tight mb-1">{item.name}</div>
                         <div className="text-red-600 font-bold text-sm">Rp {item.price.toLocaleString()}</div>
