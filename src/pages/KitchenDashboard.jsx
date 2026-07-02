@@ -28,6 +28,13 @@ export default function KitchenDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cookingStartTimes, setCookingStartTimes] = useState({});
 
+  // 🔥 STATE UNTUK STATISTIK
+  const [dailyStats, setDailyStats] = useState([]);
+  const [statsDate, setStatsDate] = useState(new Date().toISOString().split('T')[0]);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const API_BASE = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
+
   const menuDict = useMemo(() => {
     const dict = {};
     menuList.forEach(m => { dict[m.name] = m.category; });
@@ -149,6 +156,45 @@ export default function KitchenDashboard() {
     }
   };
 
+  // 🔥 FETCH STATISTIK FLAT
+  const fetchDailyStats = async (date) => {
+    try {
+      setStatsLoading(true);
+      const response = await fetch(`${API_BASE}/stock-stats/daily-flat?date=${date}`);
+      const data = await response.json();
+      if (data.success) {
+        setDailyStats(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // 🔥 EXPORT CSV
+  const exportCSV = async () => {
+    try {
+      setExporting(true);
+      const response = await fetch(`${API_BASE}/stock-stats/export/daily-csv?date=${statsDate}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stock-usage-${statsDate}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("CSV berhasil diunduh!");
+    } catch (error) {
+      console.error("Failed to export CSV:", error);
+      toast.error("Gagal export CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // 🔥 LOAD DATA AWAL
   useEffect(() => {
     const loadData = async () => {
@@ -164,7 +210,6 @@ export default function KitchenDashboard() {
     };
     loadData();
 
-    // Timer update waktu
     const timer = setInterval(() => {
       const now = new Date();
       setNowTime(now);
@@ -172,7 +217,6 @@ export default function KitchenDashboard() {
       setTickCount(t => t + 1);
     }, 1000);
 
-    // 🔥 POLLING JADI 10 DETIK (BIAR GA BERAT)
     const interval = setInterval(() => fetchOrders(), 10000);
     
     return () => {
@@ -180,6 +224,13 @@ export default function KitchenDashboard() {
       clearInterval(interval);
     };
   }, []);
+
+  // 🔥 FETCH STATS SAAT TAB DI-KLIK
+  useEffect(() => {
+    if (activeTab === "stats") {
+      fetchDailyStats(statsDate);
+    }
+  }, [activeTab]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("token");
@@ -196,7 +247,6 @@ export default function KitchenDashboard() {
         return;
       }
       
-      // 🔥 NOTIFIKASI MENU YANG DI-DISABLE
       if (stockResult.disabled_menus && stockResult.disabled_menus.length > 0) {
         toast.warning(
           `⚠️ Menu dinonaktifkan (bahan habis): ${stockResult.disabled_menus.join(", ")}`
@@ -396,6 +446,7 @@ export default function KitchenDashboard() {
             <button onClick={() => setActiveTab("stokmenu")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Menu</button>
             <button onClick={() => setActiveTab("kelolastokbahan")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Bahan</button>
             <button onClick={() => setActiveTab("stocklog")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Log Stok</button>
+            <button onClick={() => setActiveTab("stats")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stats" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>📊 Statistik</button>
           </div>
           <span className="text-sm font-medium">{currentTime}</span>
           <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
@@ -694,6 +745,93 @@ export default function KitchenDashboard() {
                   <div><div className="text-xs text-gray-500">Total Bahan Terpakai</div><div className="font-bold text-orange-600">{formatStock(stockLogs.reduce((sum, log) => sum + (log.quantity || 0), 0))} unit</div></div>
                   <div><div className="text-xs text-gray-500">Menu Terbanyak</div><div className="font-bold text-sm truncate">{stockLogs.length > 0 ? Object.entries(stockLogs.reduce((acc, log) => { acc[log.menuName] = (acc[log.menuName] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || "-" : "-"}</div></div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* 📊 STATISTIK SECTION */}
+          {activeTab === "stats" && (
+            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-sm border p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-gray-800 text-lg">📊 Statistik Pemakaian Bahan</h3>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="date"
+                      value={statsDate}
+                      onChange={(e) => {
+                        setStatsDate(e.target.value);
+                        fetchDailyStats(e.target.value);
+                      }}
+                      className="border rounded-lg px-3 py-2 text-sm"
+                    />
+                    <button
+                      onClick={exportCSV}
+                      disabled={exporting || dailyStats.length === 0}
+                      className="flex items-center gap-1 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {exporting ? "..." : "📥 Export CSV"}
+                    </button>
+                  </div>
+                </div>
+                
+                {statsLoading ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : dailyStats.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    Belum ada data pemakaian untuk tanggal ini
+                  </div>
+                ) : (
+                  <>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="text-left px-4 py-2">Bahan</th>
+                            <th className="text-left px-4 py-2">Total</th>
+                            <th className="text-left px-4 py-2">Kategori</th>
+                            <th className="text-left px-4 py-2">Menu Terkait</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dailyStats.map((item, idx) => (
+                            <tr key={idx} className="border-t hover:bg-gray-50">
+                              <td className="px-4 py-2 font-medium">{item.name}</td>
+                              <td className="px-4 py-2 text-red-600 font-bold">
+                                {item.total} {item.unit}
+                              </td>
+                              <td className="px-4 py-2">
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  item.category === "Makanan" ? "bg-orange-100 text-orange-700" :
+                                  item.category === "Snack" ? "bg-yellow-100 text-yellow-700" :
+                                  "bg-blue-100 text-blue-700"
+                                }`}>
+                                  {item.category === "Makanan" && "🍽️"}
+                                  {item.category === "Snack" && "🍿"}
+                                  {item.category === "Minuman" && "🥤"}
+                                  {item.category}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-gray-500 text-xs">
+                                {item.menus.slice(0, 3).join(", ")}
+                                {item.menus.length > 3 && ` +${item.menus.length - 3} lagi`}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="mt-4 pt-3 border-t text-sm text-gray-500 flex justify-between">
+                      <span>Total {dailyStats.length} bahan terpakai</span>
+                      <button
+                        onClick={() => fetchDailyStats(statsDate)}
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
