@@ -1,4 +1,6 @@
 import SettingsModal from "../components/SettingsModal";
+import MobileHeader from "../components/admin/MobileHeader";
+import Sidebar from "../components/admin/Sidebar";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +14,7 @@ import {
 
 export default function MenuManagementPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -86,7 +89,7 @@ export default function MenuManagementPage() {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
       {/* Toast */}
       {toast.show && (
         <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
@@ -94,30 +97,12 @@ export default function MenuManagementPage() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
-            <h2 className="text-xl font-extrabold text-white">Singkong Keju D9</h2>
-          </div>
-          <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
-        </div>
-        <nav className="p-4 space-y-1">
-          <button onClick={() => navigate("/admin")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full"><LayoutDashboard className="w-5 h-5" /><span>Ringkasan</span></button>
-          <button className="flex items-center gap-3 px-4 py-3 bg-[#FEB64C] text-[#704800] rounded-lg w-full"><Utensils className="w-5 h-5" /><span>Manajemen Menu</span></button>
-          <button onClick={() => navigate("/admin/inventory")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full"><Package className="w-5 h-5" /><span>Stok Bahan</span></button>
-          <button onClick={() => navigate("/users")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full"><Users className="w-5 h-5" /><span>Manajemen Pengguna</span></button>
-          <button onClick={() => navigate("/reports")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full"><BarChart3 className="w-5 h-5" /><span>Laporan Penjualan</span></button>
-        </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full" onClick={() => setIsSettingsOpen(true)}><Settings className="w-5 h-5" /><span>Pengaturan</span></button>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1"><LogOut className="w-5 h-5" /><span>Keluar</span></button>
-        </div>
-      </aside>
+      <Sidebar active="menu" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 p-6">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <MobileHeader title="Manajemen Menu" onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 p-4 md:p-6">
         {loading ? (
           <div className="animate-pulse space-y-6">
             <div className="flex justify-between items-center mb-6">
@@ -135,20 +120,20 @@ export default function MenuManagementPage() {
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h1 className="text-2xl font-bold text-green-700">Daftar Menu Cafe</h1>
-              <button onClick={() => navigate("/admin/menu/add")} className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg"><Plus className="w-4 h-4" />Tambah Menu</button>
+              <button onClick={() => navigate("/admin/menu/add")} className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg w-full sm:w-auto justify-center"><Plus className="w-4 h-4" />Tambah Menu</button>
             </div>
 
             {/* Search */}
-            <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 w-80 mb-6">
+            <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 w-full sm:w-80 mb-6">
               <Search className="w-4 h-4 text-gray-400" />
               <input type="text" placeholder="Cari menu..." className="flex-1 text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl border overflow-hidden">
-              <table className="w-full">
+            <div className="bg-white rounded-xl border overflow-x-auto">
+              <table className="w-full min-w-[600px]">
                 <thead className="bg-gray-50 border-b">
                   <tr><th className="text-left px-5 py-3">Nama Menu</th><th className="text-left px-5 py-3">Kategori</th><th className="text-left px-5 py-3">Harga</th><th className="text-left px-5 py-3">Stok</th><th className="text-left px-5 py-3">Aksi</th></tr>
                 </thead>
@@ -180,6 +165,7 @@ export default function MenuManagementPage() {
       
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
       </main>
+      </div>
 
       {/* MODAL UPDATE MENU */}
       <UpdateMenuModal

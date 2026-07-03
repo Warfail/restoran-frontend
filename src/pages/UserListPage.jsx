@@ -27,9 +27,12 @@ import {
 } from "lucide-react";
 import { api } from "../services/api";
 import SettingsModal from "../components/SettingsModal";
+import MobileHeader from "../components/admin/MobileHeader";
+import Sidebar from "../components/admin/Sidebar";
 
 export default function UserListPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -151,52 +154,20 @@ export default function UserListPage() {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* SIDEBAR - Sama seperti sebelumnya */}
-      <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
-            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
-          </div>
-          <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
-        </div>
-        <nav className="p-4 space-y-1">
-          <button onClick={() => navigate("/admin")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <LayoutDashboard className="w-5 h-5" /><span>Ringkasan</span>
-          </button>
-          <button onClick={() => navigate("/admin/menu")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <Utensils className="w-5 h-5" /><span>Manajemen Menu</span>
-          </button>
-          <button onClick={() => navigate("/admin/inventory")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <Package className="w-5 h-5" /><span>Stok Bahan</span>
-          </button>
-          <button onClick={() => navigate("/users")} className="flex items-center gap-3 px-4 py-3 bg-[#FEB64C] text-[#704800] rounded-lg w-full">
-            <Users className="w-5 h-5" /><span>Manajemen Pengguna</span>
-          </button>
-          <button onClick={() => navigate("/reports")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <BarChart3 className="w-5 h-5" /><span>Laporan Penjualan</span>
-          </button>
-        </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-5 h-5" /><span>Pengaturan</span>
-          </button>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1">
-            <LogOut className="w-5 h-5" /><span>Keluar</span>
-          </button>
-        </div>
-      </aside>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      <Sidebar active="users" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* MAIN CONTENT */}
-      <main className="ml-64 flex-1 overflow-auto">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <MobileHeader title="Manajemen Pengguna" onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-auto">
         {loading ? (
-          <div className="p-8 animate-pulse space-y-6">
+          <div className="p-4 md:p-8 animate-pulse space-y-6">
             <div className="flex justify-between items-center mb-6">
               <div className="h-8 bg-gray-200 rounded w-64"></div>
               <div className="h-10 bg-gray-200 rounded w-32"></div>
             </div>
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                <div className="h-24 bg-gray-200 rounded-xl"></div>
                <div className="h-24 bg-gray-200 rounded-xl"></div>
                <div className="h-24 bg-gray-200 rounded-xl"></div>
@@ -213,7 +184,7 @@ export default function UserListPage() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
+            <div className="hidden md:flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
               <h1 className="text-2xl font-bold text-green-700">Manajemen Pengguna</h1>
               <div className="flex items-center gap-4">
                 <div className="w-9 h-9 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer"><Bell className="w-4 h-4 text-gray-500" /></div>
@@ -235,10 +206,10 @@ export default function UserListPage() {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {/* Search & Add */}
-              <div className="flex justify-between items-center gap-4 mb-6">
-                <div className="flex-1 max-w-md">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div className="flex-1 max-w-md w-full">
                   <div className="text-gray-500 text-xs font-medium mb-1">Cari Karyawan</div>
                   <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
                     <Search className="w-4 h-4 text-gray-400" />
@@ -251,9 +222,9 @@ export default function UserListPage() {
                     />
                   </div>
                 </div>
-                <button onClick={() => navigate("/users/add")} className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition">
+                <button onClick={() => navigate("/users/add")} className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm w-full sm:w-auto mt-4 sm:mt-0">
                   <UserPlus className="w-4 h-4" />
-                  <span>Tambah Karyawan</span>
+                  Tambah Karyawan
                 </button>
               </div>
 
@@ -407,7 +378,8 @@ export default function UserListPage() {
             </div>
           </>
         )}
-      </main>
+        </main>
+      </div>
 
       <UpdateUserModal
         user={selectedUser}

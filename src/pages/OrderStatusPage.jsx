@@ -43,12 +43,8 @@ useEffect(() => {
   const fetchStatus = async () => {
     try {
       const response = await api.getOrderStatus(orderId);
-      if (response.data?.payment_status === "pending") {
-        // 🔥 Kalo masih pending, panggil local-success
-        await api.syncLocalPaymentSuccess(orderId);
-        // Fetch ulang
-        const retry = await api.getOrderStatus(orderId);
-        setOrderData(retry.data);
+      if (response.success && response.data) {
+        setOrderData(response.data);
       }
     } catch (error) {
       console.error("Failed to fetch order status:", error);

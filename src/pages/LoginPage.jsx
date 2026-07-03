@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import { api } from "../services/api";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -154,7 +156,11 @@ export default function LoginPage() {
                 />
                 <span className="text-gray-700 text-[13px]">Ingat saya</span>
               </label>
-              <button type="button" className="text-green-800 text-[13px] font-medium hover:underline">
+              <button 
+                type="button" 
+                onClick={() => setIsForgotModalOpen(true)}
+                className="text-green-800 text-[13px] font-medium hover:underline"
+              >
                 Lupa Kata Sandi?
               </button>
             </div>
@@ -177,9 +183,14 @@ export default function LoginPage() {
 
           <div className="mt-5 text-gray-500 text-[13px] text-center">
             <span>Butuh bantuan? </span>
-            <button type="button" className="text-green-800 font-medium hover:underline">
+            <a 
+              href="https://wa.me/6281233122575?text=Halo%20IT%20Support,%20saya%20butuh%20bantuan%20untuk%20akun%20Admin%20saya.%20Mohon%20bantuannya."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-green-800 font-medium hover:underline inline-block"
+            >
               Hubungi IT Support
-            </button>
+            </a>
             <span> ℹ</span>
           </div>
         </div>
@@ -196,6 +207,11 @@ export default function LoginPage() {
           <button type="button" className="text-green-800 text-[13px] font-medium hover:underline">Syarat & Ketentuan</button>
         </div>
       </div>
+
+      <ForgotPasswordModal 
+        isOpen={isForgotModalOpen} 
+        onClose={() => setIsForgotModalOpen(false)} 
+      />
     </div>
   );
 }

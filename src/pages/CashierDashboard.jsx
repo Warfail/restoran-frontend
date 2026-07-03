@@ -25,9 +25,11 @@ import {
 } from "lucide-react";
 import { api } from "../services/api";
 import SettingsModal from "../components/SettingsModal";
+import MobileHeader from "../components/admin/MobileHeader";
 
 export default function CashierDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -184,9 +186,18 @@ export default function CashierDashboard() {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 md:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
+      <aside className={`fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-30 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
@@ -197,14 +208,14 @@ export default function CashierDashboard() {
 
         <nav className="p-4 space-y-1">
           <button 
-            onClick={() => setActiveTab("transaksi")}
+            onClick={() => { setActiveTab("transaksi"); setIsSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium w-full transition ${activeTab === "transaksi" ? "bg-[#FEB64C] text-[#704800]" : "text-white hover:bg-white/10"}`}
           >
             <CreditCard className="w-5 h-5" />
             <span>Transaksi</span>
           </button>
           <button 
-            onClick={() => setActiveTab("riwayat")}
+            onClick={() => { setActiveTab("riwayat"); setIsSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium w-full transition ${activeTab === "riwayat" ? "bg-[#FEB64C] text-[#704800]" : "text-white hover:bg-white/10"}`}
           >
             <Receipt className="w-5 h-5" />
@@ -224,9 +235,11 @@ export default function CashierDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <MobileHeader title="Cashier Panel" onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 p-4 md:p-8">
         {loading ? (
-          <div className="p-8 animate-pulse space-y-6">
+          <div className="animate-pulse space-y-6">
             <div className="flex justify-between items-center mb-6">
               <div className="h-8 bg-gray-200 rounded w-48"></div>
               <div className="h-10 bg-gray-200 rounded w-32"></div>
@@ -234,7 +247,7 @@ export default function CashierDashboard() {
             <div className="flex gap-4 mb-6">
               <div className="h-10 bg-gray-200 rounded-lg w-full max-w-md"></div>
             </div>
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                <div className="h-24 bg-gray-200 rounded-xl border border-gray-100"></div>
                <div className="h-24 bg-gray-200 rounded-xl border border-gray-100"></div>
                <div className="h-24 bg-gray-200 rounded-xl border border-gray-100"></div>
@@ -381,6 +394,7 @@ export default function CashierDashboard() {
           </>
         )}
       </main>
+      </div>
 
       {/* Payment Modal */}
       {showPaymentModal && selectedOrder && (

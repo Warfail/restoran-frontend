@@ -1,4 +1,6 @@
 import SettingsModal from "../components/SettingsModal";
+import MobileHeader from "../components/admin/MobileHeader";
+import Sidebar from "../components/admin/Sidebar";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +25,7 @@ import {
 
 export default function AddMenuPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -156,81 +159,37 @@ const removeRecipeItem = (index) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* SIDEBAR */}
-      <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
-            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
-          </div>
-          <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
-        </div>
-
-        <nav className="p-4 space-y-1">
-          <button onClick={() => navigate("/admin")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Ringkasan</span>
-          </button>
-
-          <button onClick={() => navigate("/admin/menu")} className="flex items-center gap-3 px-4 py-3 bg-[#FEB64C] text-[#704800] rounded-lg font-medium w-full">
-            <Utensils className="w-5 h-5" />
-            <span>Manajemen Menu</span>
-          </button>
-
-          <button onClick={() => navigate("/admin/inventory")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <Package className="w-5 h-5" />
-            <span>Stok Bahan</span>
-          </button>
-
-          <button onClick={() => navigate("/users")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <Users className="w-5 h-5" />
-            <span>Manajemen Pengguna</span>
-          </button>
-
-          <button onClick={() => navigate("/reports")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full">
-            <BarChart3 className="w-5 h-5" />
-            <span>Laporan Penjualan</span>
-          </button>
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-5 h-5" /><span>Pengaturan</span>
-          </button>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1 transition">
-            <LogOut className="w-5 h-5" />
-            <span>Keluar</span>
-          </button>
-        </div>
-      </aside>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      <Sidebar active="menu" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* MAIN CONTENT */}
-      <main className="ml-64 flex-1">
-        {/* Header */}
-        <div className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/admin/menu")}>
-            <ArrowLeft className="w-5 h-5 text-green-600" />
-            <span className="text-green-600 font-semibold">Kembali ke Daftar Menu</span>
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <MobileHeader title="Tambah Menu Baru" onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-auto">
+          {/* Header */}
+          <div className="hidden md:flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/admin/menu")}>
+              <ArrowLeft className="w-5 h-5 text-green-600" />
+              <span className="text-green-600 font-semibold">Kembali ke Daftar Menu</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                  <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
+                  <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                  {currentUser?.profilePicture ? (
+                    <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                  )}
+                </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
-                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
-                {currentUser?.profilePicture ? (
-                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
-                )}
-              </div>
-          </div>
-        </div>
 
-        <div className="p-8">
-          {/* Title */}
-          <div className="mb-6">
+          <div className="p-4 md:p-8">
+            {/* Title */}
+            <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Tambah Menu Baru</h1>
             <p className="text-gray-500 text-sm mt-1">Lengkapi informasi di bawah ini untuk menambahkan menu baru.</p>
           </div>
@@ -442,8 +401,9 @@ const removeRecipeItem = (index) => {
 </div>
 
           </form>
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>

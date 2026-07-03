@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn, HelpCircle } from "lucide-react";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 export default function KitchenLoginPage() {
   const [username, setUsername] = useState("");
@@ -9,6 +10,7 @@ export default function KitchenLoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -94,7 +96,11 @@ export default function KitchenLoginPage() {
               />
               <span className="text-gray-700 text-sm">Ingat saya</span>
             </label>
-            <button type="button" className="text-green-600 text-sm font-medium hover:underline">
+            <button 
+              type="button" 
+              onClick={() => setIsForgotModalOpen(true)}
+              className="text-green-600 text-sm font-medium hover:underline"
+            >
               Lupa Kata Sandi?
             </button>
           </div>
@@ -118,12 +124,22 @@ export default function KitchenLoginPage() {
         {/* Footer */}
         <div className="flex items-center gap-1 mt-6 text-gray-500 text-sm">
           <span>Butuh bantuan?</span>
-          <button className="text-green-600 font-medium flex items-center gap-1 hover:underline">
+          <a 
+            href="https://wa.me/6281233122575?text=Halo%20IT%20Support,%20saya%20butuh%20bantuan%20terkait%20sistem%20Dapur."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-green-600 font-medium flex items-center gap-1 hover:underline"
+          >
             Hubungi IT Support
             <HelpCircle className="w-3.5 h-3.5" />
-          </button>
+          </a>
         </div>
       </div>
+      
+      <ForgotPasswordModal 
+        isOpen={isForgotModalOpen} 
+        onClose={() => setIsForgotModalOpen(false)} 
+      />
     </div>
   );
 }

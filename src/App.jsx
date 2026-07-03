@@ -20,6 +20,7 @@ import OrderStatusPage from "./pages/OrderStatusPage";
 import InventoryPageNew from "./pages/InventoryPageNew";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import CustomerLoginPage from "./pages/CustomerLoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 
 function PrivateRoute({ children, allowedRoles }) {
@@ -51,6 +52,7 @@ function App() {
       <BrowserRouter>
         <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/admin" element={<PrivateRoute allowedRoles={["admin"]}><AdminDashboard /></PrivateRoute>} />
         <Route path="/reports" element={<PrivateRoute allowedRoles={["admin"]}><SalesReportPage /></PrivateRoute>} />
         <Route path="/users" element={<PrivateRoute allowedRoles={["admin"]}><UserListPage /></PrivateRoute>} />

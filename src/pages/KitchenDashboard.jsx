@@ -25,6 +25,7 @@ export default function KitchenDashboard() {
   const [inventory, setInventory] = useState([]);
   const [counters, setCounters] = useState({});
   const [menuList, setMenuList] = useState([]);
+  const menuListRef = useRef([]); // 🔥 FIX UNTUK POLLING INTERVAL
   const [searchTerm, setSearchTerm] = useState("");
   const [cookingStartTimes, setCookingStartTimes] = useState({});
 
@@ -72,7 +73,7 @@ export default function KitchenDashboard() {
     return { value: stock, unit: unit };
   };
 
-  const fetchOrders = async (currentMenus = menuList) => {
+  const fetchOrders = async (currentMenus = menuListRef.current) => {
     try {
       const dict = {};
       if (Array.isArray(currentMenus)) {
@@ -150,6 +151,7 @@ export default function KitchenDashboard() {
       const menus = await api.getMenu().catch(() => []);
       if (Array.isArray(menus)) {
         setMenuList(menus);
+        menuListRef.current = menus; // Update ref
       }
     } catch (error) {
       console.error("Failed to fetch menus:", error);
@@ -201,7 +203,10 @@ export default function KitchenDashboard() {
       setLoading(true);
       try {
         const menus = await api.getMenu().catch(() => []);
-        if (Array.isArray(menus)) setMenuList(menus);
+        if (Array.isArray(menus)) {
+          setMenuList(menus);
+          menuListRef.current = menus;
+        }
         await Promise.all([fetchOrders(menus), fetchInventory(), fetchStockLogs()]);
       } catch (error) {
         console.error("Failed to load data:", error);
@@ -434,25 +439,37 @@ export default function KitchenDashboard() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b shadow-sm px-5 py-3 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <ChefHat className="w-5 h-5 text-red-600" />
-          <span className="font-semibold text-sm">Kitchen Production - Live</span>
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex gap-1">
-            <button onClick={() => setActiveTab("antrean")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Antrean</button>
-            <button onClick={() => setActiveTab("stokmenu")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Menu</button>
-            <button onClick={() => setActiveTab("kelolastokbahan")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Bahan</button>
-            <button onClick={() => setActiveTab("stocklog")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Log Stok</button>
-            <button onClick={() => setActiveTab("stats")} className={`px-4 py-2 text-sm font-medium rounded-md ${activeTab === "stats" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>📊 Statistik</button>
+      <header className="bg-white border-b shadow-sm px-4 md:px-5 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex justify-between items-center w-full md:w-auto">
+          <div className="flex items-center gap-2">
+            <ChefHat className="w-5 h-5 text-red-600" />
+            <span className="font-semibold text-sm">Kitchen Production - Live</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
           </div>
-          <span className="text-sm font-medium">{currentTime}</span>
-          <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
-          <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600">
-            <LogOut className="w-4 h-4 text-white" />
-          </button>
+          <div className="flex items-center gap-3 md:hidden">
+            <span className="text-xs font-medium">{currentTime}</span>
+            <button onClick={handleLogout} className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center hover:bg-red-100">
+              <LogOut className="w-4 h-4 text-red-600" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto hide-scrollbar pb-1 md:pb-0">
+          <div className="flex gap-1 min-w-max">
+            <button onClick={() => setActiveTab("antrean")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Antrean</button>
+            <button onClick={() => setActiveTab("stokmenu")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Menu</button>
+            <button onClick={() => setActiveTab("kelolastokbahan")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Bahan</button>
+            <button onClick={() => setActiveTab("stocklog")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Log Stok</button>
+            <button onClick={() => setActiveTab("stats")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stats" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>📊 Statistik</button>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-3">
+            <span className="text-sm font-medium">{currentTime}</span>
+            <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+            <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors">
+              <LogOut className="w-4 h-4 text-red-600" />
+            </button>
+          </div>
         </div>
       </header>
 

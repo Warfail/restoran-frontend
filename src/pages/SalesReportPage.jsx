@@ -6,11 +6,14 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import SettingsModal from "../components/SettingsModal";
+import MobileHeader from "../components/admin/MobileHeader";
+import Sidebar from "../components/admin/Sidebar";
 
 import { api } from "../services/api";
 
 export default function SalesReportPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -328,78 +331,15 @@ export default function SalesReportPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans">
-      {/* Sidebar - SAMA PERSIS DENGAN DASHBOARD */}
-      <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
-            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
-          </div>
-          <p className="text-[#CBFFC2] text-sm mt-1 font-koulen">Admin Panel</p>
-        </div>
-
-        <nav className="p-4 space-y-1">
-  <button
-  onClick={() => navigate("/admin")}
-  className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full"
->
-  <LayoutDashboard className="w-5 h-5" />
-  <span>Ringkasan</span>
-</button>
-
-<button
-  onClick={() => navigate("/admin/menu")}
-  className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full"
->
-  <Utensils className="w-5 h-5" />
-  <span>Manajemen Menu</span>
-</button>
-
-<button
-  onClick={() => navigate("/admin/inventory")}
-  className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full"
->
-  <Package className="w-5 h-5" />
-  <span>Stok Bahan</span>
-</button>
-
-<button
-  onClick={() => navigate("/users")}
-  className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition w-full"
->
-  <Users className="w-5 h-5" />
-  <span>Manajemen Pengguna</span>
-</button>
-
-<button
-  onClick={() => navigate("/reports")}
-  className="flex items-center gap-3 px-4 py-3 bg-[#FEB64C] text-[#704800] rounded-lg font-medium transition w-full"
->
-  <BarChart3 className="w-5 h-5" />
-  <span>Laporan Penjualan</span>
-</button>
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full transition" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-5 h-5" /><span>Pengaturan</span>
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1 transition"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Keluar</span>
-          </button>
-        </div>
-      </aside>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 font-sans">
+      <Sidebar active="reports" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* Main Content - Sisa halaman laporan */}
-      <main className="ml-64 flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <MobileHeader title="Laporan Penjualan" onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-4 bg-white border-b border-gray-200">
+        <div className="hidden md:flex items-center justify-between px-7 py-4 bg-white border-b border-gray-200">
           <div className="flex items-center gap-3">
             <h1 className="text-green-600 text-2xl font-bold">Laporan Penjualan</h1>
           </div>
@@ -426,8 +366,8 @@ export default function SalesReportPage() {
         {/* Content - Sama seperti sebelumnya */}
         <div id="laporan-content" className="px-7 py-5 space-y-5 bg-gray-50">
           {/* Search & Filter Bar */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 flex-1 max-w-[420px] w-full shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 flex-1 w-full md:max-w-[420px] shadow-sm">
               <Search className="w-4 h-4 text-gray-400" />
               <input 
                 type="text" 
@@ -438,9 +378,9 @@ export default function SalesReportPage() {
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm w-full md:w-auto">
                   {["Tahunan", "Bulanan", "Mingguan"].map((period) => (
                     <button
                       key={period}
@@ -516,7 +456,7 @@ export default function SalesReportPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <StatCard icon="💰" iconBg="bg-green-50" iconColor="text-green-600" title="Total Pendapatan" value={currentStats.pendapatan} growth={currentStats.pendapatanGrowth} growthColor={currentStats.pendapatanGrowthColor} />
             <StatCard icon="🛒" iconBg="bg-yellow-50" iconColor="text-yellow-600" title="Total Transaksi" value={currentStats.transaksi} growth={currentStats.transaksiGrowth} growthColor={currentStats.transaksiGrowthColor} />
             <StatCard icon="👥" iconBg="bg-red-50" iconColor="text-red-600" title="Pelanggan Baru" value={currentStats.pelanggan} growth={currentStats.pelangganGrowth} growthColor={currentStats.pelangganGrowthColor} />
@@ -650,6 +590,7 @@ export default function SalesReportPage() {
       
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
       </main>
+      </div>
     </div>
   );
 }

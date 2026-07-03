@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import Sidebar from "../components/admin/Sidebar";
+import MobileHeader from "../components/admin/MobileHeader";
 import StatsCard from "../components/admin/StatsCard";
 import TopMenuList from "../components/admin/TopMenuList";
 import BottomMenuList from "../components/admin/BottomMenuList";
@@ -11,6 +12,7 @@ import SettingsModal from "../components/SettingsModal";
 
 export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -205,9 +207,12 @@ export default function AdminDashboard() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Sidebar />
-      <main className="ml-64 p-8">
+    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
+      <Sidebar active="dashboard" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <MobileHeader title="Dashboard" onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="p-4 md:p-8 flex-1">
         {loading ? (
           <div className="animate-pulse space-y-8">
             <div className="h-8 bg-gray-200 rounded w-64"></div>
@@ -246,6 +251,7 @@ export default function AdminDashboard() {
           </>
         )}
       </main>
+      </div>
     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>

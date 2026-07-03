@@ -75,6 +75,7 @@ export default function PaymentPage() {
       }
 
       // 🔥 DIGITAL PAYMENT (GoPay / QRIS / Transfer)
+      await api.setPaymentMethod(orderId, selectedMethod); // Save method first
       const response = await api.createMidtransTransaction({
         orderId: orderId,
         totalAmount: totalAmount,
@@ -99,15 +100,15 @@ export default function PaymentPage() {
 
       // 🔥 BAYAR PAKE SNAP
       window.snap.pay(response.token, {
-        onSuccess: function (result) {
+        onSuccess: async function (result) {
           console.log("✅ Payment success:", result);
           
-          // 🔥 LOCAL-SUCCESS DI BACKGROUND (GA NGE-BLOCK)
-          setTimeout(() => {
-            api.syncLocalPaymentSuccess(orderId)
-              .then(() => console.log("✅ Local success called"))
-              .catch(err => console.error("❌ Local success failed:", err));
-          }, 100);
+          try {
+            await api.syncLocalPaymentSuccess(orderId);
+            console.log("✅ Local success called");
+          } catch(err) {
+            console.error("❌ Local success failed:", err);
+          }
           
           // 🔥 LANGSUNG NAVIGASI
           navigate("/payment-success", {

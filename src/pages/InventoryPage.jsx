@@ -1,4 +1,6 @@
 import SettingsModal from "../components/SettingsModal";
+import MobileHeader from "../components/admin/MobileHeader";
+import Sidebar from "../components/admin/Sidebar";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +12,7 @@ import {
 
 export default function InventoryPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -105,59 +108,28 @@ export default function InventoryPage() {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 w-64 h-full bg-[#E12A2C] shadow-lg z-10">
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
-            <h2 className="text-xl font-extrabold text-white tracking-tight">Singkong Keju D9</h2>
-          </div>
-          <p className="text-[#CBFFC2] text-sm mt-1">Admin Panel</p>
-        </div>
-        <nav className="p-4 space-y-1">
-          <button onClick={() => navigate("/admin")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <LayoutDashboard className="w-5 h-5" /><span>Ringkasan</span>
-          </button>
-          <button onClick={() => navigate("/admin/menu")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <Utensils className="w-5 h-5" /><span>Manajemen Menu</span>
-          </button>
-          <button className="flex items-center gap-3 px-4 py-3 bg-[#FEB64C] text-[#704800] rounded-lg w-full">
-            <Package className="w-5 h-5" /><span>Stok Bahan</span>
-          </button>
-          <button onClick={() => navigate("/users")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <Users className="w-5 h-5" /><span>Manajemen Pengguna</span>
-          </button>
-          <button onClick={() => navigate("/reports")} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full">
-            <BarChart3 className="w-5 h-5" /><span>Laporan Penjualan</span>
-          </button>
-        </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <button className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-5 h-5" /><span>Pengaturan</span>
-          </button>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg w-full mt-1">
-            <LogOut className="w-5 h-5" /><span>Keluar</span>
-          </button>
-        </div>
-      </aside>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      <Sidebar active="inventory" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      {/* Main Content */}
-      <main className="ml-64 flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+        <MobileHeader title="Stok Bahan" onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="p-7 animate-pulse space-y-6">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-              <div className="h-8 bg-gray-200 rounded w-48"></div>
-              <div className="h-10 bg-gray-200 rounded-full w-10"></div>
+          <div className="p-4 md:p-7">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Manajemen Stok</h1>
+                <p className="text-gray-500 text-sm mt-1">Pantau dan kelola stok menu di sistem</p>
+              </div>
             </div>
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                <div className="h-24 bg-gray-200 rounded-xl border"></div>
                <div className="h-24 bg-gray-200 rounded-xl border"></div>
                <div className="h-24 bg-gray-200 rounded-xl border"></div>
                <div className="h-24 bg-gray-200 rounded-xl border"></div>
             </div>
-            <div className="flex justify-between items-center mb-4">
-               <div className="h-10 bg-gray-200 rounded-lg w-72"></div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+              <div className="h-10 bg-gray-200 rounded-lg w-72"></div>
                <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
             </div>
             <div className="bg-white rounded-xl border p-4 space-y-4">
@@ -170,7 +142,7 @@ export default function InventoryPage() {
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center px-7 py-4 bg-white border-b">
+            <div className="hidden md:flex justify-between items-center px-7 py-4 bg-white border-b">
               <h1 className="text-2xl font-bold text-gray-900">Stok Bahan</h1>
               <div className="flex items-center gap-3">
                 <img src="https://placehold.co/36x36/d97706/d97706" alt="Avatar" className="w-9 h-9 rounded-full object-cover" />
@@ -178,8 +150,7 @@ export default function InventoryPage() {
             </div>
 
             <div className="p-7">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white rounded-xl border p-4">
                   <div className="text-gray-500 text-xs">Total Bahan</div>
                   <div className="text-2xl font-bold">{stats.total}</div>
@@ -198,7 +169,6 @@ export default function InventoryPage() {
                 </div>
               </div>
 
-              {/* Search & Filters */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div className="relative w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -225,81 +195,79 @@ export default function InventoryPage() {
                 </div>
               </div>
 
-              {/* Table */}
-              <div className="bg-white rounded-xl border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="text-left px-5 py-3">Nama Bahan</th>
-                        <th className="text-left px-5 py-3">Kategori</th>
-                        <th className="text-left px-5 py-3">Stok</th>
-                        <th className="text-left px-5 py-3">Status</th>
-                        <th className="text-left px-5 py-3">Aksi</th>
+              <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="text-left px-5 py-3">Nama Bahan</th>
+                      <th className="text-left px-5 py-3">Kategori</th>
+                      <th className="text-left px-5 py-3">Stok</th>
+                      <th className="text-left px-5 py-3">Status</th>
+                      <th className="text-left px-5 py-3">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInventory.map((item) => (
+                      <tr key={item._id || item.id} className="border-b hover:bg-gray-50">
+                        <td className="px-5 py-3 font-medium">{item.name}</td>
+                        <td className="px-5 py-3 text-gray-600">{item.category || "Bahan Baku"}</td>
+                        <td className="px-5 py-3">
+                          {editingItem === item._id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                value={editStock}
+                                onChange={(e) => setEditStock(e.target.value)}
+                                className="w-24 px-2 py-1 border rounded text-sm"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => updateStock(item._id, editStock)}
+                                className="px-2 py-1 bg-green-600 text-white rounded text-xs"
+                              >
+                                Simpan
+                              </button>
+                              <button
+                                onClick={() => setEditingItem(null)}
+                                className="px-2 py-1 bg-gray-300 rounded text-xs"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <span className={`font-semibold ${getStockColor(item.stock)}`}>
+                              {item.stock} {item.unit || "unit"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3">{getStatusBadge(item.stock)}</td>
+                        <td className="px-5 py-3">
+                          <button 
+                            onClick={() => {
+                              setEditingItem(item._id);
+                              setEditStock(item.stock.toString());
+                            }}
+                            className="p-2 border rounded-md hover:bg-gray-50"
+                          >
+                            <Pencil className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredInventory.map((item) => (
-                        <tr key={item._id || item.id} className="border-b hover:bg-gray-50">
-                          <td className="px-5 py-3 font-medium">{item.name}</td>
-                          <td className="px-5 py-3 text-gray-600">{item.category || "Bahan Baku"}</td>
-                          <td className="px-5 py-3">
-                            {editingItem === item._id ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="number"
-                                  value={editStock}
-                                  onChange={(e) => setEditStock(e.target.value)}
-                                  className="w-24 px-2 py-1 border rounded text-sm"
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={() => updateStock(item._id, editStock)}
-                                  className="px-2 py-1 bg-green-600 text-white rounded text-xs"
-                                >
-                                  Simpan
-                                </button>
-                                <button
-                                  onClick={() => setEditingItem(null)}
-                                  className="px-2 py-1 bg-gray-300 rounded text-xs"
-                                >
-                                  Batal
-                                </button>
-                              </div>
-                            ) : (
-                              <span className={`font-semibold ${getStockColor(item.stock)}`}>
-                                {item.stock} {item.unit || "unit"}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3">{getStatusBadge(item.stock)}</td>
-                          <td className="px-5 py-3">
-                            <button 
-                              onClick={() => {
-                                setEditingItem(item._id);
-                                setEditStock(item.stock.toString());
-                              }}
-                              className="p-2 border rounded-md hover:bg-gray-50"
-                            >
-                              <Pencil className="w-4 h-4 text-gray-500" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {filteredInventory.length === 0 && (
-                        <tr>
-                          <td colSpan="5" className="text-center py-8 text-gray-400">Belum ada data</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                    {filteredInventory.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="text-center py-8 text-gray-400">Belum ada data</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </>
         )}
       </main>
-    
+      </div>
+      
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
   );
