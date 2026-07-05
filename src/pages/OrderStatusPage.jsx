@@ -7,7 +7,7 @@ import { api } from "../services/api";
 export default function OrderStatusPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const orderId = searchParams.get("orderId"); // ← AMBIL DARI URL
+  const orderId = searchParams.get("orderId");
   
   const [currentStatus, setCurrentStatus] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -33,88 +33,95 @@ export default function OrderStatusPage() {
     "completed": 4
   };
 
-  // Update ref ketika currentStatus berubah
   useEffect(() => {
     currentStatusRef.current = currentStatus;
   }, [currentStatus]);
 
-  // Di OrderStatusPage.jsx
-useEffect(() => {
-  const fetchStatus = async () => {
-    try {
-      const response = await api.getOrderStatus(orderId);
-      if (response.success && response.data) {
-        setOrderData(response.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch order status:", error);
-    }
-  };
-  fetchStatus();
-}, [orderId]);
-
-  // Fetch order detail dari API
+  // 🔥 FETCH ORDER DETAIL + LOCAL-SUCCESS FALLBACK
   const fetchOrderDetail = async () => {
     if (!orderId) {
-      console.log("No orderId provided");
+      console.log("❌ No orderId provided");
       return;
     }
     
     try {
-      console.log("Fetching order detail for:", orderId);
+      console.log(`🔍 Fetching order detail for: ${orderId}`);
       const response = await api.getOrderStatus(orderId);
-      console.log("Order detail response:", response);
+      console.log("📦 Order detail response:", response);
       
       if (response.success && response.data) {
         const order = response.data;
-        setOrderData(order);
+        console.log(`📌 Order status from API: "${order.status}"`);
         
-        const newStatus = statusMap[order.status] ?? 0;
-        if (newStatus !== currentStatusRef.current) {
-          setCurrentStatus(newStatus);
+        // 🔥 KALO STATUS MASIH PENDING, PANGGIL LOCAL-SUCCESS (FALLBACK)
+        if (order.status === "pending" || order.payment_status === "pending") {
+          console.log("⏳ Order still pending, calling local-success...");
+          try {
+            await api.syncLocalPaymentSuccess(orderId);
+            console.log("✅ Local-success called, fetching updated data...");
+            // 🔥 FETCH ULANG SETELAH LOCAL-SUCCESS
+            const retryResponse = await api.getOrderStatus(orderId);
+            if (retryResponse.success && retryResponse.data) {
+              const updatedOrder = retryResponse.data;
+              setOrderData(updatedOrder);
+              const newStatus = statusMap[updatedOrder.status] ?? 0;
+              console.log(`🔄 Updated status: "${updatedOrder.status}" -> index ${newStatus}`);
+              if (newStatus !== currentStatusRef.current) {
+                setCurrentStatus(newStatus);
+              }
+            }
+          } catch (error) {
+            console.error("❌ Local-success failed:", error);
+          }
+        } else {
+          // 🔥 NORMAL FETCH
+          setOrderData(order);
+          const newStatus = statusMap[order.status] ?? 0;
+          console.log(`🔄 Status: "${order.status}" -> index ${newStatus}`);
+          if (newStatus !== currentStatusRef.current) {
+            setCurrentStatus(newStatus);
+          }
         }
       } else {
-        console.warn("Order not found or API error:", response);
+        console.warn("⚠️ Order not found or API error:", response);
       }
     } catch (error) {
-      console.error("Failed to fetch order detail:", error);
+      console.error("❌ Failed to fetch order detail:", error);
     } finally {
       setInitialLoading(false);
     }
   };
 
-  // Cek role user
   useEffect(() => {
     const userRole = sessionStorage.getItem("role") || "customer";
     setRole(userRole);
   }, []);
 
-  // Auto refresh status setiap 5 detik
+  // 🔥 AUTO-REFRESH SETIAP 5 DETIK + LOCAL-SUCCESS FALLBACK
   useEffect(() => {
     if (!orderId) {
-      console.log("No orderId, skipping fetch");
+      console.log("❌ No orderId, skipping fetch");
       return;
     }
     
     // Fetch pertama kali
     fetchOrderDetail();
     
-    // Interval untuk refresh
+    // Interval refresh 5 detik
     const interval = setInterval(() => {
+      console.log("🔄 Auto-refresh order status...");
       fetchOrderDetail();
     }, 5000);
     
     return () => clearInterval(interval);
   }, [orderId]);
 
-  // Cek apakah user bisa update ke status berikutnya
   const canUpdate = () => {
     if (currentStatus >= statuses.length - 1) return false;
     const nextStatus = statuses[currentStatus + 1];
     return nextStatus.canUpdate.includes(role);
   };
 
-  // Handle update status (untuk kasir/kitchen)
   const handleUpdateStatus = async () => {
     if (!canUpdate()) {
       const nextStatus = statuses[currentStatus + 1];
@@ -128,7 +135,6 @@ useEffect(() => {
       const nextStatusId = currentStatus + 1;
       const nextStatusName = statuses[nextStatusId].name;
       
-      // Map status ke value yang sesuai untuk backend
       const statusValueMap = {
         1: "paid",
         2: "confirmed",
@@ -139,14 +145,11 @@ useEffect(() => {
       const newStatusValue = statusValueMap[nextStatusId];
       
       if (role === "kasir" && nextStatusId === 1) {
-        // Kasir update pembayaran
         await api.updateOrderStatus(orderId, newStatusValue);
       } else if (role === "kitchen" && nextStatusId >= 2) {
-        // Kitchen update status masak
         await api.updateKitchenStatus(orderId, newStatusValue);
       }
       
-      // Refresh data setelah update
       await fetchOrderDetail();
       toast.success(`Status berhasil diupdate ke: ${nextStatusName}`);
     } catch (error) {
@@ -157,7 +160,6 @@ useEffect(() => {
     }
   };
 
-  // Jika tidak ada orderId, redirect ke menu
   if (!orderId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -171,7 +173,6 @@ useEffect(() => {
     );
   }
 
-  // Tampilkan Skeleton Loading saat memuat data pertama kali
   if (initialLoading || !orderData) {
     return (
       <div className="min-h-screen bg-gray-100 pb-6 max-w-md mx-auto">
@@ -210,7 +211,6 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-gray-100 pb-6 max-w-md mx-auto">
-      {/* Header */}
       <div className="bg-white px-4 py-3.5 flex justify-between items-center">
         <h1 className="text-green-600 font-semibold text-base">Status Pesanan</h1>
         <div className="bg-red-500 text-white text-sm font-semibold px-4 py-1.5 rounded-full">
@@ -220,7 +220,6 @@ useEffect(() => {
       
       <div className="w-full h-px bg-gray-200"></div>
       
-      {/* Main Content */}
       <div className="bg-white pb-4">
         <div className="flex flex-col items-center pt-6 pb-2">
           <h2 className="text-gray-700 font-semibold text-lg mb-2">Status Pesanan Anda</h2>
@@ -228,7 +227,6 @@ useEffect(() => {
             Meja {orderData?.tableNumber || "-"}
           </div>
           
-          {/* Timeline */}
           <div className="w-full px-4">
             {statuses.map((status, idx) => {
               const isCompleted = currentStatus >= status.id;
@@ -259,7 +257,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Order Summary Card */}
       <div className="mx-4 mt-4 bg-white rounded-xl shadow-sm p-4">
         <div className="flex justify-between items-center mb-2.5">
           <span className="text-gray-700 text-sm font-medium">Detail Pesanan</span>
@@ -275,7 +272,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Info Card */}
       <div className="mx-4 mt-3 bg-green-50 border border-green-200 rounded-lg p-3.5 flex gap-2.5">
         <Info className="w-5 h-5 text-green-500 flex-shrink-0" />
         <p className="text-gray-700 text-xs leading-relaxed">
@@ -283,7 +279,6 @@ useEffect(() => {
         </p>
       </div>
 
-      {/* Update Status Button (untuk kasir/kitchen) */}
       {(role === "kasir" || role === "kitchen") && currentStatus < statuses.length - 1 && (
         <div className="mx-4 mt-5 mb-6">
           <button
@@ -301,7 +296,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Refresh Button (untuk customer) */}
       {role === "customer" && (
         <div className="mx-4 mt-5 mb-6">
           <button
