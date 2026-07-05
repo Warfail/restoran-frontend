@@ -61,22 +61,23 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
 
         <div className="p-8">
           {success ? (
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Terkirim!</h2>
-              <p className="text-gray-500 mb-6">
-                Kami telah mengirimkan instruksi pemulihan kata sandi ke <strong>{email}</strong>. Silakan periksa kotak masuk atau folder spam Anda.
-              </p>
-              <button 
-                onClick={handleClose}
-                className="w-full bg-red-600 text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition"
-              >
-                Kembali ke Login
-              </button>
-            </div>
-          ) : (
+  <div className="flex flex-col items-center text-center">
+    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+      <CheckCircle className="w-8 h-8 text-green-600" />
+    </div>
+    <h2 className="text-2xl font-bold text-gray-900 mb-2">📱 Cek WhatsApp Anda!</h2>
+    <p className="text-gray-500 mb-6">
+      Kami telah mengirimkan tautan reset kata sandi ke nomor WhatsApp yang terdaftar untuk akun <strong>{email}</strong>. 
+      Silakan periksa pesan masuk WhatsApp Anda.
+    </p>
+    <button 
+      onClick={handleClose}
+      className="w-full bg-red-600 text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition"
+    >
+      Kembali ke Login
+    </button>
+  </div>
+) : (
             <>
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Lupa Kata Sandi?</h2>
