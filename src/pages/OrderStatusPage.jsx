@@ -59,17 +59,10 @@ export default function OrderStatusPage() {
           try {
             await api.syncLocalPaymentSuccess(orderId);
             console.log("✅ Local-success called, fetching updated data...");
-            // 🔥 FETCH ULANG SETELAH LOCAL-SUCCESS
-            const retryResponse = await api.getOrderStatus(orderId);
-            if (retryResponse.success && retryResponse.data) {
-              const updatedOrder = retryResponse.data;
-              setOrderData(updatedOrder);
-              const newStatus = statusMap[updatedOrder.status] ?? 0;
-              console.log(`🔄 Updated status: "${updatedOrder.status}" -> index ${newStatus}`);
-              if (newStatus !== currentStatusRef.current) {
-                setCurrentStatus(newStatus);
-              }
-            }
+            
+            // 🔥 LANGSUNG FETCH ULANG (GA PAKE RETRY VARIABLE)
+            await fetchOrderDetail(); // 👈 INI YANG DIUBAH!
+            return; // ← LANGSUNG KELUAR, GA LANJUT KE BAWAH
           } catch (error) {
             console.error("❌ Local-success failed:", error);
           }
@@ -97,7 +90,7 @@ export default function OrderStatusPage() {
     setRole(userRole);
   }, []);
 
-  // 🔥 AUTO-REFRESH SETIAP 5 DETIK + LOCAL-SUCCESS FALLBACK
+  // 🔥 AUTO-REFRESH SETIAP 5 DETIK
   useEffect(() => {
     if (!orderId) {
       console.log("❌ No orderId, skipping fetch");
