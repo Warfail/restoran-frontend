@@ -51,9 +51,10 @@ export default function CashierDashboard() {
   const [activeTab, setActiveTab] = useState("transaksi");
   const [currentPrintOrderId, setCurrentPrintOrderId] = useState(null);
 
+  // 🔥 AUTO-REFRESH 10 DETIK
   useEffect(() => {
     fetchOrders(true);
-    const interval = setInterval(() => fetchOrders(false), 10000); // Refresh setiap 10 detik tanpa loading
+    const interval = setInterval(() => fetchOrders(false), 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -61,9 +62,7 @@ export default function CashierDashboard() {
     try {
       if (showLoading) setLoading(true);
       const response = await api.getOrders();
-      console.log("Orders from API:", response);
-      // Sesuaikan dengan response format backend
-      const ordersData = response.data || response;
+      const ordersData = response?.data || response || [];
       setOrders(Array.isArray(ordersData) ? ordersData : []);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
@@ -84,8 +83,8 @@ export default function CashierDashboard() {
   const confirmOrder = async (orderId) => {
     try {
       const result = await api.confirmOrder(orderId);
-
       if (result.success) {
+        toast.success("✅ Pesanan berhasil dikonfirmasi!");
         await fetchOrders();
       } else {
         toast.error("Gagal mengkonfirmasi order: " + (result.detail || ""));
@@ -118,9 +117,9 @@ export default function CashierDashboard() {
 
       if (response.success) {
         if (paymentMethod === "cash") {
-          toast.success(`Pembayaran berhasil!\nKembalian: Rp ${response.data?.change?.toLocaleString() || (finalAmount - selectedOrder.totalAmount).toLocaleString()}`);
+          toast.success(`✅ Pembayaran berhasil!\nKembalian: Rp ${response.data?.change?.toLocaleString() || (finalAmount - selectedOrder.totalAmount).toLocaleString()}`);
         } else {
-          toast.success(`Pembayaran Debit berhasil dikonfirmasi!`);
+          toast.success(`✅ Pembayaran berhasil dikonfirmasi!`);
         }
         await fetchOrders();
         setShowPaymentModal(false);
@@ -169,10 +168,18 @@ export default function CashierDashboard() {
   });
 
   const getStatusBadge = (status) => {
-    if (status === "paid") return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">LUNAS</span>;
-    if (status === "confirmed") return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">DIKONFIRMASI</span>;
-    if (status === "cooking") return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">DIMASAK</span>;
-    if (status === "done" || status === "completed") return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">SELESAI</span>;
+    if (status === "paid" || status === "settlement") {
+      return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">LUNAS</span>;
+    }
+    if (status === "confirmed") {
+      return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">DIKONFIRMASI</span>;
+    }
+    if (status === "cooking") {
+      return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">DIMASAK</span>;
+    }
+    if (status === "done" || status === "completed") {
+      return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">SELESAI</span>;
+    }
     return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">PENDING</span>;
   };
 
@@ -180,10 +187,8 @@ export default function CashierDashboard() {
     total: currentOrders.length,
     pending: currentOrders.filter(o => o.status === "pending").length,
     confirmed: currentOrders.filter(o => o.status === "confirmed").length,
-    paid: currentOrders.filter(o => ["paid", "cooking", "completed", "done"].includes(o.status)).length
+    paid: currentOrders.filter(o => ["paid", "cooking", "completed", "done", "settlement"].includes(o.status)).length
   };
-
-
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
@@ -347,44 +352,59 @@ export default function CashierDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {filteredOrders.map((order) => (
-                        <tr key={order.orderId} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 font-mono text-sm font-medium text-gray-900">{order.orderId}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">Meja {order.tableNumber}</td>
-                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">{order.customerName}</td>
-                          <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Rp {order.totalAmount?.toLocaleString()}</td>
-                          <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
-                          <td className="px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              {/* Tombol Bayar hanya muncul jika belum dibayar (pending/confirmed) */}
-                              {(order.status === "pending" || order.status === "confirmed") && (
-                                <button
-                                  onClick={() => openPaymentModal(order)}
-                                  className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
-                                  title="Proses Pembayaran"
-                                >
-                                  <DollarSign className="w-3.5 h-3.5" />
-                                  Bayar
-                                </button>
-                              )}
-                              
-                              {/* Tombol Cetak / Cetak Ulang selalu muncul */}
-                              <button 
-                                onClick={() => printReceipt(order.orderId)} 
-                                className={`px-3 py-1.5 rounded-lg ${order.isPrinted ? "bg-gray-600 hover:bg-gray-700" : "bg-purple-600 hover:bg-purple-700"} text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm`} 
-                                title={order.isPrinted ? "Cetak Ulang Struk" : "Cetak Struk"}
-                              >
-                                <Printer className="w-3.5 h-3.5" />
-                                {order.isPrinted ? "Cetak Ulang" : "Cetak Struk"}
-                              </button>
-                            </div>
+                      {filteredOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="text-center py-8 text-gray-400">
+                            {activeTab === "transaksi" ? "Belum ada transaksi aktif" : "Belum ada riwayat transaksi"}
                           </td>
                         </tr>
-                      ))}
-                      {filteredOrders.length === 0 && (
-                        <tr>
-                          <td colSpan="6" className="text-center py-8 text-gray-400">Belum ada order</td>
-                        </tr>
+                      ) : (
+                        filteredOrders.map((order) => (
+                          <tr key={order.orderId} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 font-mono text-sm font-medium text-gray-900">{order.orderId}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">Meja {order.tableNumber}</td>
+                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">{order.customerName}</td>
+                            <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Rp {order.totalAmount?.toLocaleString()}</td>
+                            <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
+                            <td className="px-6 py-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                {/* 🔥 TOMBOL BAYAR - HANYA UNTUK PENDING */}
+                                {(order.status === "pending" || order.status === "confirmed") && (
+                                  <button
+                                    onClick={() => openPaymentModal(order)}
+                                    className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+                                  >
+                                    <DollarSign className="w-3.5 h-3.5" />
+                                    Bayar
+                                  </button>
+                                )}
+                                
+                                {/* 🔥 TOMBOL CETAK - UNTUK LUNAS (kecuali pending) */}
+                                {order.status !== "pending" && (
+                                  <button 
+                                    onClick={() => printReceipt(order.orderId)} 
+                                    className={`px-3 py-1.5 rounded-lg ${order.isPrinted ? "bg-gray-600 hover:bg-gray-700" : "bg-purple-600 hover:bg-purple-700"} text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm`}
+                                  >
+                                    <Printer className="w-3.5 h-3.5" />
+                                    {order.isPrinted ? "Cetak Ulang" : "Cetak Struk"}
+                                  </button>
+                                )}
+                                
+                                <button 
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    // Bisa tambah modal detail kalo mau
+                                    toast.info(`Detail order ${order.orderId}`);
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  Detail
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
                       )}
                     </tbody>
                   </table>
@@ -618,13 +638,13 @@ export default function CashierDashboard() {
                   if (currentPrintOrderId) {
                     try {
                       await api.markAsPrinted(currentPrintOrderId);
-                      fetchOrders(false); // update the list
+                      fetchOrders(false);
                     } catch (e) {
                       console.error("Gagal update status isPrinted", e);
                     }
                   }
                   const content = document.getElementById("receipt-content").innerHTML;
-                  setShowReceipt(false); // Langsung tutup modal struk setelah ambil content
+                  setShowReceipt(false);
                   
                   const printWindow = window.open('', '_blank', 'width=400,height=600');
                   if (printWindow) {
@@ -638,18 +658,17 @@ export default function CashierDashboard() {
                             @page { margin: 0; }
                             body {
                               font-family: monospace;
-                              font-weight: 600; /* Bikin font lebih tebal */
+                              font-weight: 600;
                               color: #000;
                               margin: 0;
                               padding: 10px;
-                              width: 58mm; /* Standard thermal printer width */
+                              width: 58mm;
                               font-size: 11px;
                               line-height: 1.2;
                               background: #fff;
                             }
                             * { box-sizing: border-box; }
                             
-                            /* CSS Classes Used in Content */
                             .text-center { text-align: center; }
                             .mb-1 { margin-bottom: 4px; }
                             .mb-2 { margin-bottom: 8px; }

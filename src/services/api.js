@@ -42,7 +42,6 @@ export const api = {
 
   // ========== MENU (Public) ==========
   getMenu: async () => {
-    // 🔥 Cek cache dulu
     if (menuCache && menuCacheTime && (Date.now() - menuCacheTime < CACHE_DURATION)) {
       console.log("✅ Using cached menu");
       return menuCache;
@@ -59,7 +58,6 @@ export const api = {
       menus = data;
     }
     
-    // 🔥 Simpan cache
     menuCache = menus;
     menuCacheTime = Date.now();
     
@@ -150,8 +148,12 @@ export const api = {
     return res.json();
   },
 
+  // 🔥 GET RECEIPT (DIPERLUIN!)
   getReceipt: async (orderId) => {
-    const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`);
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
     return res.json();
   },
 
@@ -163,9 +165,11 @@ export const api = {
     return res.json();
   },
 
+  // 🔥 MARK AS PRINTED (CUKUP 1!)
   markAsPrinted: async (orderId) => {
     const res = await fetch(`${API_BASE}/cashier/order/${orderId}/printed`, {
       method: "PUT",
+      headers: { "Content-Type": "application/json" },
     });
     return res.json();
   },
@@ -337,13 +341,5 @@ export const api = {
       totalMenus: Array.isArray(menusData) ? menusData.length : 0,
       totalUsers: 0
     };
-  },
-
-  getReceipt: async (orderId) => {
-    const token = getToken();
-    const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    });
-    return res.json();
   },
 };
