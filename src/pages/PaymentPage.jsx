@@ -186,7 +186,7 @@ export default function PaymentPage() {
 
       {/* Payment Methods */}
       <div className="p-4 space-y-3">
-        <div onClick={() => setSelectedMethod("gopay")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "gopay" ? "border-2 border-green-500" : "border border-gray-200"}`}>
+        {/* <div onClick={() => setSelectedMethod("gopay")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "gopay" ? "border-2 border-green-500" : "border border-gray-200"}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
               <Smartphone className="w-5.5 h-5.5 text-white" />
@@ -196,9 +196,9 @@ export default function PaymentPage() {
               <p className="text-gray-500 text-xs">Bayar pake GoPay</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        <div onClick={() => setSelectedMethod("qris")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "qris" ? "border-2 border-green-500" : "border border-gray-200"}`}>
+        {/* <div onClick={() => setSelectedMethod("qris")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "qris" ? "border-2 border-green-500" : "border border-gray-200"}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
               <QrCode className="w-5.5 h-5.5 text-white" />
@@ -208,7 +208,7 @@ export default function PaymentPage() {
               <p className="text-gray-500 text-xs">Scan menggunakan e-wallet atau m-banking</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div onClick={() => setSelectedMethod("transfer")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "transfer" ? "border-2 border-green-500" : "border border-gray-200"}`}>
           <div className="flex items-center gap-3">
