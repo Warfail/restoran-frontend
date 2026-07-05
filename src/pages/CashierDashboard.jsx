@@ -368,20 +368,16 @@ export default function CashierDashboard() {
                             <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
                             <td className="px-6 py-4 text-center">
                               <div className="flex items-center justify-center gap-2">
-                                {/* 🔥 TOMBOL BAYAR - HANYA UNTUK PENDING & BUKAN MIDTRANS */}
-                                    {(order.status === "pending" || order.status === "confirmed") && 
-                                    order.paymentMethod !== "transfer" && 
-                                    order.paymentMethod !== "qris" && 
-                                    order.paymentMethod !== "gopay" && 
-                                    order.paymentMethod !== "credit_card" && (
-                                      <button
-                                        onClick={() => openPaymentModal(order)}
-                                        className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
-                                      >
-                                        <DollarSign className="w-3.5 h-3.5" />
-                                        Bayar
-                                      </button>
-                                    )}
+                                {/* 🔥 TOMBOL BAYAR - HANYA UNTUK PENDING */}
+                                {(order.status === "pending" || order.status === "confirmed") && (
+                                  <button
+                                    onClick={() => openPaymentModal(order)}
+                                    className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+                                  >
+                                    <DollarSign className="w-3.5 h-3.5" />
+                                    Bayar
+                                  </button>
+                                )}
                                 
                                 {/* 🔥 TOMBOL CETAK - UNTUK LUNAS (kecuali pending) */}
                                 {order.status !== "pending" && (
