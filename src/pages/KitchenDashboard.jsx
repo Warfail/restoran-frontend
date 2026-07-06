@@ -27,6 +27,7 @@ export default function KitchenDashboard() {
   const [menuList, setMenuList] = useState([]);
   const menuListRef = useRef([]); // 🔥 FIX UNTUK POLLING INTERVAL
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
   const [cookingStartTimes, setCookingStartTimes] = useState({});
 
   // 🔥 STATE UNTUK STATISTIK
@@ -362,6 +363,7 @@ export default function KitchenDashboard() {
       const newStatus = !currentStatus;
       await api.updateMenu(id, { isAvailable: newStatus });
       toast.success(newStatus ? "Menu diaktifkan" : "Menu dinonaktifkan");
+      await fetchMenus();
     } catch (error) {
       console.error("Failed to update menu:", error);
       toast.error("Gagal update status menu");
@@ -391,9 +393,11 @@ export default function KitchenDashboard() {
     item.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredMenuList = menuList.filter(item =>
-    item.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMenuList = menuList.filter(item => {
+    const matchSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCategory = filterCategory === "all" || item.category?.toLowerCase() === filterCategory;
+    return matchSearch && matchCategory;
+  });
 
   const getCookingStartTime = (orderId, fallbackDate) => {
     if (cookingStartTimes[orderId]) {
@@ -460,7 +464,7 @@ export default function KitchenDashboard() {
             <button onClick={() => setActiveTab("stokmenu")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Menu</button>
             <button onClick={() => setActiveTab("kelolastokbahan")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "kelolastokbahan" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Bahan</button>
             <button onClick={() => setActiveTab("stocklog")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Log Stok</button>
-            <button onClick={() => setActiveTab("stats")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stats" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>📊 Statistik</button>
+            <button onClick={() => setActiveTab("stats")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stats" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Statistik</button>
           </div>
           
           <div className="hidden md:flex items-center gap-3">
@@ -674,7 +678,15 @@ export default function KitchenDashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Minus className="w-3.5 h-3.5" /></button>
-                        <div className="w-10 text-center font-semibold">{counters[item._id || item.id] || 0}</div>
+                        <input 
+                          type="number" 
+                          className="w-16 text-center font-semibold border rounded-lg h-8 px-1 focus:outline-none focus:ring-1 focus:ring-green-500"
+                          value={counters[item._id || item.id] === undefined ? '' : counters[item._id || item.id]}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                            setCounters(prev => ({ ...prev, [item._id || item.id]: isNaN(val) ? 0 : val }));
+                          }}
+                        />
                         <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
                       </div>
                       <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"><RefreshCw className="w-3.5 h-3.5" /> Update</button>
@@ -689,13 +701,21 @@ export default function KitchenDashboard() {
           {/* Stok Menu Section */}
           {activeTab === "stokmenu" && (
             <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-              <div className="bg-white rounded-xl p-5 shadow-sm border mb-4">
-                <div className="text-gray-500 text-xs font-semibold uppercase">TOTAL MENU</div>
-                <div className="text-blue-500 text-4xl font-bold">{menuList.length}</div>
-              </div>
-              <div className="relative w-72 mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="text" placeholder="Cari menu..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Cari menu..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
+                <select 
+                  value={filterCategory} 
+                  onChange={(e) => setFilterCategory(e.target.value)} 
+                  className="bg-white border rounded-lg px-3 py-2 text-sm focus:outline-none w-full sm:w-48 shadow-sm"
+                >
+                  <option value="all">Semua Kategori</option>
+                  <option value="makanan">Makanan</option>
+                  <option value="minuman">Minuman</option>
+                  <option value="snack">Snack</option>
+                </select>
               </div>
               <div className="space-y-2">
                 {filteredMenuList.map(menu => (
@@ -732,8 +752,13 @@ export default function KitchenDashboard() {
           {activeTab === "stocklog" && (
             <div className="flex-1 p-6 space-y-4 overflow-y-auto">
               <div className="bg-white rounded-xl shadow-sm border p-4">
-                <h3 className="font-bold text-gray-800 text-lg mb-4">📋 Log Pemakaian Bahan</h3>
+                <h3 className="font-bold text-gray-800 text-lg mb-4">Log Pemakaian Bahan</h3>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase border-b pb-2 mb-2 px-2 bg-gray-50">
+                    <div className="flex-1">Menu & Tanggal</div>
+                    <div className="flex-1 text-center">Bahan Terpakai</div>
+                    <div className="flex-1 text-right">Nama Bahan & User</div>
+                  </div>
                   {stockLogs.length === 0 ? (
                     <div className="text-center text-gray-400 py-8">Belum ada log pemakaian</div>
                   ) : (
@@ -766,12 +791,12 @@ export default function KitchenDashboard() {
             </div>
           )}
 
-          {/* 📊 STATISTIK SECTION */}
+          {/* STATISTIK SECTION */}
           {activeTab === "stats" && (
             <div className="flex-1 p-6 space-y-4 overflow-y-auto">
               <div className="bg-white rounded-xl shadow-sm border p-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-gray-800 text-lg">📊 Statistik Pemakaian Bahan</h3>
+                  <h3 className="font-bold text-gray-800 text-lg">Statistik Pemakaian Bahan</h3>
                   <div className="flex items-center gap-3">
                     <input
                       type="date"

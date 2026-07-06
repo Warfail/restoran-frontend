@@ -215,6 +215,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(menuData),
     });
+    menuCache = null;
     return res.json();
   },
   
@@ -224,6 +225,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(menuData),
     });
+    menuCache = null;
     return res.json();
   },
 
@@ -231,6 +233,7 @@ export const api = {
     const res = await fetch(`${API_BASE}/menu/${menuId}`, {
       method: "DELETE",
     });
+    menuCache = null;
     return res.json();
   },
 

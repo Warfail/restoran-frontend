@@ -75,9 +75,9 @@ export default function Sidebar({ active = "dashboard", isOpen, onClose }) {
             <LogOut className="w-5 h-5" /><span>Keluar</span>
           </button>
         </div>
-      
-        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
       </aside>
+      
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </>
   );
 }

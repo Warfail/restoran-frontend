@@ -50,6 +50,7 @@ export default function CashierDashboard() {
   const [cashAmount, setCashAmount] = useState("");
   const [activeTab, setActiveTab] = useState("transaksi");
   const [currentPrintOrderId, setCurrentPrintOrderId] = useState(null);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
 
   // 🔥 AUTO-REFRESH 10 DETIK
   useEffect(() => {
@@ -242,7 +243,7 @@ export default function CashierDashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 md:ml-64">
         <MobileHeader title="Cashier Panel" onMenuClick={() => setIsSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-8">
+        <main className="flex-1 p-4 md:p-6">
         {loading ? (
           <div className="animate-pulse space-y-6">
             <div className="flex justify-between items-center mb-6">
@@ -269,15 +270,15 @@ export default function CashierDashboard() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
+            <div className="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-200">
               <h1 className="text-2xl font-bold text-gray-800">{activeTab === "transaksi" ? "Transaksi" : "Riwayat Transaksi"}</h1>
               <div className="flex items-center gap-4">
                 <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
                 <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
-                    <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+                    <div className="text-gray-900 text-sm font-bold">{currentUser?.fullName || currentUser?.username || ""}</div>
+                    <div className="text-gray-500 text-xs font-bold">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
                   </div>
                   <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
                     {currentUser?.profilePicture ? (
@@ -291,7 +292,7 @@ export default function CashierDashboard() {
             </div>
 
             {/* Content */}
-            <div className="p-8">
+            <div className="p-6">
               {/* Search and Filter */}
               <div className="mb-6 flex gap-4">
                 <div className="relative flex-1 max-w-md">
@@ -318,22 +319,22 @@ export default function CashierDashboard() {
               </div>
 
               {/* Stats Summary */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="text-gray-500 text-xs font-medium">Total Order</div>
-                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col justify-center">
+                  <div className="text-gray-500 text-xs font-bold uppercase tracking-wide mb-1">Total Order</div>
+                  <div className="text-3xl font-black text-gray-900">{stats.total}</div>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="text-gray-500 text-xs font-medium">Pending</div>
-                  <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col justify-center border-b-4 border-b-yellow-500">
+                  <div className="text-gray-500 text-xs font-bold uppercase tracking-wide mb-1">Pending</div>
+                  <div className="text-3xl font-black text-yellow-600">{stats.pending}</div>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="text-gray-500 text-xs font-medium">Confirmed</div>
-                  <div className="text-2xl font-bold text-blue-600">{stats.confirmed}</div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col justify-center border-b-4 border-b-blue-500">
+                  <div className="text-gray-500 text-xs font-bold uppercase tracking-wide mb-1">Confirmed</div>
+                  <div className="text-3xl font-black text-blue-600">{stats.confirmed}</div>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="text-gray-500 text-xs font-medium">Paid</div>
-                  <div className="text-2xl font-bold text-green-600">{stats.paid}</div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex flex-col justify-center border-b-4 border-b-green-500">
+                  <div className="text-gray-500 text-xs font-bold uppercase tracking-wide mb-1">Paid</div>
+                  <div className="text-3xl font-black text-green-600">{stats.paid}</div>
                 </div>
               </div>
 
@@ -341,14 +342,14 @@ export default function CashierDashboard() {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-gray-100 border-b border-gray-300">
                       <tr>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">ID ORDER</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">MEJA</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">PELANGGAN</th>
-                        <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">TOTAL</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">STATUS</th>
-                        <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">AKSI</th>
+                        <th className="text-left px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">ID ORDER</th>
+                        <th className="text-left px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">MEJA</th>
+                        <th className="text-left px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">PELANGGAN</th>
+                        <th className="text-right px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">TOTAL</th>
+                        <th className="text-left px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">STATUS</th>
+                        <th className="text-center px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">AKSI</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -361,10 +362,10 @@ export default function CashierDashboard() {
                       ) : (
                         filteredOrders.map((order) => (
                           <tr key={order.orderId} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-mono text-sm font-medium text-gray-900">{order.orderId}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">Meja {order.tableNumber}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">{order.customerName}</td>
-                            <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Rp {order.totalAmount?.toLocaleString()}</td>
+                            <td className="px-6 py-4 font-mono text-sm font-bold text-gray-900">{order.orderId}</td>
+                            <td className="px-6 py-4 text-sm font-bold text-gray-700">Meja {order.tableNumber}</td>
+                            <td className="px-6 py-4 text-sm font-bold text-gray-900">{order.customerName}</td>
+                            <td className="px-6 py-4 text-right text-sm font-black text-gray-900">Rp {order.totalAmount?.toLocaleString()}</td>
                             <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
                             <td className="px-6 py-4 text-center">
                               <div className="flex items-center justify-center gap-2">
@@ -393,8 +394,7 @@ export default function CashierDashboard() {
                                 <button 
                                   onClick={() => {
                                     setSelectedOrder(order);
-                                    // Bisa tambah modal detail kalo mau
-                                    toast.info(`Detail order ${order.orderId}`);
+                                    setShowOrderDetailsModal(true);
                                   }}
                                   className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
                                 >
@@ -737,6 +737,89 @@ export default function CashierDashboard() {
                 className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition"
               >
                 Cetak / Save PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ORDER DETAILS MODAL */}
+      {showOrderDetailsModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-900">Detail Pesanan</h2>
+              <button onClick={() => setShowOrderDetailsModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <div className="text-sm text-gray-500 font-bold mb-1">ID Pesanan</div>
+                  <div className="font-mono font-black text-lg text-gray-900">{selectedOrder.orderId}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500 font-bold mb-1">Status</div>
+                  <div>{getStatusBadge(selectedOrder.status)}</div>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Pelanggan</div>
+                    <div className="font-bold text-gray-900">{selectedOrder.customerName}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Meja</div>
+                    <div className="font-bold text-gray-900">{selectedOrder.tableNumber}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Tipe</div>
+                    <div className="font-bold text-gray-900">Dine In</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Waktu</div>
+                    <div className="font-bold text-gray-900">
+                      {new Date(selectedOrder.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <h3 className="font-bold text-gray-900 mb-3 border-b pb-2">Daftar Menu</h3>
+              <div className="space-y-3 mb-6">
+                {selectedOrder.items?.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center font-bold text-gray-700">{item.quantity}x</div>
+                      <div>
+                        <div className="font-bold text-gray-900">{item.menuName || item.name}</div>
+                        {item.notes && <div className="text-xs text-gray-500 italic">Catatan: {item.notes}</div>}
+                      </div>
+                    </div>
+                    <div className="font-bold text-gray-900">
+                      Rp {(item.price * item.quantity).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="border-t border-gray-200 pt-4 mt-auto">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-gray-600 text-lg">Total Pembayaran</span>
+                  <span className="font-black text-green-700 text-2xl">Rp {selectedOrder.totalAmount?.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-gray-200 bg-gray-50 flex gap-3 justify-end">
+              <button 
+                onClick={() => setShowOrderDetailsModal(false)}
+                className="px-6 py-2.5 rounded-lg border border-gray-300 font-bold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Tutup
               </button>
             </div>
           </div>

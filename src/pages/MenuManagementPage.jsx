@@ -28,6 +28,7 @@ export default function MenuManagementPage() {
   const [menus, setMenus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
   const [selectedMenu, setSelectedMenu] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "" });
@@ -84,7 +85,11 @@ export default function MenuManagementPage() {
     navigate("/login");
   };
 
-  const filteredMenus = menus.filter(m => m.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredMenus = menus.filter(m => {
+    const matchSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCategory = filterCategory === "all" || m.category?.toLowerCase() === filterCategory;
+    return matchSearch && matchCategory;
+  });
 
 
 
@@ -125,25 +130,80 @@ export default function MenuManagementPage() {
               <button onClick={() => navigate("/admin/menu/add")} className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg w-full sm:w-auto justify-center"><Plus className="w-4 h-4" />Tambah Menu</button>
             </div>
 
-            {/* Search */}
-            <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 w-full sm:w-80 mb-6">
-              <Search className="w-4 h-4 text-gray-400" />
-              <input type="text" placeholder="Cari menu..." className="flex-1 text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xl">🍔</div>
+                <div>
+                  <div className="text-gray-500 text-xs font-medium">Total Menu</div>
+                  <div className="text-gray-900 text-xl font-bold">{menus.length}</div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-600 text-xl">✅</div>
+                <div>
+                  <div className="text-gray-500 text-xs font-medium">Tersedia</div>
+                  <div className="text-gray-900 text-xl font-bold">{menus.filter(m => m.isAvailable !== false).length}</div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 text-xl">📦</div>
+                <div>
+                  <div className="text-gray-500 text-xs font-medium">Total Stok</div>
+                  <div className="text-gray-900 text-xl font-bold">{menus.reduce((sum, m) => sum + (m.stock || 0), 0)}</div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 text-xl">🏷️</div>
+                <div>
+                  <div className="text-gray-500 text-xs font-medium">Kategori</div>
+                  <div className="text-gray-900 text-xl font-bold">{new Set(menus.map(m => m.category)).size}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Search and Filters */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-full sm:w-80 shadow-sm">
+                <Search className="w-4 h-4 text-gray-400" />
+                <input type="text" placeholder="Cari menu..." className="flex-1 text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none w-full sm:w-48 shadow-sm">
+                <option value="all">Semua Kategori</option>
+                <option value="makanan">Makanan</option>
+                <option value="minuman">Minuman</option>
+                <option value="snack">Snack</option>
+              </select>
             </div>
 
             {/* Table */}
             <div className="bg-white rounded-xl border overflow-x-auto">
               <table className="w-full min-w-[600px]">
                 <thead className="bg-gray-50 border-b">
-                  <tr><th className="text-left px-5 py-3">Nama Menu</th><th className="text-left px-5 py-3">Kategori</th><th className="text-left px-5 py-3">Harga</th><th className="text-left px-5 py-3">Stok</th><th className="text-left px-5 py-3">Aksi</th></tr>
+                  <tr>
+                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Gambar</th>
+                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Nama Menu</th>
+                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Kategori</th>
+                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Harga</th>
+                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Stok</th>
+                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Aksi</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {filteredMenus.map(menu => (
-                    <tr key={menu._id || menu.menuId} className="border-b hover:bg-gray-50">
-                      <td className="px-5 py-3 font-medium">{menu.name}</td>
-                      <td className="px-5 py-3"><span className="px-2 py-1 rounded-full bg-gray-100 text-xs">{menu.category}</span></td>
-                      <td className="px-5 py-3">Rp {menu.price?.toLocaleString()}</td>
-                      <td className="px-5 py-3">{menu.stock || 0}</td>
+                    <tr key={menu._id || menu.menuId} className="border-b hover:bg-gray-50 transition">
+                      <td className="px-5 py-3">
+                        <img src={menu.image || "https://placehold.co/100x80/c8a96e/c8a96e"} alt={menu.name} className="w-12 h-12 object-cover rounded-md border border-gray-200 shadow-sm" />
+                      </td>
+                      <td className="px-5 py-3 font-medium text-gray-900">{menu.name}</td>
+                      <td className="px-5 py-3"><span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        menu.category?.toLowerCase() === 'makanan' ? 'bg-orange-50 text-orange-600' :
+                        menu.category?.toLowerCase() === 'minuman' ? 'bg-blue-50 text-blue-600' :
+                        menu.category?.toLowerCase() === 'snack' ? 'bg-yellow-50 text-yellow-600' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>{menu.category}</span></td>
+                      <td className="px-5 py-3 text-gray-700">Rp {menu.price?.toLocaleString()}</td>
+                      <td className="px-5 py-3 text-gray-700">{menu.stock || 0}</td>
                       <td className="px-5 py-3">
                         <div className="flex gap-2">
                           <button onClick={() => openUpdateModal(menu)} className="p-2 border rounded-md hover:bg-gray-50">
@@ -156,7 +216,7 @@ export default function MenuManagementPage() {
                       </td>
                     </tr>
                   ))}
-                  {filteredMenus.length === 0 && <tr><td colSpan="5" className="text-center py-8 text-gray-400">Belum ada menu</td></tr>}
+                  {filteredMenus.length === 0 && <tr><td colSpan="6" className="text-center py-8 text-gray-400">Belum ada menu yang ditemukan</td></tr>}
                 </tbody>
               </table>
             </div>

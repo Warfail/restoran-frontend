@@ -44,6 +44,8 @@ export default function UserListPage() {
 
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterRole, setFilterRole] = useState("all");
+  const [sortBy, setSortBy] = useState("name");
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [users, setUsers] = useState([]);
@@ -115,12 +117,24 @@ export default function UserListPage() {
     { title: "Admin", value: users.filter(u => u.role === "admin").length.toString(), icon: "⚙️", bgColor: "bg-gray-100", iconColor: "text-gray-500" },
   ];
 
-  // Filter users berdasarkan search
+  // Filter users berdasarkan search dan role, lalu urutkan
   const filteredUsers = users.filter(user => {
     const matchSearch = user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         (user.fullName || user.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchSearch;
+    const matchRole = filterRole === "all" || (user.role && user.role.toLowerCase() === filterRole);
+    return matchSearch && matchRole;
+  }).sort((a, b) => {
+    if (sortBy === "name") {
+      const nameA = a.fullName || a.name || a.username || "";
+      const nameB = b.fullName || b.name || b.username || "";
+      return nameA.localeCompare(nameB);
+    } else if (sortBy === "role") {
+      const roleA = a.role || "";
+      const roleB = b.role || "";
+      return roleA.localeCompare(roleB);
+    }
+    return 0;
   });
 
   // Pagination
@@ -248,12 +262,16 @@ export default function UserListPage() {
                 {/* Filter Bar */}
                 <div className="flex flex-wrap justify-between items-center gap-3 px-5 py-3 border-b border-gray-200">
                   <div className="flex gap-2">
-                    <button className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white">
-                      <Filter className="w-3.5 h-3.5" /> Filter
-                    </button>
-                    <button className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white">
-                      <ArrowUpDown className="w-3.5 h-3.5" /> Urutkan
-                    </button>
+                    <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none">
+                      <option value="all">Semua Peran</option>
+                      <option value="admin">Admin</option>
+                      <option value="kasir">Kasir</option>
+                      <option value="kitchen">Kitchen</option>
+                    </select>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none">
+                      <option value="name">Urutkan: Nama</option>
+                      <option value="role">Urutkan: Peran</option>
+                    </select>
                   </div>
                   <div className="text-gray-500 text-xs">
                     Menampilkan {paginatedUsers.length} dari {filteredUsers.length} karyawan
