@@ -47,7 +47,12 @@ export const api = {
       return menuCache;
     }
     
-    const res = await fetch(`${API_BASE}/menu/?limit=30`);
+    const res = await fetch(`${API_BASE}/menu/?limit=500&t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
     const data = await res.json();
     console.log("Raw response:", data);
     
