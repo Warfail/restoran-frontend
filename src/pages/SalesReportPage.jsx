@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import SettingsModal from "../components/SettingsModal";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
+import AdminHeader from "../components/admin/AdminHeader";
 
 import { api } from "../services/api";
 
@@ -338,34 +339,29 @@ export default function SalesReportPage() {
       <div className="flex-1 flex flex-col min-w-0 md:ml-64">
         <MobileHeader title="Laporan Penjualan" onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <div className="hidden md:flex items-center justify-between px-7 py-4 bg-white border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <h1 className="text-green-600 text-2xl font-bold">Laporan Penjualan</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
-            <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
-            <div className="flex items-center gap-2.5">
-              <div className="text-right">
-                <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
-                <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+          {/* Content */}
+          <div id="laporan-content" className="px-4 py-5 md:px-7 md:py-5 space-y-5 bg-gray-50">
+            <AdminHeader title="Laporan Penjualan">
+              <div className="flex items-center gap-4 hidden sm:flex">
+                <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
+                <div className="flex items-center gap-2.5 ml-2 border-l pl-4 border-gray-200">
+                  <div className="text-right">
+                    <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
+                    <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+                  </div>
+                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                    {currentUser?.profilePicture ? (
+                      <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
-                {currentUser?.profilePicture ? (
-                  <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content - Sama seperti sebelumnya */}
-        <div id="laporan-content" className="px-7 py-5 space-y-5 bg-gray-50">
-          {/* Search & Filter Bar */}
+            </AdminHeader>
+  
+            {/* Search & Filter Bar */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 flex-1 w-full md:max-w-[420px] shadow-sm">
               <Search className="w-4 h-4 text-gray-400" />

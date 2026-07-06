@@ -1,13 +1,14 @@
 import SettingsModal from "../components/SettingsModal";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
+import AdminHeader from "../components/admin/AdminHeader";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import {
-  Search, Plus, Pencil,
-  LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut
+  Search, Plus, Pencil, Trash, X, AlertTriangle,
+  LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut, Bell, HelpCircle
 } from "lucide-react";
 
 export default function InventoryPage() {
@@ -27,8 +28,13 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editStock, setEditStock] = useState("");
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingItem, setDeletingItem] = useState(null);
 
   // 🔥 FUNGSI FORMAT ANGKA STOK
   const formatStock = (value) => {
@@ -61,10 +67,25 @@ export default function InventoryPage() {
       await api.updateStock(itemId, { stock: parseInt(newStock) });
       await fetchInventory();
       toast.success("Stok berhasil diupdate!");
+      setIsEditModalOpen(false);
       setEditingItem(null);
     } catch (error) {
       console.error("Failed to update stock:", error);
       toast.error("Gagal update stok");
+    }
+  };
+
+  const deleteInventoryItem = async () => {
+    if (!deletingItem) return;
+    try {
+      await api.deleteInventory(deletingItem._id || deletingItem.id);
+      await fetchInventory();
+      toast.success("Item berhasil dihapus!");
+      setIsDeleteModalOpen(false);
+      setDeletingItem(null);
+    } catch (error) {
+      console.error("Failed to delete item:", error);
+      toast.error("Gagal menghapus item");
     }
   };
 
@@ -142,14 +163,30 @@ export default function InventoryPage() {
           </div>
         ) : (
           <>
-            <div className="hidden md:flex justify-between items-center px-7 py-4 bg-white border-b">
-              <h1 className="text-2xl font-bold text-gray-900">Stok Bahan</h1>
-              <div className="flex items-center gap-3">
-                <img src="https://placehold.co/36x36/d97706/d97706" alt="Avatar" className="w-9 h-9 rounded-full object-cover" />
-              </div>
-            </div>
+            <div className="p-4 md:p-7">
+              <AdminHeader 
+                title="Manajemen Stok"
+                subtitle="Pantau dan kelola stok menu di sistem"
+              >
+                <div className="flex items-center gap-4 hidden sm:flex">
+                  <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                  <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
+                  <div className="flex items-center gap-3 ml-2 border-l pl-4 border-gray-200">
+                    <div className="text-right">
+                      <div className="text-gray-900 text-sm font-bold">{currentUser?.fullName || currentUser?.username || "Admin"}</div>
+                      <div className="text-gray-500 text-xs font-bold">{currentUser?.role?.toUpperCase() || "ADMIN"}</div>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200 cursor-pointer" onClick={() => setIsSettingsOpen(true)}>
+                      {currentUser?.profilePicture ? (
+                        <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        (currentUser?.fullName || currentUser?.username || "A").charAt(0).toUpperCase()
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </AdminHeader>
 
-            <div className="p-7">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white rounded-xl border p-4">
                   <div className="text-gray-500 text-xs">Total Bahan</div>
@@ -192,6 +229,9 @@ export default function InventoryPage() {
                     <option>Hampir Habis</option>
                     <option>Aman</option>
                   </select>
+                  <button onClick={() => navigate("/admin/inventory/add")} className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition whitespace-nowrap">
+                    <Plus className="w-4 h-4" /> Tambah Bahan
+                  </button>
                 </div>
               </div>
 
@@ -212,45 +252,35 @@ export default function InventoryPage() {
                         <td className="px-5 py-3 font-medium">{item.name}</td>
                         <td className="px-5 py-3 text-gray-600">{item.category || "Bahan Baku"}</td>
                         <td className="px-5 py-3">
-                          {editingItem === item._id ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                value={editStock}
-                                onChange={(e) => setEditStock(e.target.value)}
-                                className="w-24 px-2 py-1 border rounded text-sm"
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => updateStock(item._id, editStock)}
-                                className="px-2 py-1 bg-green-600 text-white rounded text-xs"
-                              >
-                                Simpan
-                              </button>
-                              <button
-                                onClick={() => setEditingItem(null)}
-                                className="px-2 py-1 bg-gray-300 rounded text-xs"
-                              >
-                                Batal
-                              </button>
-                            </div>
-                          ) : (
-                            <span className={`font-semibold ${getStockColor(item.stock)}`}>
-                              {item.stock} {item.unit || "unit"}
-                            </span>
-                          )}
+                          <span className={`font-semibold ${getStockColor(item.stock)}`}>
+                            {item.stock} {item.unit || "unit"}
+                          </span>
                         </td>
                         <td className="px-5 py-3">{getStatusBadge(item.stock)}</td>
                         <td className="px-5 py-3">
-                          <button 
-                            onClick={() => {
-                              setEditingItem(item._id);
-                              setEditStock(item.stock.toString());
-                            }}
-                            className="p-2 border rounded-md hover:bg-gray-50"
-                          >
-                            <Pencil className="w-4 h-4 text-gray-500" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => {
+                                setEditingItem(item);
+                                setEditStock(item.stock.toString());
+                                setIsEditModalOpen(true);
+                              }}
+                              className="p-2 border rounded-md hover:bg-gray-50 text-blue-600 border-blue-200 hover:border-blue-300 transition"
+                              title="Edit Stok"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setDeletingItem(item);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              className="p-2 border rounded-md hover:bg-red-50 text-red-600 border-red-200 hover:border-red-300 transition"
+                              title="Hapus Item"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -267,6 +297,62 @@ export default function InventoryPage() {
         )}
       </main>
       </div>
+
+      {/* Edit Modal Overlay */}
+      {isEditModalOpen && editingItem && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800">Edit Stok Bahan</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-1">Nama Bahan</p>
+                <p className="font-semibold text-gray-900">{editingItem.name}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Stok</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={editStock}
+                    onChange={(e) => setEditStock(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    autoFocus
+                  />
+                  <span className="text-gray-500 font-medium px-3 bg-gray-100 border border-gray-300 py-2 rounded-lg">{editingItem.unit || "unit"}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50">
+              <button onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Batal</button>
+              <button onClick={() => updateStock(editingItem._id || editingItem.id, editStock)} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition">Simpan Perubahan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal Overlay */}
+      {isDeleteModalOpen && deletingItem && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Hapus Item?</h2>
+              <p className="text-gray-500 text-sm">Anda yakin ingin menghapus <span className="font-semibold text-gray-800">"{deletingItem.name}"</span> dari inventori? Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-gray-50 border-t border-gray-100">
+              <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg font-medium transition">Batal</button>
+              <button onClick={deleteInventoryItem} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">Ya, Hapus</button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>

@@ -29,6 +29,7 @@ import { api } from "../services/api";
 import SettingsModal from "../components/SettingsModal";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
+import AdminHeader from "../components/admin/AdminHeader";
 
 export default function UserListPage() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -197,30 +198,31 @@ export default function UserListPage() {
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="hidden md:flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
-              <h1 className="text-2xl font-bold text-green-700">Manajemen Pengguna</h1>
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer"><Bell className="w-4 h-4 text-gray-500" /></div>
-                <div className="w-9 h-9 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer"><HelpCircle className="w-4 h-4 text-gray-500" /></div>
-                <div className="w-px h-8 bg-gray-200"></div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.name || currentUser?.username || ""}</div>
-                    <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
-                  </div>
-                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
-                    {currentUser?.profilePicture ? (
-                      <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      (currentUser?.fullName || currentUser?.name || currentUser?.username || "U").charAt(0).toUpperCase()
-                    )}
+            <div className="p-4 md:p-6">
+              {/* Header */}
+              <AdminHeader 
+                title="Manajemen Pengguna"
+              >
+                <div className="flex items-center gap-4 hidden sm:flex">
+                  <div className="w-9 h-9 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer"><Bell className="w-4 h-4 text-gray-500" /></div>
+                  <div className="w-9 h-9 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer"><HelpCircle className="w-4 h-4 text-gray-500" /></div>
+                  <div className="w-px h-8 bg-gray-200"></div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.name || currentUser?.username || ""}</div>
+                      <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                      {currentUser?.profilePicture ? (
+                        <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        (currentUser?.fullName || currentUser?.name || currentUser?.username || "U").charAt(0).toUpperCase()
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </AdminHeader>
 
-            <div className="p-4 md:p-6">
               {/* Search & Add */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div className="flex-1 max-w-md w-full">

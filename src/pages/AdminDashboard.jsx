@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import Sidebar from "../components/admin/Sidebar";
+import AdminHeader from "../components/admin/AdminHeader";
 import MobileHeader from "../components/admin/MobileHeader";
 import StatsCard from "../components/admin/StatsCard";
 import TopMenuList from "../components/admin/TopMenuList";
@@ -231,29 +232,28 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-                <p className="text-gray-500 mt-1">Selamat datang, {currentUser?.fullName || currentUser?.username || "Admin"}</p>
-              </div>
-              <div className="flex items-center gap-4 hidden sm:flex">
-                <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
-                <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
-                <div className="flex items-center gap-3 ml-2 border-l pl-4">
-                  <div className="text-right">
-                    <div className="text-gray-900 text-sm font-bold">{currentUser?.fullName || currentUser?.username || "Admin"}</div>
-                    <div className="text-gray-500 text-xs font-bold">{currentUser?.role?.toUpperCase() || "ADMIN"}</div>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200 cursor-pointer" onClick={() => setIsSettingsOpen(true)}>
-                    {currentUser?.profilePicture ? (
-                      <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      (currentUser?.fullName || currentUser?.username || "A").charAt(0).toUpperCase()
-                    )}
+              <AdminHeader 
+                title="Dashboard" 
+                subtitle={`Selamat datang, ${currentUser?.fullName || currentUser?.username || "Admin"}`}
+              >
+                <div className="flex items-center gap-4 hidden sm:flex">
+                  <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                  <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
+                  <div className="flex items-center gap-3 ml-2 border-l pl-4 border-gray-200">
+                    <div className="text-right">
+                      <div className="text-gray-900 text-sm font-bold">{currentUser?.fullName || currentUser?.username || "Admin"}</div>
+                      <div className="text-gray-500 text-xs font-bold">{currentUser?.role?.toUpperCase() || "ADMIN"}</div>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200 cursor-pointer" onClick={() => setIsSettingsOpen(true)}>
+                      {currentUser?.profilePicture ? (
+                        <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        (currentUser?.fullName || currentUser?.username || "A").charAt(0).toUpperCase()
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </AdminHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {statsCards.map((stat, idx) => (

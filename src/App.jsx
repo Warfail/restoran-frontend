@@ -8,6 +8,7 @@ import UserManagementPage from "./pages/UserManagementpage";
 import MenuManagementPage from "./pages/MenuManagementPage";
 import AddMenuPage from "./pages/AddMenuPage";
 import InventoryPage from "./pages/InventoryPage";
+import AddInventoryPage from "./pages/AddInventoryPage";
 import KitchenLoginPage from "./pages/KitchenLoginPage";
 import KitchenDashboard from "./pages/KitchenDashboard";
 import CashierLoginPage from "./pages/CashierLoginPage";
@@ -59,6 +60,7 @@ function App() {
         <Route path="/users/add" element={<PrivateRoute allowedRoles={["admin"]}><UserManagementPage /></PrivateRoute>} />
         <Route path="/admin/menu" element={<PrivateRoute allowedRoles={["admin"]}><MenuManagementPage /></PrivateRoute>} />
         <Route path="/admin/inventory" element={<PrivateRoute allowedRoles={["admin"]}><InventoryPage /></PrivateRoute>} />
+        <Route path="/admin/inventory/add" element={<PrivateRoute allowedRoles={["admin"]}><AddInventoryPage /></PrivateRoute>} />
         <Route path="/admin/menu/add" element={<PrivateRoute allowedRoles={["admin"]}><AddMenuPage /></PrivateRoute>} />
         <Route path="/cashier/login" element={<Navigate to="/login" replace />} />
         <Route path="/cart" element={<CartPage />} />

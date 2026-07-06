@@ -246,6 +246,19 @@ export const api = {
     return res.json();
   },
 
+  addInventory: async (itemData) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/inventory/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(itemData)
+    });
+    return res.json();
+  },
+
   reduceStock: async (orderId) => {
     const token = getToken();
     const res = await fetch(`${API_BASE}/inventory/reduce`, {
@@ -267,7 +280,16 @@ export const api = {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify({ stock: newStock }),
+      body: JSON.stringify(newStock),
+    });
+    return res.json();
+  },
+
+  deleteInventory: async (itemId) => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/inventory/${itemId}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
     });
     return res.json();
   },

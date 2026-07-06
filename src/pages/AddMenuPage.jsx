@@ -1,6 +1,7 @@
 import SettingsModal from "../components/SettingsModal";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
+import AdminHeader from "../components/admin/AdminHeader";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -166,33 +167,32 @@ const removeRecipeItem = (index) => {
       <div className="flex-1 flex flex-col min-w-0 md:ml-64">
         <MobileHeader title="Tambah Menu Baru" onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 overflow-auto">
-          {/* Header */}
-          <div className="hidden md:flex justify-between items-center px-8 py-4 bg-white border-b border-gray-200">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/admin/menu")}>
-              <ArrowLeft className="w-5 h-5 text-green-600" />
-              <span className="text-green-600 font-semibold">Kembali ke Daftar Menu</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                  <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
-                  <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
-                </div>
-                <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
-                  {currentUser?.profilePicture ? (
-                    <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
-                  )}
-                </div>
-            </div>
-          </div>
-
           <div className="p-4 md:p-8">
-            {/* Title */}
-            <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Tambah Menu Baru</h1>
-            <p className="text-gray-500 text-sm mt-1">Lengkapi informasi di bawah ini untuk menambahkan menu baru.</p>
-          </div>
+            <AdminHeader 
+              title="Tambah Menu Baru" 
+              subtitle="Lengkapi informasi di bawah ini untuk menambahkan menu baru."
+            >
+              <div className="flex items-center gap-4 hidden sm:flex">
+                <div className="flex items-center gap-2 cursor-pointer bg-green-50 text-green-700 px-4 py-2 rounded-lg font-semibold hover:bg-green-100 transition" onClick={() => navigate("/admin/menu")}>
+                  <ArrowLeft className="w-5 h-5" />
+                  <span>Kembali ke Daftar Menu</span>
+                </div>
+                <div className="w-px h-8 bg-gray-200"></div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-gray-900 text-sm font-semibold">{currentUser?.fullName || currentUser?.username || ""}</div>
+                    <div className="text-gray-500 text-xs font-medium">{currentUser?.role?.toUpperCase() || "ROLE"}</div>
+                  </div>
+                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200">
+                    {currentUser?.profilePicture ? (
+                      <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      (currentUser?.fullName || currentUser?.username || "U").charAt(0).toUpperCase()
+                    )}
+                  </div>
+                </div>
+              </div>
+            </AdminHeader>
 
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col lg:flex-row gap-8">

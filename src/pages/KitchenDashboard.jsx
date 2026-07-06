@@ -10,6 +10,18 @@ import {
 export default function KitchenDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("antrean");
+  const activeTabRef = useRef(activeTab);
+  const [hasNewNotif, setHasNewNotif] = useState(false);
+  const [showOrderOverlay, setShowOrderOverlay] = useState(false);
+  const lastOrderCountRef = useRef(0);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+    if (activeTab === "antrean") {
+      setHasNewNotif(false);
+    }
+  }, [activeTab]);
+
   const [currentTime, setCurrentTime] = useState("");
   const [nowTime, setNowTime] = useState(new Date());
   const [tickCount, setTickCount] = useState(0);
@@ -122,6 +134,31 @@ export default function KitchenDashboard() {
       setFoodCooking(makanan);
       setSnackCooking(snack);
       setDrinkCooking(minuman);
+
+      const currentPendingCount = newOrdersList.length;
+      if (currentPendingCount > lastOrderCountRef.current) {
+        if (activeTabRef.current !== "antrean") {
+          setHasNewNotif(true);
+        }
+        
+        toast("Ada Pesanan Baru!", {
+          icon: '🔔',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+          duration: 4000,
+        });
+        
+        try {
+          const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+          audio.play().catch(e => console.log("Audio play failed:", e));
+        } catch (error) {
+          console.log("Audio API blocked");
+        }
+      }
+      lastOrderCountRef.current = currentPendingCount;
 
       setCookingStartTimes(JSON.parse(localStorage.getItem("kitchenCookingStartTimes") || "{}"));
     } catch (error) {
@@ -443,11 +480,11 @@ export default function KitchenDashboard() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b shadow-sm px-4 md:px-5 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex justify-between items-center w-full md:w-auto">
+      <header className="bg-white border-b shadow-sm px-4 md:px-5 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex justify-between items-center w-full md:w-1/4">
           <div className="flex items-center gap-2">
             <ChefHat className="w-5 h-5 text-red-600" />
-            <span className="font-semibold text-sm">Kitchen Production - Live</span>
+            <span className="font-semibold text-sm whitespace-nowrap">Kitchen Production - Live</span>
             <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
           </div>
           <div className="flex items-center gap-3 md:hidden">
@@ -458,7 +495,7 @@ export default function KitchenDashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto hide-scrollbar pb-1 md:pb-0">
+        <div className="flex-1 flex justify-start md:justify-center w-full overflow-x-auto hide-scrollbar pb-1 md:pb-0">
           <div className="flex gap-1 min-w-max">
             <button onClick={() => setActiveTab("antrean")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "antrean" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Antrean</button>
             <button onClick={() => setActiveTab("stokmenu")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stokmenu" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Stok Menu</button>
@@ -466,14 +503,25 @@ export default function KitchenDashboard() {
             <button onClick={() => setActiveTab("stocklog")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stocklog" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Log Stok</button>
             <button onClick={() => setActiveTab("stats")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stats" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Statistik</button>
           </div>
+        </div>
           
-          <div className="hidden md:flex items-center gap-3">
-            <span className="text-sm font-medium">{currentTime}</span>
-            <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
-            <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors">
-              <LogOut className="w-4 h-4 text-red-600" />
-            </button>
+        <div className="hidden md:flex items-center justify-end gap-3 w-full md:w-1/4">
+          <span className="text-sm font-medium">{currentTime}</span>
+          <div className="relative">
+            <Bell 
+              className={`w-5 h-5 cursor-pointer transition-colors ${hasNewNotif ? 'text-red-500 animate-pulse' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => {
+                setShowOrderOverlay(true);
+                setHasNewNotif(false);
+              }}
+            />
+            {hasNewNotif && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+            )}
           </div>
+          <button onClick={handleLogout} className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors">
+            <LogOut className="w-4 h-4 text-red-600" />
+          </button>
         </div>
       </header>
 
@@ -878,6 +926,78 @@ export default function KitchenDashboard() {
             </div>
           )}
         </>
+      )}
+
+      {/* OVERLAY NOTIFIKASI PESANAN BARU */}
+      {showOrderOverlay && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-red-50">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-red-500" />
+                Pesanan Baru
+              </h2>
+              <button 
+                onClick={() => setShowOrderOverlay(false)}
+                className="text-gray-400 hover:text-gray-700 bg-white hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors text-xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+              {newOrders.length === 0 ? (
+                <div className="text-center py-10 text-gray-400 flex flex-col items-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                    <Check className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <p>Tidak ada pesanan baru saat ini</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {newOrders.map((order, idx) => (
+                    <div key={order.orderId || order._id || idx} className="bg-white border rounded-xl p-4 shadow-sm">
+                      <div className="flex justify-between items-center mb-3 border-b pb-2">
+                        <span className="font-bold text-lg text-gray-800">Meja {order.tableNumber}</span>
+                        <span className="text-sm font-medium text-gray-500">
+                          {new Date(order.createdAt || Date.now()).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {order.items?.map((item, itemIdx) => (
+                          <div key={itemIdx} className="flex justify-between items-start text-sm">
+                            <div className="flex gap-2">
+                              <span className="font-bold text-gray-700">{item.quantity}x</span>
+                              <span className="text-gray-800">{item.name}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t bg-white flex justify-end gap-3">
+              <button 
+                onClick={() => setShowOrderOverlay(false)}
+                className="px-6 py-2 rounded-xl font-bold transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200"
+              >
+                Tutup
+              </button>
+              <button 
+                onClick={() => {
+                  setShowOrderOverlay(false);
+                  setActiveTab("antrean");
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold transition-colors shadow-sm"
+              >
+                Lihat Antrean Dapur
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
