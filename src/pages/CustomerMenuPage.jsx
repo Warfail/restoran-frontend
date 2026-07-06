@@ -32,7 +32,7 @@ export default function CustomerMenuPage() {
       try {
         setLoading(true);
         
-        let url = `${API_URL}/menu/?page=${page}&limit=10&t=${Date.now()}`;
+        let url = `${API_URL}/menu/?page=1&limit=500&t=${Date.now()}`;
         if (selectedCategory !== "Semua") {
           url += `&category=${encodeURIComponent(selectedCategory)}`;
         }
