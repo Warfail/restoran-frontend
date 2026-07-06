@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Save, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast"; // ← TAMBAHKAN INI
 import { api } from "../services/api"; 
+import { compressImage } from "../utils/imageCompressor";
 
 export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -84,15 +85,17 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData(prev => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedBase64 = await compressImage(file);
+        setImagePreview(compressedBase64);
+        setFormData(prev => ({ ...prev, image: compressedBase64 }));
+      } catch (error) {
+        toast.error("Gagal memproses gambar");
+        console.error(error);
+      }
     }
   };
 
