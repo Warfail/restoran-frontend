@@ -32,12 +32,17 @@ export default function CustomerMenuPage() {
       try {
         setLoading(true);
         
-        let url = `${API_URL}/menu/?page=${page}&limit=10`;
+        let url = `${API_URL}/menu/?page=${page}&limit=10&t=${Date.now()}`;
         if (selectedCategory !== "Semua") {
           url += `&category=${encodeURIComponent(selectedCategory)}`;
         }
         
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -99,12 +104,20 @@ export default function CustomerMenuPage() {
     const existing = cart.find(cartItem => (cartItem._id || cartItem.menuId || cartItem.id) === itemId);
     
     if (existing) {
+      if (existing.quantity + 1 > (item.stock || 0)) {
+        toast.error(`Stok maksimal untuk ${item.name} adalah ${item.stock || 0}`);
+        return;
+      }
       setCart(cart.map(cartItem => 
         (cartItem._id || cartItem.menuId || cartItem.id) === itemId
           ? { ...cartItem, quantity: cartItem.quantity + 1, subtotal: (cartItem.quantity + 1) * cartItem.price }
           : cartItem
       ));
     } else {
+      if ((item.stock || 0) < 1) {
+        toast.error(`Stok ${item.name} habis`);
+        return;
+      }
       setCart([...cart, { 
         ...item, 
         quantity: 1, 
@@ -118,6 +131,10 @@ export default function CustomerMenuPage() {
     const item = cart.find(i => (i._id || i.menuId || i.id) === itemId);
     if (item) {
       const newQuantity = item.quantity + change;
+      if (change > 0 && newQuantity > (item.stock || 0)) {
+        toast.error(`Stok maksimal untuk ${item.name} adalah ${item.stock || 0}`);
+        return;
+      }
       if (newQuantity <= 0) {
         removeFromCart(itemId);
       } else {
