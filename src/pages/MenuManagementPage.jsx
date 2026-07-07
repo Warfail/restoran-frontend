@@ -85,10 +85,26 @@ export default function MenuManagementPage() {
     navigate("/login");
   };
 
+  const categoryOrder = { "makanan": 1, "minuman": 2, "snack": 3 };
+
   const filteredMenus = menus.filter(m => {
     const matchSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCategory = filterCategory === "all" || m.category?.toLowerCase() === filterCategory;
     return matchSearch && matchCategory;
+  }).sort((a, b) => {
+    const catA = (a.category || "").toLowerCase();
+    const catB = (b.category || "").toLowerCase();
+    
+    const orderA = categoryOrder[catA] || 99;
+    const orderB = categoryOrder[catB] || 99;
+    
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    
+    const nameA = (a.name || "").toLowerCase();
+    const nameB = (b.name || "").toLowerCase();
+    return nameA.localeCompare(nameB);
   });
 
 
