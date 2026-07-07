@@ -65,17 +65,25 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
       <CheckCircle className="w-8 h-8 text-green-600" />
     </div>
-    <h2 className="text-2xl font-bold text-gray-900 mb-2">📱 Cek WhatsApp Anda!</h2>
+    <h2 className="text-2xl font-bold text-gray-900 mb-2">✉️ Cek Email Anda!</h2>
     <p className="text-gray-500 mb-6">
-      Kami telah mengirimkan tautan reset kata sandi ke nomor WhatsApp yang terdaftar untuk akun <strong>{email}</strong>. 
-      Silakan periksa pesan masuk WhatsApp Anda.
+      Kami telah mengirimkan tautan reset kata sandi ke alamat email <strong>{email}</strong>. 
+      Silakan periksa kotak masuk atau folder spam Anda.
     </p>
-    <button 
-      onClick={handleClose}
-      className="w-full bg-red-600 text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition"
-    >
-      Kembali ke Login
-    </button>
+    <div className="flex gap-3 w-full mt-2">
+      <a 
+        href={`mailto:${email}`}
+        className="w-1/2 bg-white border-2 border-red-600 text-red-600 flex items-center justify-center font-semibold py-3 rounded-lg hover:bg-red-50 transition"
+      >
+        Buka Email
+      </a>
+      <button 
+        onClick={handleClose}
+        className="w-1/2 bg-red-600 text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition"
+      >
+        Tutup
+      </button>
+    </div>
   </div>
 ) : (
             <>

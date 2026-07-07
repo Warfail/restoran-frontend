@@ -13,6 +13,10 @@ export default function CustomerLoginPage() {
       alert("Masukkan nama Anda!");
       return;
     }
+    if (!/^[a-zA-Z\s]+$/.test(name)) {
+      alert("Nama hanya boleh berisi huruf dan spasi!");
+      return;
+    }
     if (!tableNumber.trim()) {
       alert("Masukkan nomor meja!");
       return;

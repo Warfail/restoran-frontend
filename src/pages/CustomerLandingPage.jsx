@@ -23,6 +23,10 @@ export default function CustomerLandingPage() {
       toast.error("Masukkan nama Anda terlebih dahulu");
       return;
     }
+    if (!/^[a-zA-Z\s]+$/.test(customerName)) {
+      toast.error("Nama hanya boleh berisi huruf dan spasi!");
+      return;
+    }
     // Simpan ke session/local storage
     sessionStorage.setItem("customerName", customerName);
     sessionStorage.setItem("orderType", orderType);
