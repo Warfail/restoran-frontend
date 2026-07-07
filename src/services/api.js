@@ -46,7 +46,7 @@ export const api = {
       console.log("✅ Using cached menu");
       return menuCache;
     }
-    
+
     const res = await fetch(`${API_BASE}/menu/?limit=500&t=${Date.now()}`, {
       headers: {
         'Cache-Control': 'no-cache',
@@ -55,17 +55,17 @@ export const api = {
     });
     const data = await res.json();
     console.log("Raw response:", data);
-    
+
     let menus = [];
     if (data && data.success && Array.isArray(data.data)) {
       menus = data.data;
     } else if (Array.isArray(data)) {
       menus = data;
     }
-    
+
     menuCache = menus;
     menuCacheTime = Date.now();
-    
+
     return menus;
   },
 
@@ -183,7 +183,7 @@ export const api = {
   getKitchenOrders: async () => {
     const token = getToken();
     const res = await fetch(`${API_BASE}/kitchen/orders`, {
-      headers: { 
+      headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       }
@@ -195,7 +195,7 @@ export const api = {
     const token = getToken();
     const res = await fetch(`${API_BASE}/kitchen/orders/${orderId}/status`, {
       method: "PUT",
-      headers: { 
+      headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       },
@@ -223,7 +223,7 @@ export const api = {
     menuCache = null;
     return res.json();
   },
-  
+
   updateMenu: async (menuId, menuData) => {
     const res = await fetch(`${API_BASE}/menu/${menuId}`, {
       method: "PUT",
@@ -281,7 +281,7 @@ export const api = {
     const token = getToken();
     const res = await fetch(`${API_BASE}/inventory/${itemId}`, {
       method: "PUT",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
@@ -312,7 +312,7 @@ export const api = {
     const token = getToken();
     const res = await fetch(`${API_BASE}/users/`, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
@@ -325,7 +325,7 @@ export const api = {
     const token = getToken();
     const res = await fetch(`${API_BASE}/users/${userId}`, {
       method: "PUT",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
@@ -355,16 +355,16 @@ export const api = {
     const menus = await api.getMenu();
     const ordersData = orders.data || orders;
     const menusData = menus.data || menus;
-    
+
     let validOrders = [];
     if (Array.isArray(ordersData)) {
-      validOrders = ordersData.filter(o => 
-        o.status === "completed" || 
-        o.payment_status === "paid" || 
+      validOrders = ordersData.filter(o =>
+        o.status === "completed" ||
+        o.payment_status === "paid" ||
         o.status === "paid"
       );
     }
-    
+
     return {
       totalSales: validOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
       totalOrders: validOrders.length,

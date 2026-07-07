@@ -11,9 +11,21 @@ export default function CustomerMenuPage() {
   const customerName = searchParams.get("name") || "Guest";
   const orderType = searchParams.get("type") || "Makan di Tempat";
   
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem("cart");
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (error) {
+      return [];
+    }
+  });
   const [showCart, setShowCart] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Sync cart to localStorage whenever it changes so state is never lost
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
   const [orderSummary, setOrderSummary] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
