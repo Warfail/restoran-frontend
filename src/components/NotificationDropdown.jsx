@@ -4,8 +4,15 @@ import { api } from "../services/api";
 
 export default function NotificationDropdown({ userRole }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const [hasUnread, setHasUnread] = useState(false);
+  
+  // Load read notification IDs from localStorage
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    const saved = localStorage.getItem("readNotifIds");
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -50,23 +57,24 @@ export default function NotificationDropdown({ userRole }) {
           }
         }
         
-        // Merge with existing notifications to keep read state, sorted by time
+        // Apply read state from localStorage
         setNotifications(prev => {
           const merged = [...newNotifs];
-          // Keep old notifications if they are not in newNotifs (for a realistic history, we'd fetch from backend, but this is a frontend mock for now)
+          
           prev.forEach(p => {
             if (!merged.find(m => m.id === p.id)) {
               merged.push(p);
-            } else {
-              const m = merged.find(m => m.id === p.id);
-              m.read = p.read;
             }
           });
           
-          // Sort by time descending
-          merged.sort((a, b) => b.time - a.time);
+          // Apply read status based on readNotifIds state
+          merged.forEach(m => {
+            if (readNotifIds.includes(m.id)) {
+              m.read = true;
+            }
+          });
           
-          // Limit to 10 notifications
+          merged.sort((a, b) => b.time - a.time);
           const limited = merged.slice(0, 10);
           
           setHasUnread(limited.some(n => !n.read));
@@ -82,7 +90,7 @@ export default function NotificationDropdown({ userRole }) {
     const intervalId = setInterval(fetchNotifications, 10000);
     
     return () => clearInterval(intervalId);
-  }, [userRole]);
+  }, [userRole, readNotifIds]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -95,6 +103,11 @@ export default function NotificationDropdown({ userRole }) {
   }, []);
 
   const markAllAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    const newReadIds = [...new Set([...readNotifIds, ...allIds])];
+    setReadNotifIds(newReadIds);
+    localStorage.setItem("readNotifIds", JSON.stringify(newReadIds));
+    
     setNotifications(notifications.map(n => ({ ...n, read: true })));
     setHasUnread(false);
   };
@@ -146,8 +159,14 @@ export default function NotificationDropdown({ userRole }) {
                     key={notif.id} 
                     className={`p-4 flex gap-3 transition-colors ${notif.read ? 'bg-white opacity-70' : 'bg-blue-50/30'}`}
                     onClick={() => {
-                      setNotifications(notifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
-                      setHasUnread(notifications.some(n => n.id !== notif.id && !n.read));
+                      if (!notif.read) {
+                        const newReadIds = [...readNotifIds, notif.id];
+                        setReadNotifIds(newReadIds);
+                        localStorage.setItem("readNotifIds", JSON.stringify(newReadIds));
+                        
+                        setNotifications(notifications.map(n => n.id === notif.id ? { ...n, read: true } : n));
+                        setHasUnread(notifications.some(n => n.id !== notif.id && !n.read));
+                      }
                     }}
                   >
                     <div className="mt-0.5">

@@ -47,20 +47,22 @@ export default function InventoryPage() {
 
   useEffect(() => {
     fetchInventory();
-    const interval = setInterval(fetchInventory, 30000);
+    const interval = setInterval(() => {
+      fetchInventory(false);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await api.getInventory();
       const inventoryData = response.data || response;
       setInventory(Array.isArray(inventoryData) ? inventoryData : []);
     } catch (error) {
       console.error("Failed to fetch inventory:", error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 

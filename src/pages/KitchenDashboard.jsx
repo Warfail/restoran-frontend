@@ -261,7 +261,11 @@ export default function KitchenDashboard() {
       setTickCount(t => t + 1);
     }, 1000);
 
-    const interval = setInterval(() => fetchOrders(), 10000);
+    const interval = setInterval(() => {
+      fetchOrders();
+      fetchInventory();
+      fetchMenus();
+    }, 10000);
     
     return () => {
       clearInterval(timer);
@@ -385,26 +389,40 @@ export default function KitchenDashboard() {
 
   const handleUpdateStock = async (id) => {
     const newStock = counters[id] || 0;
+    
+    // 🔥 Optimistic Update
+    setInventory(prev => prev.map(i => (i._id === id || i.id === id) ? { ...i, stock: newStock } : i));
+    setCounters(prev => ({ ...prev, [id]: 0 }));
+    
     try {
       await api.updateStock(id, newStock);
-      await fetchInventory();
-      setCounters(prev => ({ ...prev, [id]: 0 }));
+      // Fetch di background tanpa loading spinner
+      fetchInventory();
       toast.success("Stok berhasil diupdate!");
     } catch (error) {
       console.error("Failed to update stock:", error);
       toast.error("Gagal update stok");
+      // Revert if failed
+      fetchInventory();
     }
   };
 
   const toggleMenuAvailability = async (id, currentStatus) => {
+    const newStatus = !currentStatus;
+    
+    // 🔥 Optimistic Update (Berubah seketika di layar)
+    setMenuList(prev => prev.map(m => (m._id === id || m.id === id) ? { ...m, isAvailable: newStatus } : m));
+    
     try {
-      const newStatus = !currentStatus;
       await api.updateMenu(id, { isAvailable: newStatus });
       toast.success(newStatus ? "Menu diaktifkan" : "Menu dinonaktifkan");
-      await fetchMenus();
+      // Fetch di background
+      fetchMenus();
     } catch (error) {
       console.error("Failed to update menu:", error);
       toast.error("Gagal update status menu");
+      // Revert if failed
+      setMenuList(prev => prev.map(m => (m._id === id || m.id === id) ? { ...m, isAvailable: currentStatus } : m));
     }
   };
 
@@ -627,7 +645,7 @@ export default function KitchenDashboard() {
                                 </label>
                               ))}
                             </div>
-                            <button onClick={() => completeSection(order, "makanan")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai Makanan</button>
+                            <button onClick={() => completeSection(order, "makanan")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai</button>
                           </div>
                         );
                       })}
@@ -665,7 +683,7 @@ export default function KitchenDashboard() {
                                 </label>
                               ))}
                             </div>
-                            <button onClick={() => completeSection(order, "snack")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai Snack</button>
+                            <button onClick={() => completeSection(order, "snack")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai</button>
                           </div>
                         );
                       })}
@@ -703,7 +721,7 @@ export default function KitchenDashboard() {
                                 </label>
                               ))}
                             </div>
-                            <button onClick={() => completeSection(order, "minuman")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai Minuman</button>
+                            <button onClick={() => completeSection(order, "minuman")} className="w-full bg-green-500 hover:bg-green-600 text-white py-1.5 rounded-lg text-sm font-medium transition mt-1">Selesai</button>
                           </div>
                         );
                       })}

@@ -39,18 +39,22 @@ export default function MenuManagementPage() {
 
   useEffect(() => {
     fetchMenus();
+    const intervalId = setInterval(() => {
+      fetchMenus(false);
+    }, 10000);
+    return () => clearInterval(intervalId);
   }, []);
 
-  const fetchMenus = async () => {
+  const fetchMenus = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await api.getMenu();
       const menusData = response.data || response;
       setMenus(Array.isArray(menusData) ? menusData : []);
     } catch (error) {
       console.error("Failed to fetch menus:", error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
