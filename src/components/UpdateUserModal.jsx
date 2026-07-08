@@ -9,6 +9,7 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
     role: user?.role || "",
     branch: user?.branch || "",
     password: "",
+    isActive: user?.isActive !== false,
   });
   const [loading, setLoading] = useState(false);
 
@@ -35,17 +36,17 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         {/* Header */}
-        <div className="px-8 pt-8 pb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-1">Ubah Data & Peran Karyawan</h2>
-          <p className="text-gray-500 text-sm">Pastikan perubahan telah sesuai dengan kebijakan operasional cabang.</p>
+        <div className="px-6 pt-6 pb-4">
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Ubah Data Karyawan</h2>
+          <p className="text-gray-500 text-xs">Pastikan perubahan telah sesuai dengan kebijakan.</p>
         </div>
 
         <div className="h-px bg-gray-200" />
 
         {/* Content */}
-        <div className="px-8 py-6">
+        <div className="px-6 py-5">
           {/* User Info Card */}
           <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 mb-6">
             <div className="flex items-center gap-3">
@@ -135,18 +136,37 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
           </div>
 
           {/* Password */}
-          <div className="mb-6">
-            <label className="text-gray-700 text-xs font-medium mb-2 block">Ubah Kata Sandi (Kosongkan jika tidak ingin diubah)</label>
+          <div className="mb-4">
+            <label className="text-gray-700 text-xs font-medium mb-1 block">Ubah Kata Sandi (Kosongkan jika tidak)</label>
             <div className="relative">
               <input
                 type="text"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Masukkan kata sandi baru"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Kata sandi baru"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <Shield className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Status Akun */}
+          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 mb-4 border border-gray-200">
+            <div>
+              <div className="text-gray-900 text-sm font-medium">Status Akun</div>
+              <div className="text-gray-400 text-xs">Akses login ke sistem</div>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={`relative w-10 h-5 rounded-full cursor-pointer transition-colors ${formData.isActive ? 'bg-green-600' : 'bg-gray-300'}`}
+                onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+              >
+                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${formData.isActive ? 'right-0.5' : 'left-0.5'}`}></div>
+              </div>
+              <span className={`text-[10px] font-semibold tracking-wide ${formData.isActive ? 'text-green-600' : 'text-gray-400'}`}>
+                {formData.isActive ? 'AKTIF' : 'NONAKTIF'}
+              </span>
             </div>
           </div>
 
@@ -162,16 +182,16 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
         <div className="h-px bg-gray-200" />
 
         {/* Buttons */}
-        <div className="flex justify-end gap-4 px-8 py-5">
-          <button onClick={onClose} className="text-green-600 text-sm font-semibold hover:bg-gray-100 px-3 py-1.5 rounded-lg transition">
+        <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+          <button onClick={onClose} className="text-gray-600 text-sm font-semibold hover:bg-gray-200 px-4 py-2 rounded-lg transition border border-gray-300 bg-white">
             Batal
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-6 py-2 rounded-lg transition disabled:opacity-50"
+            className="bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50"
           >
-            {loading ? "Menyimpan..." : "Simpan Perubahan"}
+            {loading ? "Menyimpan..." : "Simpan"}
           </button>
         </div>
       </div>

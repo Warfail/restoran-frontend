@@ -377,7 +377,7 @@ export default function CustomerMenuPage() {
       {cart.length > 0 && !showCart && (
         <div className="fixed bottom-0 left-0 right-0 p-4 z-40 bg-gradient-to-t from-white via-white/80 to-transparent pt-12 pb-6 pointer-events-none">
           <div 
-            onClick={() => setShowCart(true)}
+            onClick={handleCheckout}
             className="max-w-md mx-auto bg-red-600 rounded-2xl shadow-lg p-3 flex items-center justify-between cursor-pointer hover:bg-red-700 transition active:scale-[0.98] pointer-events-auto"
           >
             <div className="flex items-center gap-3">

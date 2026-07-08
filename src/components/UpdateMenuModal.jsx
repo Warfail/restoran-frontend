@@ -106,6 +106,8 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
     try {
       const updateData = {
         ...formData,
+        price: Number(formData.price),
+        stock: Number(formData.stock),
         recipe: formData.recipe || []
       };
       await onUpdate(menu.menuId || menu._id, updateData);

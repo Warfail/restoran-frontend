@@ -11,7 +11,7 @@ import RecentOrdersTable from "../components/admin/RecentOrdersTable";
 import Footer from "../components/admin/Footer";
 import SettingsModal from "../components/SettingsModal";
 import NotificationDropdown from "../components/NotificationDropdown";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
 
 export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -39,6 +39,8 @@ export default function AdminDashboard() {
   });
   const [topMenus, setTopMenus] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -207,7 +209,18 @@ export default function AdminDashboard() {
     }
   ];
 
+  const handleViewOrder = (order) => {
+    setSelectedOrder(order);
+    setShowOrderDetailsModal(true);
+  };
 
+  const getStatusBadge = (status) => {
+    if (status === 'paid' || status === 'completed') return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">SELESAI</span>;
+    if (status === 'cooking') return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">DIMASAK</span>;
+    if (status === 'processing') return <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">DIPROSES</span>;
+    if (status === 'cancelled') return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">BATAL</span>;
+    return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">MENUNGGU</span>;
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
@@ -267,12 +280,95 @@ export default function AdminDashboard() {
               <BottomMenuList menus={[]} />
             </div>
 
-            <RecentOrdersTable orders={recentOrders} />
+            <RecentOrdersTable orders={recentOrders} onViewDetail={handleViewOrder} />
             <Footer />
           </>
         )}
       </main>
       </div>
+
+      {showOrderDetailsModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-900">Detail Pesanan</h2>
+              <button onClick={() => setShowOrderDetailsModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <div className="text-sm text-gray-500 font-bold mb-1">ID Pesanan</div>
+                  <div className="font-mono font-black text-lg text-gray-900">{selectedOrder.orderId}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500 font-bold mb-1">Status</div>
+                  <div>{getStatusBadge(selectedOrder.status)}</div>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Pelanggan</div>
+                    <div className="font-bold text-gray-900">{selectedOrder.customerName || selectedOrder.customer?.name || "Guest"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Meja</div>
+                    <div className="font-bold text-gray-900">{selectedOrder.tableNumber}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Tipe</div>
+                    <div className="font-bold text-gray-900">{selectedOrder.orderType || "Dine In"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">Waktu</div>
+                    <div className="font-bold text-gray-900">
+                      {new Date(selectedOrder.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <h3 className="font-bold text-gray-900 mb-3 border-b pb-2">Daftar Menu</h3>
+              <div className="space-y-3 mb-6">
+                {(selectedOrder.items || selectedOrder.orderItems || []).map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center font-bold text-gray-700">{item.quantity}x</div>
+                      <div>
+                        <div className="font-bold text-gray-900">{item.menuName || item.name}</div>
+                        {item.notes && <div className="text-xs text-gray-500 italic">Catatan: {item.notes}</div>}
+                      </div>
+                    </div>
+                    <div className="font-bold text-gray-900">
+                      Rp {(item.price * item.quantity).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="border-t border-gray-200 pt-4 mt-auto">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-gray-600 text-lg">Total Pembayaran</span>
+                  <span className="font-black text-green-700 text-2xl">Rp {(selectedOrder.totalAmount || selectedOrder.grandTotal || selectedOrder.total || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-gray-200 bg-gray-50 flex gap-3 justify-end">
+              <button 
+                onClick={() => setShowOrderDetailsModal(false)}
+                className="px-6 py-2.5 rounded-lg border border-gray-300 font-bold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
     </div>
