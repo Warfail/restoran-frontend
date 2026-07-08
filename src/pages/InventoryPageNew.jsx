@@ -33,7 +33,7 @@ export default function InventoryPageNew() {
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      const response = await api.getInventory();
+      const response = await api.getInventory(true);
       const data = response.data || response;
       setInventory(Array.isArray(data) ? data : []);
     } catch (error) {

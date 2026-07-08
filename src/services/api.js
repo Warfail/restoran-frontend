@@ -244,9 +244,10 @@ export const api = {
   },
 
   // ========== ADMIN - INVENTORY ==========
-  getInventory: async () => {
+  getInventory: async (skipCache = false) => {
     const token = getToken();
-    const res = await fetch(`${API_BASE}/inventory/`, {
+    const url = skipCache ? `${API_BASE}/inventory/?_t=${Date.now()}` : `${API_BASE}/inventory/`;
+    const res = await fetch(url, {
       headers: { "Authorization": `Bearer ${token}` }
     });
     return res.json();

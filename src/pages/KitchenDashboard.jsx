@@ -177,7 +177,7 @@ export default function KitchenDashboard() {
 
   const fetchInventory = async () => {
     try {
-      const response = await api.getInventory();
+      const response = await api.getInventory(true); // skip cache
       const inventoryData = response?.data || response || [];
       setInventory(Array.isArray(inventoryData) ? inventoryData : []);
     } catch (error) {

@@ -56,7 +56,7 @@ export default function InventoryPage() {
   const fetchInventory = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const response = await api.getInventory();
+      const response = await api.getInventory(true);
       const inventoryData = response.data || response;
       setInventory(Array.isArray(inventoryData) ? inventoryData : []);
     } catch (error) {
