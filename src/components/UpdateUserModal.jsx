@@ -48,89 +48,88 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
         {/* Content */}
         <div className="px-6 py-5">
           {/* User Info Card */}
-          <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 mb-6">
+          <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4">
             <div className="flex items-center gap-3">
               <img
                 src={user.avatar || "https://placehold.co/48x48/7c9e7a/7c9e7a"}
                 alt={user.name}
-                className="w-12 h-12 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-cover"
               />
               <div>
-                <div className="text-gray-900 font-bold text-base">{user.name}</div>
-                <div className="text-green-600 font-semibold text-sm">{user.id}</div>
+                <div className="text-gray-900 font-bold text-sm">{user.name}</div>
+                <div className="text-green-600 font-semibold text-xs">{user.id}</div>
               </div>
             </div>
-            <div className="bg-amber-100 text-amber-800 text-xs font-medium px-3 py-1.5 rounded-full">
+            <div className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full">
               {user.status}
             </div>
           </div>
 
-          <div className="space-y-4 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="text-gray-700 text-xs font-medium mb-1.5 block">Nama Lengkap</label>
+              <label className="text-gray-700 text-xs font-medium mb-1 block">Nama Lengkap</label>
               <input
                 type="text"
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleChange}
                 placeholder="Masukkan nama lengkap"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
             <div>
-              <label className="text-gray-700 text-xs font-medium mb-1.5 block">Username</label>
+              <label className="text-gray-700 text-xs font-medium mb-1 block">Username</label>
               <input
                 type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
                 placeholder="Masukkan username"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-            <div>
-              <label className="text-gray-700 text-xs font-medium mb-1.5 block">Email</label>
+            <div className="col-span-2">
+              <label className="text-gray-700 text-xs font-medium mb-1 block">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="contoh@d9.com"
-                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
           </div>
 
-          {/* Role & Branch */}
-          <div className="flex gap-4 mb-6">
+          <div className="flex gap-3 mb-4">
             <div className="flex-1">
-              <label className="text-gray-700 text-xs font-medium mb-2 block">Peran Saat Ini</label>
+              <label className="text-gray-700 text-xs font-medium mb-1 block">Peran</label>
               <div className="relative">
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-xs bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Pilih Peran</option>
                   <option value="Kasir">Kasir</option>
                   <option value="Admin">Admin</option>
                   <option value="Kitchen">Kitchen</option>
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
               </div>
             </div>
             <div className="flex-1">
-              <label className="text-gray-700 text-xs font-medium mb-2 block">Lokasi Cabang</label>
+              <label className="text-gray-700 text-xs font-medium mb-1 block">Cabang</label>
               <div className="relative">
                 <input
                   type="text"
                   name="branch"
                   value={formData.branch}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
-                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -145,9 +144,9 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Kata sandi baru"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
-              <Shield className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              <Shield className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
             </div>
           </div>
 
@@ -171,9 +170,9 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
           </div>
 
           {/* Warning Info */}
-          <div className="flex gap-2.5 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6">
-            <Info className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-red-600 text-xs">
+          <div className="flex gap-2.5 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">
+            <Info className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-red-600 text-[10px] leading-tight">
               Perubahan peran akan langsung mempengaruhi hak akses sistem aplikasi di perangkat kasir cabang terpilih.
             </p>
           </div>
