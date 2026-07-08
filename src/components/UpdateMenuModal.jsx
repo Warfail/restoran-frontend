@@ -10,6 +10,7 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
     category: "",
     price: 0,
     stock: 0,
+    description: "",
     image: "",
     isAvailable: true,
     recipe: [] 
@@ -70,6 +71,7 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
         category: menu.category || "",
         price: menu.price || 0,
         stock: menu.stock || 0,
+        description: menu.description || "",
         image: menu.image || "",
         isAvailable: menu.isAvailable !== false,
         recipe: menu.recipe || [] // ← TAMBAHKAN INI
@@ -238,6 +240,18 @@ export default function UpdateMenuModal({ menu, isOpen, onClose, onUpdate }) {
     ))}
   </div>
 </div>
+
+          <div>
+            <label className="text-gray-700 text-sm font-medium mb-1 block">Deskripsi</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Jelaskan detail menu..."
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
 
           <div>
             <label className="text-gray-700 text-sm font-medium mb-1 block">Foto Menu (Opsional)</label>

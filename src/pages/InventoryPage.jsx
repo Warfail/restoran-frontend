@@ -2,6 +2,7 @@ import SettingsModal from "../components/SettingsModal";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
 import AdminHeader from "../components/admin/AdminHeader";
+import NotificationDropdown from "../components/NotificationDropdown";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +11,7 @@ import {
   Search, Plus, Pencil, Trash, X, AlertTriangle,
   LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut, Bell, HelpCircle
 } from "lucide-react";
+import UpdateInventoryModal from "../components/UpdateInventoryModal";
 
 export default function InventoryPage() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -62,16 +64,16 @@ export default function InventoryPage() {
     }
   };
 
-  const updateStock = async (itemId, newStock) => {
+  const updateStock = async (itemId, updateData) => {
     try {
-      await api.updateStock(itemId, { stock: parseInt(newStock) });
+      await api.updateStock(itemId, updateData);
       await fetchInventory();
-      toast.success("Stok berhasil diupdate!");
+      toast.success("Bahan berhasil diupdate!");
       setIsEditModalOpen(false);
       setEditingItem(null);
     } catch (error) {
       console.error("Failed to update stock:", error);
-      toast.error("Gagal update stok");
+      toast.error("Gagal update bahan");
     }
   };
 
@@ -164,12 +166,9 @@ export default function InventoryPage() {
         ) : (
           <>
             <div className="p-4 md:p-7">
-              <AdminHeader 
-                title="Manajemen Stok"
-                subtitle="Pantau dan kelola stok menu di sistem"
-              >
+              <AdminHeader title="Stok Bahan Baku">
                 <div className="flex items-center gap-4 hidden sm:flex">
-                  <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                  <NotificationDropdown userRole="admin" />
                   <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
                   <div className="flex items-center gap-3 ml-2 border-l pl-4 border-gray-200">
                     <div className="text-right">
@@ -262,7 +261,6 @@ export default function InventoryPage() {
                             <button 
                               onClick={() => {
                                 setEditingItem(item);
-                                setEditStock(item.stock.toString());
                                 setIsEditModalOpen(true);
                               }}
                               className="p-2 border rounded-md hover:bg-gray-50 text-blue-600 border-blue-200 hover:border-blue-300 transition"
@@ -299,41 +297,12 @@ export default function InventoryPage() {
       </div>
 
       {/* Edit Modal Overlay */}
-      {isEditModalOpen && editingItem && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h2 className="text-xl font-bold text-gray-800">Edit Stok Bahan</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-5">
-              <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-1">Nama Bahan</p>
-                <p className="font-semibold text-gray-900">{editingItem.name}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Stok</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={editStock}
-                    onChange={(e) => setEditStock(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    autoFocus
-                  />
-                  <span className="text-gray-500 font-medium px-3 bg-gray-100 border border-gray-300 py-2 rounded-lg">{editingItem.unit || "unit"}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50">
-              <button onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Batal</button>
-              <button onClick={() => updateStock(editingItem._id || editingItem.id, editStock)} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition">Simpan Perubahan</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <UpdateInventoryModal 
+        item={editingItem} 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+        onUpdate={updateStock} 
+      />
 
       {/* Delete Modal Overlay */}
       {isDeleteModalOpen && deletingItem && (

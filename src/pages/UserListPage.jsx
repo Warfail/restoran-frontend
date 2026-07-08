@@ -1,6 +1,7 @@
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
 import UpdateUserModal from "../components/UpdateUserModal";
+import DeleteModal from "../components/DeleteModal";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, 
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { api } from "../services/api";
 import SettingsModal from "../components/SettingsModal";
+import NotificationDropdown from "../components/NotificationDropdown";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
 import AdminHeader from "../components/admin/AdminHeader";
@@ -49,6 +51,8 @@ export default function UserListPage() {
   const [sortBy, setSortBy] = useState("name");
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,16 +96,22 @@ export default function UserListPage() {
     }
   };
 
-  const handleDeleteUser = async (userId, username) => {
-    if (confirm(`Hapus user "${username}"?`)) {
-      try {
-        await api.deleteUser(userId);
-        toast.success("User berhasil dihapus!");
-        fetchUsers();
-      } catch (error) {
-        console.error("Failed to delete user:", error);
-        toast.error("Gagal menghapus user");
-      }
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      await api.deleteUser(userToDelete._id || userToDelete.id);
+      toast.success("User berhasil dihapus!");
+      fetchUsers();
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      toast.error("Gagal menghapus user");
     }
   };
 
@@ -204,7 +214,7 @@ export default function UserListPage() {
                 title="Manajemen Pengguna"
               >
                 <div className="flex items-center gap-4 hidden sm:flex">
-                  <div className="w-9 h-9 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer"><Bell className="w-4 h-4 text-gray-500" /></div>
+                  <NotificationDropdown userRole="admin" />
                   <div className="w-9 h-9 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center cursor-pointer"><HelpCircle className="w-4 h-4 text-gray-500" /></div>
                   <div className="w-px h-8 bg-gray-200"></div>
                   <div className="flex items-center gap-3">
@@ -327,7 +337,7 @@ export default function UserListPage() {
                                 <button onClick={() => openUpdateModal(user)} className="text-gray-400 hover:text-gray-600">
                                   <Pencil className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => handleDeleteUser(user._id, user.username)} className="text-gray-400 hover:text-red-500">
+                                <button onClick={() => handleDeleteClick(user)} className="text-gray-400 hover:text-red-500">
                                   <Trash className="w-4 h-4" />
                                 </button>
                               </div>
@@ -382,17 +392,12 @@ export default function UserListPage() {
               </div>
 
               {/* Bottom Cards - Tetap seperti sebelumnya */}
-              <div className="grid grid-cols-2 gap-5 mt-6">
+              <div className="grid grid-cols-1 gap-5 mt-6">
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center gap-2 mb-2"><Shield className="w-5 h-5 text-green-700" /><h3 className="text-gray-900 font-bold">Keamanan & Akses</h3></div>
                   <p className="text-gray-500 text-sm mb-4">Atur kebijakan kata sandi dan pembatasan IP untuk menjaga integritas data sistem Singkong Keju D9.</p>
                   <div className="space-y-2 mb-4"><div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div><span className="text-gray-600 text-sm">Otentikasi Dua Faktor (2FA) diaktifkan</span></div><div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div><span className="text-gray-600 text-sm">Kedaluwarsa sesi: 8 Jam</span></div></div>
                   <button className="text-green-700 text-sm font-semibold flex items-center gap-1">Konfigurasi Keamanan <ArrowRight className="w-3.5 h-3.5" /></button>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <div className="flex items-center gap-2 mb-2"><History className="w-5 h-5 text-amber-600" /><h3 className="text-gray-900 font-bold">Log Aktivitas Terbaru</h3></div>
-                  <div className="space-y-3 mb-4"><div className="flex gap-2"><div className="w-2 h-2 rounded-full bg-green-600 mt-1.5"></div><div><span className="text-gray-800 text-sm font-medium">System</span><span className="text-gray-500 text-sm"> Total {users.length} user terdaftar</span><div className="text-gray-400 text-xs mt-0.5">Sistem</div></div></div></div>
-                  <button className="text-amber-600 text-sm font-semibold flex items-center gap-1">Lihat Semua Log <ArrowRight className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             </div>
@@ -406,6 +411,16 @@ export default function UserListPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onUpdate={handleUpdateUser}
+      />
+
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setUserToDelete(null);
+        }}
+        onConfirm={confirmDeleteUser}
+        itemName={userToDelete?.username}
       />
     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />

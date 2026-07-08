@@ -40,6 +40,7 @@ export default function KitchenDashboard() {
   const menuListRef = useRef([]); // 🔥 FIX UNTUK POLLING INTERVAL
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("Semua");
   const [cookingStartTimes, setCookingStartTimes] = useState({});
 
   // 🔥 STATE UNTUK STATISTIK
@@ -426,9 +427,20 @@ export default function KitchenDashboard() {
     habis: inventory.filter(i => i.stock === 0).length,
   };
 
-  const filteredInventory = inventory.filter(item =>
-    item.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredInventory = inventory.filter(item => {
+    const matchSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    let matchStatus = true;
+    if (statusFilter !== "Semua") {
+      const stock = item.stock || 0;
+      if (statusFilter === "Habis") matchStatus = stock === 0;
+      else if (statusFilter === "Kritis") matchStatus = stock > 0 && stock <= 5;
+      else if (statusFilter === "Menipis") matchStatus = stock > 5 && stock <= 10;
+      else if (statusFilter === "Aman") matchStatus = stock > 10;
+    }
+    
+    return matchSearch && matchStatus;
+  });
 
   const filteredMenuList = menuList.filter(item => {
     const matchSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -710,9 +722,22 @@ export default function KitchenDashboard() {
                 <div className="bg-white rounded-xl p-5 shadow-sm border"><div className="text-gray-500 text-xs font-semibold uppercase">STOK MENIPIS</div><div className="text-orange-500 text-4xl font-bold">{stats.menipis}</div></div>
                 <div className="bg-white rounded-xl p-5 shadow-sm border"><div className="text-gray-500 text-xs font-semibold uppercase">STOK HABIS</div><div className="text-red-500 text-4xl font-bold">{stats.habis}</div></div>
               </div>
-              <div className="relative w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="text" placeholder="Cari bahan..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1 w-full sm:max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Cari bahan..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
+                <select 
+                  value={statusFilter} 
+                  onChange={(e) => setStatusFilter(e.target.value)} 
+                  className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none w-full sm:w-48 shadow-sm"
+                >
+                  <option value="Semua">Semua Status</option>
+                  <option value="Aman">Aman</option>
+                  <option value="Menipis">Menipis</option>
+                  <option value="Kritis">Kritis</option>
+                  <option value="Habis">Habis</option>
+                </select>
               </div>
               <div className="space-y-2">
                 {filteredInventory.map(item => {

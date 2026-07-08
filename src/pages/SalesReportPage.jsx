@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import SettingsModal from "../components/SettingsModal";
+import NotificationDropdown from "../components/NotificationDropdown";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
 import AdminHeader from "../components/admin/AdminHeader";
@@ -343,7 +344,7 @@ export default function SalesReportPage() {
           <div id="laporan-content" className="px-4 py-5 md:px-7 md:py-5 space-y-5 bg-gray-50">
             <AdminHeader title="Laporan Penjualan">
               <div className="flex items-center gap-4 hidden sm:flex">
-                <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                <NotificationDropdown userRole="admin" />
                 <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
                 <div className="flex items-center gap-2.5 ml-2 border-l pl-4 border-gray-200">
                   <div className="text-right">

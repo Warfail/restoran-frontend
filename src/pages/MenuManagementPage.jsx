@@ -1,4 +1,5 @@
 import SettingsModal from "../components/SettingsModal";
+import NotificationDropdown from "../components/NotificationDropdown";
 import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
 import AdminHeader from "../components/admin/AdminHeader";
@@ -7,6 +8,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import UpdateMenuModal from "../components/UpdateMenuModal";
+import DeleteModal from "../components/DeleteModal";
 import {
   Search, Plus, Pencil, Trash, ChevronLeft, ChevronRight,
   LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut, Bell, HelpCircle
@@ -31,6 +33,8 @@ export default function MenuManagementPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [selectedMenu, setSelectedMenu] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [menuToDelete, setMenuToDelete] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "" });
 
   useEffect(() => {
@@ -67,13 +71,20 @@ export default function MenuManagementPage() {
     }
   };
 
-  const deleteMenu = async (menuId, menuName) => {
-    if (!confirm(`Hapus ${menuName}?`)) return;
+  const handleDeleteClick = (menu) => {
+    setMenuToDelete(menu);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteMenu = async () => {
+    if (!menuToDelete) return;
     try {
-      await api.deleteMenu(menuId);
+      await api.deleteMenu(menuToDelete._id || menuToDelete.menuId);
       await fetchMenus();
-      setToast({ show: true, message: `${menuName} dihapus` });
+      setToast({ show: true, message: `${menuToDelete.name} dihapus` });
       setTimeout(() => setToast({ show: false, message: "" }), 3000);
+      setIsDeleteModalOpen(false);
+      setMenuToDelete(null);
     } catch (error) {
       console.error("Delete failed:", error);
     }
@@ -143,7 +154,7 @@ export default function MenuManagementPage() {
           <>
             <AdminHeader title="Daftar Menu Cafe">
               <div className="flex items-center gap-4 hidden sm:flex">
-                <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                <NotificationDropdown userRole="admin" />
                 <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
                 <div className="flex items-center gap-3 ml-2 border-l pl-4 border-gray-200">
                   <div className="text-right">
@@ -243,7 +254,7 @@ export default function MenuManagementPage() {
                           <button onClick={() => openUpdateModal(menu)} className="p-2 border rounded-md hover:bg-gray-50">
                             <Pencil className="w-4 h-4 text-gray-500" />
                           </button>
-                          <button onClick={() => deleteMenu(menu._id, menu.name)} className="p-2 border rounded-md hover:bg-red-50">
+                          <button onClick={() => handleDeleteClick(menu)} className="p-2 border rounded-md hover:bg-red-50">
                             <Trash className="w-4 h-4 text-gray-500" />
                           </button>
                         </div>
@@ -268,7 +279,17 @@ export default function MenuManagementPage() {
         onClose={() => setIsModalOpen(false)}
         onUpdate={handleUpdateMenu}
       />
-    
+
+      {/* MODAL DELETE */}
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setMenuToDelete(null);
+        }}
+        onConfirm={confirmDeleteMenu}
+        itemName={menuToDelete?.name}
+      />
     </div>
   );
 }

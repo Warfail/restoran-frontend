@@ -10,7 +10,8 @@ import BottomMenuList from "../components/admin/BottomMenuList";
 import RecentOrdersTable from "../components/admin/RecentOrdersTable";
 import Footer from "../components/admin/Footer";
 import SettingsModal from "../components/SettingsModal";
-import { Bell, HelpCircle } from "lucide-react";
+import NotificationDropdown from "../components/NotificationDropdown";
+import { HelpCircle } from "lucide-react";
 
 export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -237,7 +238,7 @@ export default function AdminDashboard() {
                 subtitle={`Selamat datang, ${currentUser?.fullName || currentUser?.username || "Admin"}`}
               >
                 <div className="flex items-center gap-4 hidden sm:flex">
-                  <Bell className="w-5 h-5 text-gray-500 cursor-pointer" />
+                  <NotificationDropdown userRole="admin" />
                   <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
                   <div className="flex items-center gap-3 ml-2 border-l pl-4 border-gray-200">
                     <div className="text-right">

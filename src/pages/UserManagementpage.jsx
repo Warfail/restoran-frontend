@@ -6,6 +6,7 @@ import AdminHeader from "../components/admin/AdminHeader";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
+import NotificationDropdown from "../components/NotificationDropdown";
 import { 
   ArrowLeft, 
   User, 
@@ -105,10 +106,7 @@ export default function UserManagementPage() {
                 <span>Kembali</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer relative">
-                  <Bell className="w-4.5 h-4.5 text-gray-600" />
-                  <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></div>
-                </div>
+                <NotificationDropdown userRole="admin" />
                 <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer">
                   <HelpCircle className="w-4.5 h-4.5 text-gray-600" />
                 </div>

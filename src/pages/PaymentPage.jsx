@@ -7,7 +7,8 @@ import { api } from "../services/api";
 export default function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { orderId, totalAmount, customerName, tableNumber, items } = location.state || {};
+  const { orderId: initialOrderId, totalAmount, customerName, tableNumber, items, orderType } = location.state || {};
+  const [orderId, setOrderId] = useState(initialOrderId);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 59);
   const [showInstructionModal, setShowInstructionModal] = useState(false);
@@ -67,17 +68,49 @@ export default function PaymentPage() {
 
     setLoading(true);
     try {
+      let currentOrderId = orderId;
+      
+      // CREATE ORDER IF IT DOESN'T EXIST YET
+      if (!currentOrderId) {
+        const orderData = {
+          customerName: customerName || "Guest",
+          tableNumber: parseInt(tableNumber || "0"),
+          orderType: orderType || "Makan di Tempat",
+          items: (items || []).map(item => ({
+            menuId: item.menuId || item._id || item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.price * item.quantity,
+            category: item.category || "Makanan"
+          })),
+          totalAmount: totalAmount,
+          note: ""
+        };
+        const res = await api.createOrder(orderData);
+        if (res.success) {
+          currentOrderId = res.data.orderId;
+          setOrderId(currentOrderId);
+          // Clear cart since order is successfully created
+          localStorage.removeItem("cart");
+        } else {
+          toast.error("Gagal membuat pesanan.");
+          setLoading(false);
+          return;
+        }
+      }
+
       if (selectedMethod === "cash" || selectedMethod === "debit") {
-        await api.setPaymentMethod(orderId, selectedMethod);
+        await api.setPaymentMethod(currentOrderId, selectedMethod);
         setShowInstructionModal(true);
         setLoading(false);
         return;
       }
 
       // 🔥 DIGITAL PAYMENT (GoPay / QRIS / Transfer)
-      await api.setPaymentMethod(orderId, selectedMethod); // Save method first
+      await api.setPaymentMethod(currentOrderId, selectedMethod); // Save method first
       const response = await api.createMidtransTransaction({
-        orderId: orderId,
+        orderId: currentOrderId,
         totalAmount: totalAmount,
         customerName: customerName,
         customerEmail: "customer@example.com",
@@ -172,7 +205,7 @@ export default function PaymentPage() {
       <div className="mx-4 mt-4 bg-white rounded-xl p-4 shadow-sm">
         <div className="flex justify-between items-center">
           <span className="text-gray-500 text-sm">Order ID</span>
-          <span className="text-gray-900 font-mono text-sm font-semibold">{orderId}</span>
+          <span className="text-gray-900 font-mono text-sm font-semibold">{orderId || "-"}</span>
         </div>
         <div className="flex justify-between items-center mt-2">
           <span className="text-gray-500 text-sm">Total Pembayaran</span>

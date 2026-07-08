@@ -3,6 +3,9 @@ import { X, ChevronDown, MapPin, Info, User, Shield } from "lucide-react";
 
 export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
+    username: user?.username || "",
+    fullName: user?.fullName || user?.name || "",
+    email: user?.email || "",
     role: user?.role || "",
     branch: user?.branch || "",
     password: "",
@@ -58,6 +61,42 @@ export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
             </div>
             <div className="bg-amber-100 text-amber-800 text-xs font-medium px-3 py-1.5 rounded-full">
               {user.status}
+            </div>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="text-gray-700 text-xs font-medium mb-1.5 block">Nama Lengkap</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                placeholder="Masukkan nama lengkap"
+                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="text-gray-700 text-xs font-medium mb-1.5 block">Username</label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="Masukkan username"
+                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="text-gray-700 text-xs font-medium mb-1.5 block">Email</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="contoh@d9.com"
+                className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-800 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
             </div>
           </div>
 

@@ -173,11 +173,13 @@ export default function CustomerMenuPage() {
 
     localStorage.setItem("cart", JSON.stringify(cart));
     
-    navigate("/cart", {
+    navigate("/payment", {
       state: {
         customerName: customerName,
         tableNumber: tableNumber,
-        orderType: orderType
+        orderType: orderType,
+        items: cart,
+        totalAmount: totalAmount
       }
     });
   };

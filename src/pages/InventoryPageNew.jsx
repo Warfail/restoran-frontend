@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import SettingsModal from "../components/SettingsModal";
+import UpdateInventoryModal from "../components/UpdateInventoryModal";
 
 export default function InventoryPageNew() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -21,6 +22,9 @@ export default function InventoryPageNew() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [categoryFilter, setCategoryFilter] = useState("Semua");
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   useEffect(() => {
     fetchInventory();
@@ -39,14 +43,14 @@ export default function InventoryPageNew() {
     }
   };
 
-  const updateStock = async (itemId, newStock) => {
+  const updateStock = async (itemId, updateData) => {
     try {
-      await api.updateStock(itemId, { stock: newStock });
+      await api.updateStock(itemId, updateData);
       await fetchInventory();
-      toast.success("Stok berhasil diupdate!");
+      toast.success("Bahan berhasil diupdate!");
     } catch (error) {
       console.error("Failed to update stock:", error);
-      toast.error("Gagal update stok");
+      toast.error("Gagal update bahan");
     }
   };
 
@@ -258,8 +262,8 @@ export default function InventoryPageNew() {
                           <td className="px-3 py-4">
                             <div className="flex items-center gap-3">
                               <i className="ti ti-pencil text-gray-400 cursor-pointer hover:text-gray-600" onClick={() => {
-                                const newStock = prompt("Update stok:", item.stock);
-                                if (newStock !== null) updateStock(item._id, parseInt(newStock));
+                                setEditingItem(item);
+                                setIsEditModalOpen(true);
                               }}></i>
                             </div>
                           </td>
@@ -278,6 +282,13 @@ export default function InventoryPageNew() {
       </div>
     
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
+      
+      <UpdateInventoryModal 
+        item={editingItem} 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+        onUpdate={updateStock} 
+      />
     </div>
   );
 }
