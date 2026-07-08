@@ -42,8 +42,8 @@ export const api = {
   },
 
   // ========== MENU (Public) ==========
-  getMenu: async () => {
-    if (menuCache && menuCacheTime && (Date.now() - menuCacheTime < CACHE_DURATION)) {
+  getMenu: async (skipCache = false) => {
+    if (!skipCache && menuCache && menuCacheTime && (Date.now() - menuCacheTime < CACHE_DURATION)) {
       console.log("✅ Using cached menu");
       return menuCache;
     }

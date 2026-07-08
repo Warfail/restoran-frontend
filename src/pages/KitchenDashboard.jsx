@@ -187,7 +187,7 @@ export default function KitchenDashboard() {
 
   const fetchMenus = async () => {
     try {
-      const menus = await api.getMenu().catch(() => []);
+      const menus = await api.getMenu(true).catch(() => []);
       if (Array.isArray(menus)) {
         setMenuList(menus);
         menuListRef.current = menus; // Update ref
@@ -241,7 +241,7 @@ export default function KitchenDashboard() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const menus = await api.getMenu().catch(() => []);
+        const menus = await api.getMenu(true).catch(() => []);
         if (Array.isArray(menus)) {
           setMenuList(menus);
           menuListRef.current = menus;
@@ -395,7 +395,7 @@ export default function KitchenDashboard() {
     setCounters(prev => ({ ...prev, [id]: 0 }));
     
     try {
-      await api.updateStock(id, newStock);
+      await api.updateStock(id, { stock: newStock });
       // Fetch di background tanpa loading spinner
       fetchInventory();
       toast.success("Stok berhasil diupdate!");

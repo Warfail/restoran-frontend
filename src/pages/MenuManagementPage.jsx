@@ -48,7 +48,7 @@ export default function MenuManagementPage() {
   const fetchMenus = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const response = await api.getMenu();
+      const response = await api.getMenu(true);
       const menusData = response.data || response;
       setMenus(Array.isArray(menusData) ? menusData : []);
     } catch (error) {
