@@ -7,7 +7,7 @@ import { api } from "../services/api";
 export default function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { orderId: initialOrderId, totalAmount, customerName, tableNumber, items, orderType } = location.state || {};
+  const { orderId: initialOrderId, totalAmount, customerName, tableNumber, items, orderType, note } = location.state || {};
   const [orderId, setOrderId] = useState(initialOrderId);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 59);
@@ -37,6 +37,18 @@ export default function PaymentPage() {
     } else if (window.snap) {
       setSnapLoaded(true);
     }
+
+    // 🔥 CLEANUP SNAP ON UNMOUNT (Menangani tombol back browser)
+    return () => {
+      if (window.snap && typeof window.snap.hide === 'function') {
+        window.snap.hide();
+      }
+      // Fallback manual cleanup iframe if snap.hide doesn't work
+      const snapIframe = document.getElementById("snap-midtrans");
+      if (snapIframe) {
+        snapIframe.remove();
+      }
+    };
   }, []);
 
   // 🔥 TIMER COUNTDOWN
@@ -85,14 +97,12 @@ export default function PaymentPage() {
             category: item.category || "Makanan"
           })),
           totalAmount: totalAmount,
-          note: ""
+          note: note || ""
         };
         const res = await api.createOrder(orderData);
         if (res.success) {
           currentOrderId = res.data.orderId;
           setOrderId(currentOrderId);
-          // Clear cart since order is successfully created
-          localStorage.removeItem("cart");
         } else {
           toast.error("Gagal membuat pesanan.");
           setLoading(false);
@@ -102,6 +112,7 @@ export default function PaymentPage() {
 
       if (selectedMethod === "cash" || selectedMethod === "debit") {
         await api.setPaymentMethod(currentOrderId, selectedMethod);
+        localStorage.removeItem("cart");
         setShowInstructionModal(true);
         setLoading(false);
         return;
@@ -135,6 +146,7 @@ export default function PaymentPage() {
       window.snap.pay(response.token, {
         onSuccess: async function (result) {
           console.log("✅ Payment success:", result);
+          localStorage.removeItem("cart");
           
           try {
             await api.syncLocalPaymentSuccess(orderId);
@@ -158,6 +170,7 @@ export default function PaymentPage() {
         },
         onPending: function (result) {
           console.log("⏳ Payment pending:", result);
+          localStorage.removeItem("cart");
           toast.info("⏳ Menunggu pembayaran...");
           navigate(`/order-status?orderId=${result.order_id || orderId}`);
         },

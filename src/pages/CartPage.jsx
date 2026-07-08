@@ -66,52 +66,18 @@ export default function CartPage() {
       return;
     }
 
-    setLoading(true);
-    try {
-      const orderData = {
-        customerName: customerName,
-        tableNumber: parseInt(tableNumber),
-        orderType: orderType,
-        items: cartItems.map(item => ({
-          menuId: item.menuId || item._id || item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          subtotal: item.price * item.quantity,
-           category: item.category || "Makanan"
-        })),
+    // ✅ Langsung navigasi ke PaymentPage tanpa membuat order di database dulu
+    // Order baru akan dibuat di database saat user klik "Konfirmasi Pembayaran"
+    navigate("/payment", {
+      state: {
         totalAmount: total,
+        customerName: customerName,
+        tableNumber: tableNumber,
+        orderType: orderType,
+        items: cartItems,
         note: noteInput
-      };
-
-      console.log("Sending order:", orderData);
-      const response = await api.createOrder(orderData);
-      console.log("Order response:", response);
-
-      if (response.success) {
-        const savedOrder = response.data;
-        localStorage.removeItem("cart");
-        
-        // ✅ Navigasi ke PaymentPage
-        navigate("/payment", {
-          state: {
-            orderId: savedOrder.orderId,
-            totalAmount: savedOrder.totalAmount || total,
-            customerName: customerName,
-            tableNumber: tableNumber,
-            orderType: orderType,
-            items: savedOrder.items || cartItems
-          }
-        });
-      } else {
-        toast.error(response.detail || "Gagal membuat pesanan");
       }
-    } catch (error) {
-      console.error("Checkout failed:", error);
-      toast.error("Gagal memproses pesanan. Silakan coba lagi.");
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const goBack = () => {
