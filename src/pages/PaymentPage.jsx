@@ -7,14 +7,38 @@ import { api } from "../services/api";
 export default function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { orderId: initialOrderId, totalAmount, customerName, tableNumber, items, orderType, note } = location.state || {};
+  const { orderId: initialOrderId, totalAmount, customerName, tableNumber, items, orderType, note, paymentMethod: selectedPaymentMethod } = location.state || {};
   const [orderId, setOrderId] = useState(initialOrderId);
-  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [selectedMethod, setSelectedMethod] = useState(selectedPaymentMethod || null);
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 59);
   const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snapLoaded, setSnapLoaded] = useState(false);
   const snapLoadedRef = useRef(false);
+
+  // 🔥 FUNGSI TUTUP POPUP PAKSA
+  const forceCloseSnapPopup = () => {
+    try {
+      // Method 1: Panggil snap.hide()
+      if (window.snap && typeof window.snap.hide === 'function') {
+        window.snap.hide();
+      }
+      
+      // Method 2: Hapus iframe Snap
+      const snapIframe = document.querySelector('#snap-midtrans');
+      if (snapIframe) {
+        snapIframe.remove();
+      }
+      
+      // Method 3: Hapus semua iframe midtrans
+      document.querySelectorAll('iframe[src*="midtrans"]').forEach(iframe => iframe.remove());
+      
+      // Method 4: Hapus overlay
+      document.querySelectorAll('.snap-overlay, .snap-popup, .snap-container').forEach(el => el.remove());
+    } catch (error) {
+      console.warn('Force close Snap error:', error);
+    }
+  };
 
   // 🔥 LOAD SNAP.JS (PRELOAD)
   useEffect(() => {
@@ -38,16 +62,9 @@ export default function PaymentPage() {
       setSnapLoaded(true);
     }
 
-    // 🔥 CLEANUP SNAP ON UNMOUNT (Menangani tombol back browser)
+    // CLEANUP
     return () => {
-      if (window.snap && typeof window.snap.hide === 'function') {
-        window.snap.hide();
-      }
-      // Fallback manual cleanup iframe if snap.hide doesn't work
-      const snapIframe = document.getElementById("snap-midtrans");
-      if (snapIframe) {
-        snapIframe.remove();
-      }
+      forceCloseSnapPopup();
     };
   }, []);
 
@@ -119,7 +136,7 @@ export default function PaymentPage() {
       }
 
       // 🔥 DIGITAL PAYMENT (GoPay / QRIS / Transfer)
-      await api.setPaymentMethod(currentOrderId, selectedMethod); // Save method first
+      await api.setPaymentMethod(currentOrderId, selectedMethod);
       const response = await api.createMidtransTransaction({
         orderId: currentOrderId,
         totalAmount: totalAmount,
@@ -155,7 +172,7 @@ export default function PaymentPage() {
             console.error("❌ Local success failed:", err);
           }
           
-          // 🔥 LANGSUNG NAVIGASI
+          forceCloseSnapPopup();
           navigate("/payment-success", {
             state: {
               orderId: result.order_id || orderId,
@@ -172,24 +189,44 @@ export default function PaymentPage() {
           console.log("⏳ Payment pending:", result);
           localStorage.removeItem("cart");
           toast.info("⏳ Menunggu pembayaran...");
+          forceCloseSnapPopup();
           navigate(`/order-status?orderId=${result.order_id || orderId}`);
         },
         onError: function (result) {
           console.error("❌ Payment error:", result);
           toast.error("❌ Pembayaran gagal.");
+          forceCloseSnapPopup();
           setLoading(false);
         },
         onClose: function () {
-          console.log("Payment popup closed");
-          toast.info("Pembayaran dibatalkan.");
-          setLoading(false);
-        },
+  console.log("🔴 User closed payment popup");
+  
+  // 1. Force close popup
+  forceCloseSnapPopup();
+  
+  // 2. Cleanup
+  document.querySelectorAll('iframe[src*="midtrans"]').forEach(el => el.remove());
+  document.body.style.overflow = '';
+  
+  // 3. UI feedback (PAKAI toast.success)
+  toast.success("Pembayaran dibatalkan", {
+    duration: 3000,
+    icon: '❌'
+  });
+  
+  setLoading(false);
+  
+  // 4. Redirect
+  setTimeout(() => {
+    console.log("🔄 Redirecting to cart...");
+    window.location.href = '/payment';
+  }, 500);
+},
       });
     } catch (error) {
       console.error("Payment failed:", error);
       toast.error("Terjadi kesalahan. Silakan coba lagi.");
-    } finally {
-      // 🔥 JANGAN SET LOADING FALSE DI SINI (SUDAH DI HANDLE DI ATAS)
+      setLoading(false);
     }
   };
 
@@ -232,32 +269,6 @@ export default function PaymentPage() {
 
       {/* Payment Methods */}
       <div className="p-4 space-y-3">
-        {/* GoPay Option */}
-        {/* <div onClick={() => setSelectedMethod("gopay")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "gopay" ? "border-2 border-green-500" : "border border-gray-200"}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-              <Smartphone className="w-5.5 h-5.5 text-white" />
-            </div>
-            <div>
-              <p className="text-gray-900 font-semibold text-sm">GoPay</p>
-              <p className="text-gray-500 text-xs">Bayar pake GoPay</p>
-            </div>
-          </div>
-        </div> */}
-
-        {/* QRIS Option */}
-        {/* <div onClick={() => setSelectedMethod("qris")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "qris" ? "border-2 border-green-500" : "border border-gray-200"}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-              <QrCode className="w-5.5 h-5.5 text-white" />
-            </div>
-            <div>
-              <p className="text-gray-900 font-semibold text-sm">QRIS</p>
-              <p className="text-gray-500 text-xs">Scan menggunakan e-wallet atau m-banking</p>
-            </div>
-          </div>
-        </div> */}
-
         <div onClick={() => setSelectedMethod("transfer")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "transfer" ? "border-2 border-green-500" : "border border-gray-200"}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
