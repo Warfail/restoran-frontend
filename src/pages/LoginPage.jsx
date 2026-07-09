@@ -202,9 +202,9 @@ export default function LoginPage() {
           <span className="text-gray-500 text-[13px]">• © 2024 Singkong Keju D9. Keamanan Terjamin.</span>
         </div>
         <div className="flex items-center gap-5">
-          <button type="button" className="text-gray-700 text-[13px] hover:text-green-800">Bantuan</button>
-          <button type="button" className="text-gray-700 text-[13px] hover:text-green-800">Privasi</button>
-          <button type="button" className="text-green-800 text-[13px] font-medium hover:underline">Syarat & Ketentuan</button>
+          <button type="button" onClick={() => alert("Halaman Bantuan sedang dalam tahap pengembangan.")} className="text-gray-700 text-[13px] hover:text-green-800">Bantuan</button>
+          <button type="button" onClick={() => alert("Halaman Privasi sedang dalam tahap pengembangan.")} className="text-gray-700 text-[13px] hover:text-green-800">Privasi</button>
+          <button type="button" onClick={() => alert("Halaman Syarat & Ketentuan sedang dalam tahap pengembangan.")} className="text-green-800 text-[13px] font-medium hover:underline">Syarat & Ketentuan</button>
         </div>
       </div>
 
