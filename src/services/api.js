@@ -1,6 +1,8 @@
-export const API_BASE = import.meta.env.DEV 
-  ? "http://127.0.0.1:8000" 
-  : "https://restoran-backend-production-fb73.up.railway.app";
+// export const API_BASE = import.meta.env.DEV 
+//   ? "http://127.0.0.1:8000" 
+//   : "https://restoran-backend-production-fb73.up.railway.app";
+
+  export const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
 
 // 🔥 MENU CACHE
 let menuCache = null;
@@ -106,6 +108,7 @@ export const api = {
     return res.json();
   },
 
+  // ✅ FUNGSI INI SUDAH BENAR, TIDAK PERLU DIUBAH
   syncLocalPaymentSuccess: async (orderId) => {
     const res = await fetch(`${API_BASE}/payment/local-success`, {
       method: "POST",
@@ -154,7 +157,6 @@ export const api = {
     return res.json();
   },
 
-  // 🔥 GET RECEIPT (DIPERLUIN!)
   getReceipt: async (orderId) => {
     const token = getToken();
     const res = await fetch(`${API_BASE}/cashier/receipt/${orderId}`, {
@@ -171,7 +173,6 @@ export const api = {
     return res.json();
   },
 
-  // 🔥 MARK AS PRINTED (CUKUP 1!)
   markAsPrinted: async (orderId) => {
     const res = await fetch(`${API_BASE}/cashier/order/${orderId}/printed`, {
       method: "PUT",
