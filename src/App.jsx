@@ -22,7 +22,7 @@ import InventoryPageNew from "./pages/InventoryPageNew";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import CustomerLoginPage from "./pages/CustomerLoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import PaymentMethodsPage from "./pages/PaymentMethodsPage"; 
+// import PaymentMethodsPage from "./pages/PaymentMethodsPage"; 
 
 
 function PrivateRoute({ children, allowedRoles }) {
@@ -69,7 +69,7 @@ function App() {
 <Route path="/landing" element={<CustomerLandingPage />} />
 <Route path="/menu" element={<CustomerMenuPage />} />
 <Route path="/payment" element={<PaymentPage />} />
-<Route path="/payment-methods" element={<PaymentMethodsPage />} />
+{/* <Route path="/payment-methods" element={<PaymentMethodsPage />} /> */}
 <Route path="/order-status" element={<OrderStatusPage />} />
 <Route path="/payment-success" element={<PaymentSuccessPage />} />
 <Route path="/customer/login" element={<CustomerLoginPage />} />
