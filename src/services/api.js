@@ -281,10 +281,20 @@ export const api = {
   },
 
   updateStock: async (itemId, newStock) => {
-    return fetchWithAuth(`/inventory/${itemId}`, {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/inventory/${itemId}`, {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify(newStock),
     });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.detail || `HTTP ${res.status}`);
+    }
+    return data;
   },
 
   deleteInventory: async (itemId) => {

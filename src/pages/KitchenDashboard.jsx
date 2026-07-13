@@ -394,6 +394,10 @@ export default function KitchenDashboard() {
     }
     
     const newStock = parseFloat(counters[id]);
+    if (isNaN(newStock) || newStock < 0) {
+      toast.error("Masukkan angka yang valid");
+      return;
+    }
     
     // 🔥 Optimistic Update
     setInventory(prev => prev.map(i => (i._id === id || i.id === id) ? { ...i, stock: newStock } : i));
@@ -401,11 +405,12 @@ export default function KitchenDashboard() {
     
     try {
       await api.updateStock(id, { stock: newStock });
-      fetchInventory();
       toast.success("Stok berhasil diupdate!");
+      // Fetch fresh data di background
+      setTimeout(() => fetchInventory(), 500);
     } catch (error) {
       console.error("Failed to update stock:", error);
-      toast.error("Gagal update stok");
+      toast.error("Gagal update stok: " + (error.message || ""));
       // Revert if failed
       fetchInventory();
     }
@@ -775,7 +780,10 @@ export default function KitchenDashboard() {
                         <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Minus className="w-3.5 h-3.5" /></button>
                         <input 
                           type="number" 
-                          className="w-16 text-center font-semibold border rounded-lg h-8 px-1 focus:outline-none focus:ring-1 focus:ring-green-500"
+                          step="any"
+                          min="0"
+                          placeholder="0"
+                          className="w-20 text-center font-semibold border rounded-lg h-8 px-1 focus:outline-none focus:ring-1 focus:ring-green-500"
                           value={counters[item._id || item.id] === undefined ? '' : counters[item._id || item.id]}
                           onChange={(e) => {
                             const val = e.target.value;
