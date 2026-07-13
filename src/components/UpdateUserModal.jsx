@@ -1,18 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ChevronDown, MapPin, Info, User, Shield } from "lucide-react";
 
 export default function UpdateUserModal({ user, isOpen, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
-    username: user?.username || "",
-    fullName: user?.fullName || user?.name || "",
-    email: user?.email || "",
-    role: user?.role || "",
-    branch: user?.branch || "",
+    username: "",
+    fullName: "",
+    email: "",
+    role: "",
+    branch: "",
     password: "",
-    isActive: user?.isActive !== false,
+    isActive: true,
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (user && isOpen) {
+      setFormData({
+        username: user.username || "",
+        fullName: user.fullName || user.name || "",
+        email: user.email || "",
+        role: user.role || "",
+        branch: user.branch || "",
+        password: "",
+        isActive: user.isActive !== false,
+      });
+    }
+  }, [user, isOpen]);
 
   if (!isOpen || !user) return null;
 

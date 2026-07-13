@@ -770,29 +770,39 @@ export default function KitchenDashboard() {
                 {filteredInventory.map(item => {
                   const displayStock = convertToSmallUnit(item.stock, item.unit);
                   return (
-                    <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-wrap items-center gap-4 shadow-sm border">
-                      <div className="flex-1 min-w-[120px]"><div className="font-semibold text-gray-800">{item.name}</div><div className="text-xs text-gray-500">{item.category || "Bahan Baku"}</div></div>
-                      <div className="flex flex-col items-center gap-1 min-w-[80px]">
-                        <span className={`text-xl font-bold ${getStockColor(item.stock)}`}>{formatStock(displayStock.value)} {displayStock.unit}</span>
-                        {getStatusBadge(item.stock)}
+                    <div key={item._id || item.id} className="bg-white rounded-xl p-4 flex flex-col md:flex-row gap-4 shadow-sm border">
+                      {/* Info & Stock (Atas di mobile, Kiri di desktop) */}
+                      <div className="flex justify-between items-center w-full md:flex-1">
+                        <div className="flex-1 min-w-[120px]">
+                          <div className="font-semibold text-gray-800">{item.name}</div>
+                          <div className="text-xs text-gray-500">{item.category || "Bahan Baku"}</div>
+                        </div>
+                        <div className="flex flex-col items-end md:items-center gap-1 min-w-[80px]">
+                          <span className={`text-xl font-bold ${getStockColor(item.stock)}`}>{formatStock(displayStock.value)} {displayStock.unit}</span>
+                          {getStatusBadge(item.stock)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Minus className="w-3.5 h-3.5" /></button>
-                        <input 
-                          type="number" 
-                          step="any"
-                          min="0"
-                          placeholder="0"
-                          className="w-20 text-center font-semibold border rounded-lg h-8 px-1 focus:outline-none focus:ring-1 focus:ring-green-500"
-                          value={counters[item._id || item.id] === undefined ? '' : counters[item._id || item.id]}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setCounters(prev => ({ ...prev, [item._id || item.id]: val }));
-                          }}
-                        />
-                        <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
+                      
+                      {/* Counter & Action (Bawah di mobile, Kanan di desktop) */}
+                      <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Minus className="w-3.5 h-3.5" /></button>
+                          <input 
+                            type="number" 
+                            step="any"
+                            min="0"
+                            placeholder="0"
+                            className="w-20 text-center font-semibold border rounded-lg h-8 px-1 focus:outline-none focus:ring-1 focus:ring-green-500"
+                            value={counters[item._id || item.id] === undefined ? '' : counters[item._id || item.id]}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCounters(prev => ({ ...prev, [item._id || item.id]: val }));
+                            }}
+                          />
+                          <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
+                        </div>
+                        <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"><RefreshCw className="w-3.5 h-3.5" /> Update</button>
                       </div>
-                      <button onClick={() => handleUpdateStock(item._id || item.id)} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"><RefreshCw className="w-3.5 h-3.5" /> Update</button>
                     </div>
                   );
                 })}
