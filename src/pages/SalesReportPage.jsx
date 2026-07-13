@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, Utensils, Package, Users, BarChart3, Settings, LogOut, Search, HelpCircle, Bell, Download } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush } from 'recharts';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import SettingsModal from "../components/SettingsModal";
@@ -255,35 +255,251 @@ export default function SalesReportPage() {
     return { menuLaris: top, menuKurangLaris: bottom };
   }, [ordersData]);
 
-  const handleExportExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const handleExportExcel = async () => {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Sistem Restoran';
+    wb.created = new Date();
 
-    // Sheet 1: Pendapatan
-    const wsPendapatan = XLSX.utils.json_to_sheet(currentChartData.map(item => ({
-      Periode: item.name,
-      'Pendapatan Tahun Ini (Rp)': item.pendapatan,
-      'Pendapatan Tahun Lalu (Rp)': item.tahunLalu
-    })));
-    XLSX.utils.book_append_sheet(wb, wsPendapatan, "Pendapatan");
+    const periodLabel = activePeriod === 'Tahunan' ? selectedYear : activePeriod === 'Bulanan' ? selectedMonth : selectedWeek;
+    const exportName = `Laporan_${activePeriod}_${periodLabel}`;
 
-    // Sheet 2: Menu Terlaris
-    const wsLaris = XLSX.utils.json_to_sheet(menuLaris.map(item => ({
-      'Nama Menu': item.nama,
-      'Jumlah Terjual (Porsi)': item.terjual,
-      'Indikator Performa (%)': item.persentase
-    })));
-    XLSX.utils.book_append_sheet(wb, wsLaris, "Menu Terlaris");
+    // ====== COLOR PALETTE ======
+    const greenDark = '1B5E20';
+    const greenMid = '2E7D32';
+    const greenLight = 'E8F5E9';
+    const greenAccent = '4CAF50';
+    const grayLight = 'F5F5F5';
+    const borderColor = 'BDBDBD';
+    const white = 'FFFFFF';
 
-    // Sheet 3: Menu Kurang Laris
-    const wsKurang = XLSX.utils.json_to_sheet(menuKurangLaris.map(item => ({
-      'Nama Menu': item.nama,
-      'Jumlah Terjual (Porsi)': item.terjual,
-      'Indikator Performa (%)': item.persentase
-    })));
-    XLSX.utils.book_append_sheet(wb, wsKurang, "Menu Kurang Laris");
+    // ====== HELPER: Style a header row ======
+    const styleHeaderRow = (row, bgColor = greenDark) => {
+      row.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+        cell.font = { bold: true, color: { argb: white }, size: 11, name: 'Calibri' };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = {
+          top: { style: 'thin', color: { argb: borderColor } },
+          bottom: { style: 'thin', color: { argb: borderColor } },
+          left: { style: 'thin', color: { argb: borderColor } },
+          right: { style: 'thin', color: { argb: borderColor } },
+        };
+      });
+      row.height = 30;
+    };
 
-    const exportName = `Laporan_${activePeriod}_${activePeriod === 'Tahunan' ? selectedYear : activePeriod === 'Bulanan' ? selectedMonth : selectedWeek}`;
-    XLSX.writeFile(wb, `${exportName}.xlsx`);
+    // ====== HELPER: Style a data row ======
+    const styleDataRow = (row, isEven = false) => {
+      row.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? grayLight : white } };
+        cell.font = { size: 10, name: 'Calibri', color: { argb: '333333' } };
+        cell.alignment = { vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'E0E0E0' } },
+          bottom: { style: 'thin', color: { argb: 'E0E0E0' } },
+          left: { style: 'thin', color: { argb: 'E0E0E0' } },
+          right: { style: 'thin', color: { argb: 'E0E0E0' } },
+        };
+      });
+      row.height = 22;
+    };
+
+    // ====== HELPER: Style a totals row ======
+    const styleTotalRow = (row) => {
+      row.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: greenLight } };
+        cell.font = { bold: true, size: 11, name: 'Calibri', color: { argb: greenDark } };
+        cell.alignment = { vertical: 'middle' };
+        cell.border = {
+          top: { style: 'medium', color: { argb: greenAccent } },
+          bottom: { style: 'medium', color: { argb: greenAccent } },
+          left: { style: 'thin', color: { argb: borderColor } },
+          right: { style: 'thin', color: { argb: borderColor } },
+        };
+      });
+      row.height = 28;
+    };
+
+    // ====== HELPER: Add company title header ======
+    const addTitleHeader = (ws, title, subtitle, colCount) => {
+      // Row 1: Nama Restoran
+      ws.mergeCells(1, 1, 1, colCount);
+      const titleCell = ws.getCell('A1');
+      titleCell.value = '🍽️  Singkong Keju D9';
+      titleCell.font = { bold: true, size: 18, color: { argb: white }, name: 'Calibri' };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: greenDark } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(1).height = 40;
+
+      // Row 2: Judul Laporan
+      ws.mergeCells(2, 1, 2, colCount);
+      const subtitleCell = ws.getCell('A2');
+      subtitleCell.value = title;
+      subtitleCell.font = { bold: true, size: 13, color: { argb: white }, name: 'Calibri' };
+      subtitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: greenMid } };
+      subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(2).height = 30;
+
+      // Row 3: Periode & Tanggal Cetak
+      ws.mergeCells(3, 1, 3, colCount);
+      const periodCell = ws.getCell('A3');
+      periodCell.value = `${subtitle}  |  Dicetak: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+      periodCell.font = { italic: true, size: 10, color: { argb: '666666' }, name: 'Calibri' };
+      periodCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: greenLight } };
+      periodCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(3).height = 25;
+
+      // Row 4: Empty spacer
+      ws.getRow(4).height = 10;
+    };
+
+    // ============================================================
+    // SHEET 1: LAPORAN PENDAPATAN
+    // ============================================================
+    const ws1 = wb.addWorksheet('Laporan Pendapatan', {
+      views: [{ showGridLines: false }],
+    });
+
+    const col1Count = 5;
+    addTitleHeader(ws1, 'LAPORAN PENDAPATAN', `Periode: ${activePeriod} - ${periodLabel}`, col1Count);
+
+    // Column widths
+    ws1.columns = [
+      { width: 5 },   // No
+      { width: 28 },  // Periode
+      { width: 25 },  // Pendapatan Tahun Ini
+      { width: 25 },  // Pendapatan Tahun Lalu
+      { width: 18 },  // Pertumbuhan
+    ];
+
+    // Header row (row 5)
+    const headerRow1 = ws1.getRow(5);
+    headerRow1.values = ['No', 'Tanggal / Periode', 'Pendapatan Tahun Ini (Rp)', 'Pendapatan Tahun Lalu (Rp)', 'Pertumbuhan (%)'];
+    styleHeaderRow(headerRow1);
+
+    // Data rows
+    let totalPendapatan = 0;
+    let totalTahunLalu = 0;
+
+    currentChartData.forEach((item, idx) => {
+      const row = ws1.getRow(6 + idx);
+      const growth = item.tahunLalu === 0 ? (item.pendapatan > 0 ? 100 : 0) : ((item.pendapatan - item.tahunLalu) / item.tahunLalu) * 100;
+
+      row.values = [idx + 1, item.name, item.pendapatan, item.tahunLalu, parseFloat(growth.toFixed(1))];
+      styleDataRow(row, idx % 2 === 0);
+
+      // Format currency columns
+      row.getCell(3).numFmt = '#,##0';
+      row.getCell(4).numFmt = '#,##0';
+      row.getCell(5).numFmt = '0.0"%"';
+
+      // Center No column
+      row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+      // Center growth column
+      row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // Color growth: green if positive, red if negative
+      if (growth >= 0) {
+        row.getCell(5).font = { ...row.getCell(5).font, color: { argb: '2E7D32' }, bold: true };
+      } else {
+        row.getCell(5).font = { ...row.getCell(5).font, color: { argb: 'C62828' }, bold: true };
+      }
+
+      totalPendapatan += item.pendapatan;
+      totalTahunLalu += item.tahunLalu;
+    });
+
+    // Totals row
+    const totalRowIdx = 6 + currentChartData.length;
+    const totalRow = ws1.getRow(totalRowIdx);
+    const totalGrowth = totalTahunLalu === 0 ? 100 : ((totalPendapatan - totalTahunLalu) / totalTahunLalu) * 100;
+    totalRow.values = ['', 'TOTAL', totalPendapatan, totalTahunLalu, parseFloat(totalGrowth.toFixed(1))];
+    styleTotalRow(totalRow);
+    totalRow.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+    totalRow.getCell(3).numFmt = '#,##0';
+    totalRow.getCell(4).numFmt = '#,##0';
+    totalRow.getCell(5).numFmt = '0.0"%"';
+    totalRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // ============================================================
+    // SHEET 2: MENU TERLARIS
+    // ============================================================
+    const ws2 = wb.addWorksheet('Menu Terlaris', {
+      views: [{ showGridLines: false }],
+    });
+
+    const col2Count = 4;
+    addTitleHeader(ws2, '5 MENU PALING LARIS 📈', `Periode: ${activePeriod} - ${periodLabel}`, col2Count);
+
+    ws2.columns = [
+      { width: 5 },   // No
+      { width: 35 },  // Nama Menu
+      { width: 22 },  // Jumlah Terjual
+      { width: 22 },  // Performa
+    ];
+
+    const headerRow2 = ws2.getRow(5);
+    headerRow2.values = ['No', 'Nama Menu', 'Jumlah Terjual (Porsi)', 'Indikator Performa (%)'];
+    styleHeaderRow(headerRow2);
+
+    menuLaris.forEach((item, idx) => {
+      const row = ws2.getRow(6 + idx);
+      row.values = [idx + 1, item.nama, item.terjual, item.persentase];
+      styleDataRow(row, idx % 2 === 0);
+      row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+      row.getCell(3).numFmt = '#,##0';
+      row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+      row.getCell(4).numFmt = '0"%"';
+      row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // Green bar effect via font color
+      row.getCell(4).font = { bold: true, size: 10, color: { argb: greenDark }, name: 'Calibri' };
+    });
+
+    // ============================================================
+    // SHEET 3: MENU KURANG LARIS
+    // ============================================================
+    const ws3 = wb.addWorksheet('Menu Kurang Laris', {
+      views: [{ showGridLines: false }],
+    });
+
+    const col3Count = 4;
+    addTitleHeader(ws3, '5 MENU KURANG LARIS 📉', `Periode: ${activePeriod} - ${periodLabel}`, col3Count);
+
+    ws3.columns = [
+      { width: 5 },
+      { width: 35 },
+      { width: 22 },
+      { width: 22 },
+    ];
+
+    const headerRow3 = ws3.getRow(5);
+    headerRow3.values = ['No', 'Nama Menu', 'Jumlah Terjual (Porsi)', 'Indikator Performa (%)'];
+    styleHeaderRow(headerRow3, 'E65100'); // Orange header for "kurang laris"
+
+    menuKurangLaris.forEach((item, idx) => {
+      const row = ws3.getRow(6 + idx);
+      row.values = [idx + 1, item.nama, item.terjual, item.persentase];
+      styleDataRow(row, idx % 2 === 0);
+      row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+      row.getCell(3).numFmt = '#,##0';
+      row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+      row.getCell(4).numFmt = '0"%"';
+      row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // Orange/amber font for low performing
+      row.getCell(4).font = { bold: true, size: 10, color: { argb: 'E65100' }, name: 'Calibri' };
+    });
+
+    // ====== DOWNLOAD ======
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${exportName}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleExportPDF = async () => {

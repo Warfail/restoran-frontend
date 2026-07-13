@@ -383,20 +383,24 @@ export default function KitchenDashboard() {
   const updateCounter = (id, change) => {
     setCounters(prev => ({
       ...prev,
-      [id]: Math.max(0, (prev[id] || 0) + change)
+      [id]: Math.max(0, (prev[id] === undefined || prev[id] === '' ? 0 : parseFloat(prev[id])) + change)
     }));
   };
 
   const handleUpdateStock = async (id) => {
-    const newStock = counters[id] || 0;
+    if (counters[id] === undefined || counters[id] === '') {
+      toast.error("Masukkan jumlah stok terlebih dahulu");
+      return;
+    }
+    
+    const newStock = parseFloat(counters[id]);
     
     // 🔥 Optimistic Update
     setInventory(prev => prev.map(i => (i._id === id || i.id === id) ? { ...i, stock: newStock } : i));
-    setCounters(prev => ({ ...prev, [id]: 0 }));
+    setCounters(prev => ({ ...prev, [id]: '' }));
     
     try {
       await api.updateStock(id, { stock: newStock });
-      // Fetch di background tanpa loading spinner
       fetchInventory();
       toast.success("Stok berhasil diupdate!");
     } catch (error) {
@@ -774,8 +778,8 @@ export default function KitchenDashboard() {
                           className="w-16 text-center font-semibold border rounded-lg h-8 px-1 focus:outline-none focus:ring-1 focus:ring-green-500"
                           value={counters[item._id || item.id] === undefined ? '' : counters[item._id || item.id]}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
-                            setCounters(prev => ({ ...prev, [item._id || item.id]: isNaN(val) ? 0 : val }));
+                            const val = e.target.value;
+                            setCounters(prev => ({ ...prev, [item._id || item.id]: val }));
                           }}
                         />
                         <button onClick={() => updateCounter(item._id || item.id, 1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Plus className="w-3.5 h-3.5" /></button>
