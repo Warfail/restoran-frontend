@@ -4,7 +4,7 @@ import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
 import AdminHeader from "../components/admin/AdminHeader";
 import toast from "react-hot-toast";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import UpdateMenuModal from "../components/UpdateMenuModal";
@@ -22,7 +22,7 @@ export default function MenuManagementPage() {
   useEffect(() => {
     const userStr = sessionStorage.getItem("user");
     if (userStr) {
-      try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+      try { setCurrentUser(JSON.parse(userStr)); } catch (e) { }
     }
   }, []);
 
@@ -45,22 +45,12 @@ export default function MenuManagementPage() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const lastMenusJsonRef = useRef(""); // Added for equality check
-
   const fetchMenus = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const response = await api.getMenu(false);
+      const response = await api.getMenu(true);
       const menusData = response.data || response;
-      const menusArray = Array.isArray(menusData) ? menusData : [];
-      
-      const menusJson = JSON.stringify(menusArray);
-      if (lastMenusJsonRef.current === menusJson) {
-        return; // Tidak ada perubahan, lewati re-render
-      }
-      lastMenusJsonRef.current = menusJson;
-
-      setMenus(menusArray);
+      setMenus(Array.isArray(menusData) ? menusData : []);
     } catch (error) {
       console.error("Failed to fetch menus:", error);
     } finally {
@@ -112,27 +102,25 @@ export default function MenuManagementPage() {
 
   const categoryOrder = { "makanan": 1, "minuman": 2, "snack": 3 };
 
-  const filteredMenus = useMemo(() => {
-    return menus.filter(m => {
-      const matchSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchCategory = filterCategory === "all" || m.category?.toLowerCase() === filterCategory;
-      return matchSearch && matchCategory;
-    }).sort((a, b) => {
-      const catA = (a.category || "").toLowerCase();
-      const catB = (b.category || "").toLowerCase();
-      
-      const orderA = categoryOrder[catA] || 99;
-      const orderB = categoryOrder[catB] || 99;
-      
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-      
-      const nameA = (a.name || "").toLowerCase();
-      const nameB = (b.name || "").toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-  }, [menus, searchTerm, filterCategory]);
+  const filteredMenus = menus.filter(m => {
+    const matchSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCategory = filterCategory === "all" || m.category?.toLowerCase() === filterCategory;
+    return matchSearch && matchCategory;
+  }).sort((a, b) => {
+    const catA = (a.category || "").toLowerCase();
+    const catB = (b.category || "").toLowerCase();
+
+    const orderA = categoryOrder[catA] || 99;
+    const orderB = categoryOrder[catB] || 99;
+
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+
+    const nameA = (a.name || "").toLowerCase();
+    const nameB = (b.name || "").toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 
 
 
@@ -151,74 +139,74 @@ export default function MenuManagementPage() {
       <div className="flex-1 flex flex-col min-w-0 md:ml-64">
         <MobileHeader title="Manajemen Menu" onMenuClick={() => setIsSidebarOpen(true)} />
         <main className="flex-1 p-4 md:p-6">
-        {loading ? (
-          <div className="animate-pulse space-y-6">
-            <div className="flex justify-between items-center mb-6">
-               <div className="h-8 bg-gray-200 rounded w-48"></div>
-               <div className="h-10 bg-gray-200 rounded w-32"></div>
+          {loading ? (
+            <div className="animate-pulse space-y-6">
+              <div className="flex justify-between items-center mb-6">
+                <div className="h-8 bg-gray-200 rounded w-48"></div>
+                <div className="h-10 bg-gray-200 rounded w-32"></div>
+              </div>
+              <div className="h-10 bg-gray-200 rounded w-80 mb-6"></div>
+              <div className="bg-white rounded-xl border p-4 space-y-4">
+                <div className="h-8 bg-gray-100 rounded w-full"></div>
+                <div className="h-8 bg-gray-100 rounded w-full"></div>
+                <div className="h-8 bg-gray-100 rounded w-full"></div>
+                <div className="h-8 bg-gray-100 rounded w-full"></div>
+                <div className="h-8 bg-gray-100 rounded w-full"></div>
+              </div>
             </div>
-            <div className="h-10 bg-gray-200 rounded w-80 mb-6"></div>
-            <div className="bg-white rounded-xl border p-4 space-y-4">
-               <div className="h-8 bg-gray-100 rounded w-full"></div>
-               <div className="h-8 bg-gray-100 rounded w-full"></div>
-               <div className="h-8 bg-gray-100 rounded w-full"></div>
-               <div className="h-8 bg-gray-100 rounded w-full"></div>
-               <div className="h-8 bg-gray-100 rounded w-full"></div>
-            </div>
-          </div>
-        ) : (
-          <>
-            <AdminHeader title="Daftar Menu Cafe">
-              <div className="flex items-center gap-4 hidden sm:flex">
-                <NotificationDropdown userRole="admin" />
-                <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
-                <div className="flex items-center gap-3 ml-2 border-l pl-4 border-gray-200">
-                  <div className="text-right">
-                    <div className="text-gray-900 text-sm font-bold">{currentUser?.fullName || currentUser?.username || "Admin"}</div>
-                    <div className="text-gray-500 text-xs font-bold">{currentUser?.role?.toUpperCase() || "ADMIN"}</div>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200 cursor-pointer" onClick={() => setIsSettingsOpen(true)}>
-                    {currentUser?.profilePicture ? (
-                      <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      (currentUser?.fullName || currentUser?.username || "A").charAt(0).toUpperCase()
-                    )}
+          ) : (
+            <>
+              <AdminHeader title="Daftar Menu Cafe">
+                <div className="flex items-center gap-4 hidden sm:flex">
+                  <NotificationDropdown userRole="admin" />
+                  <HelpCircle className="w-5 h-5 text-gray-500 cursor-pointer" />
+                  <div className="flex items-center gap-3 ml-2 border-l pl-4 border-gray-200">
+                    <div className="text-right">
+                      <div className="text-gray-900 text-sm font-bold">{currentUser?.fullName || currentUser?.username || "Admin"}</div>
+                      <div className="text-gray-500 text-xs font-bold">{currentUser?.role?.toUpperCase() || "ADMIN"}</div>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm border border-gray-200 cursor-pointer" onClick={() => setIsSettingsOpen(true)}>
+                      {currentUser?.profilePicture ? (
+                        <img src={currentUser.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        (currentUser?.fullName || currentUser?.username || "A").charAt(0).toUpperCase()
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </AdminHeader>
+              </AdminHeader>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
-                <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xl">🍔</div>
-                <div>
-                  <div className="text-gray-500 text-xs font-medium">Total Menu</div>
-                  <div className="text-gray-900 text-xl font-bold">{menus.length}</div>
+              {/* Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xl">🍔</div>
+                  <div>
+                    <div className="text-gray-500 text-xs font-medium">Total Menu</div>
+                    <div className="text-gray-900 text-xl font-bold">{menus.length}</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-600 text-xl">✅</div>
+                  <div>
+                    <div className="text-gray-500 text-xs font-medium">Tersedia</div>
+                    <div className="text-gray-900 text-xl font-bold">{menus.filter(m => m.isAvailable !== false).length}</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 text-xl">📦</div>
+                  <div>
+                    <div className="text-gray-500 text-xs font-medium">Total Stok</div>
+                    <div className="text-gray-900 text-xl font-bold">{menus.reduce((sum, m) => sum + (m.stock || 0), 0)}</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 text-xl">🏷️</div>
+                  <div>
+                    <div className="text-gray-500 text-xs font-medium">Kategori</div>
+                    <div className="text-gray-900 text-xl font-bold">{new Set(menus.map(m => m.category)).size}</div>
+                  </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
-                <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-600 text-xl">✅</div>
-                <div>
-                  <div className="text-gray-500 text-xs font-medium">Tersedia</div>
-                  <div className="text-gray-900 text-xl font-bold">{menus.filter(m => m.isAvailable !== false).length}</div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
-                <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 text-xl">📦</div>
-                <div>
-                  <div className="text-gray-500 text-xs font-medium">Total Stok</div>
-                  <div className="text-gray-900 text-xl font-bold">{menus.reduce((sum, m) => sum + (m.stock || 0), 0)}</div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 shadow-sm">
-                <div className="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 text-xl">🏷️</div>
-                <div>
-                  <div className="text-gray-500 text-xs font-medium">Kategori</div>
-                  <div className="text-gray-900 text-xl font-bold">{new Set(menus.map(m => m.category)).size}</div>
-                </div>
-              </div>
-            </div>
 
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -237,55 +225,54 @@ export default function MenuManagementPage() {
                 <button onClick={() => navigate("/admin/menu/add")} className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg w-full sm:w-auto justify-center"><Plus className="w-4 h-4" />Tambah Menu</button>
               </div>
 
-            {/* Table */}
-            <div className="bg-white rounded-xl border overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Gambar</th>
-                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Nama Menu</th>
-                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Kategori</th>
-                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Harga</th>
-                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Stok</th>
-                    <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMenus.map(menu => (
-                    <tr key={menu._id || menu.menuId} className="border-b hover:bg-gray-50 transition">
-                      <td className="px-5 py-3">
-                        <img src={menu.image || "https://placehold.co/100x80/c8a96e/c8a96e"} alt={menu.name} className="w-12 h-12 object-cover rounded-md border border-gray-200 shadow-sm" />
-                      </td>
-                      <td className="px-5 py-3 font-medium text-gray-900">{menu.name}</td>
-                      <td className="px-5 py-3"><span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        menu.category?.toLowerCase() === 'makanan' ? 'bg-orange-50 text-orange-600' :
-                        menu.category?.toLowerCase() === 'minuman' ? 'bg-blue-50 text-blue-600' :
-                        menu.category?.toLowerCase() === 'snack' ? 'bg-yellow-50 text-yellow-600' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>{menu.category}</span></td>
-                      <td className="px-5 py-3 text-gray-700">Rp {menu.price?.toLocaleString()}</td>
-                      <td className="px-5 py-3 text-gray-700">{menu.stock || 0}</td>
-                      <td className="px-5 py-3">
-                        <div className="flex gap-2">
-                          <button onClick={() => openUpdateModal(menu)} className="p-2 border rounded-md hover:bg-gray-50">
-                            <Pencil className="w-4 h-4 text-gray-500" />
-                          </button>
-                          <button onClick={() => handleDeleteClick(menu)} className="p-2 border rounded-md hover:bg-red-50">
-                            <Trash className="w-4 h-4 text-gray-500" />
-                          </button>
-                        </div>
-                      </td>
+              {/* Table */}
+              <div className="bg-white rounded-xl border overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Gambar</th>
+                      <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Nama Menu</th>
+                      <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Kategori</th>
+                      <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Harga</th>
+                      <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Stok</th>
+                      <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Aksi</th>
                     </tr>
-                  ))}
-                  {filteredMenus.length === 0 && <tr><td colSpan="6" className="text-center py-8 text-gray-400">Belum ada menu yang ditemukan</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
-      </main>
+                  </thead>
+                  <tbody>
+                    {filteredMenus.map(menu => (
+                      <tr key={menu._id || menu.menuId} className="border-b hover:bg-gray-50 transition">
+                        <td className="px-5 py-3">
+                          <img src={menu.image || "https://placehold.co/100x80/c8a96e/c8a96e"} alt={menu.name} className="w-12 h-12 object-cover rounded-md border border-gray-200 shadow-sm" />
+                        </td>
+                        <td className="px-5 py-3 font-medium text-gray-900">{menu.name}</td>
+                        <td className="px-5 py-3"><span className={`px-3 py-1 rounded-full text-xs font-medium ${menu.category?.toLowerCase() === 'makanan' ? 'bg-orange-50 text-orange-600' :
+                            menu.category?.toLowerCase() === 'minuman' ? 'bg-blue-50 text-blue-600' :
+                              menu.category?.toLowerCase() === 'snack' ? 'bg-yellow-50 text-yellow-600' :
+                                'bg-gray-100 text-gray-600'
+                          }`}>{menu.category}</span></td>
+                        <td className="px-5 py-3 text-gray-700">Rp {menu.price?.toLocaleString()}</td>
+                        <td className="px-5 py-3 text-gray-700">{menu.stock || 0}</td>
+                        <td className="px-5 py-3">
+                          <div className="flex gap-2">
+                            <button onClick={() => openUpdateModal(menu)} className="p-2 border rounded-md hover:bg-gray-50">
+                              <Pencil className="w-4 h-4 text-gray-500" />
+                            </button>
+                            <button onClick={() => handleDeleteClick(menu)} className="p-2 border rounded-md hover:bg-red-50">
+                              <Trash className="w-4 h-4 text-gray-500" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredMenus.length === 0 && <tr><td colSpan="6" className="text-center py-8 text-gray-400">Belum ada menu yang ditemukan</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} user={currentUser} onUpdate={(u) => setCurrentUser(u)} />
+        </main>
       </div>
 
       {/* MODAL UPDATE MENU */}

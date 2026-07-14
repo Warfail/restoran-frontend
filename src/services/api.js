@@ -1,12 +1,12 @@
-export const API_BASE = import.meta.env.DEV 
-  ? "http://127.0.0.1:8000" 
-  : "https://restoran-backend-production-fb73.up.railway.app";
+// export const API_BASE = import.meta.env.DEV 
+//   ? "http://127.0.0.1:8000" 
+//   : "https://restoran-backend-production-fb73.up.railway.app";
+
+export const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
 
 // 🔥 MENU CACHE
 let menuCache = null;
 let menuCacheTime = null;
-let menuCacheNoImage = null;
-let menuCacheNoImageTime = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 menit
 
 const getToken = () => sessionStorage.getItem("token");
@@ -44,26 +44,13 @@ export const api = {
   },
 
   // ========== MENU (Public) ==========
-  getMenu: async (skipCache = false, excludeImage = false, limit = 500) => {
-    if (!skipCache) {
-      if (excludeImage && menuCacheNoImage && menuCacheNoImageTime && (Date.now() - menuCacheNoImageTime < CACHE_DURATION)) {
-        console.log("o. Using cached menu (no image)");
-        return menuCacheNoImage;
-      }
-      if (!excludeImage && menuCache && menuCacheTime && (Date.now() - menuCacheTime < CACHE_DURATION)) {
-        console.log("o. Using cached menu (with image)");
-        return menuCache;
-      }
+  getMenu: async (skipCache = false) => {
+    if (!skipCache && menuCache && menuCacheTime && (Date.now() - menuCacheTime < CACHE_DURATION)) {
+      console.log("✅ Using cached menu");
+      return menuCache;
     }
 
-    const url = new URL(`${API_BASE}/menu/`);
-    url.searchParams.append("limit", limit);
-    url.searchParams.append("t", Date.now());
-    if (excludeImage) {
-      url.searchParams.append("exclude_image", "true");
-    }
-
-    const res = await fetch(url.toString(), {
+    const res = await fetch(`${API_BASE}/menu/?limit=500&t=${Date.now()}`, {
       headers: {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
@@ -79,13 +66,8 @@ export const api = {
       menus = data;
     }
 
-    if (excludeImage) {
-      menuCacheNoImage = menus;
-      menuCacheNoImageTime = Date.now();
-    } else {
-      menuCache = menus;
-      menuCacheTime = Date.now();
-    }
+    menuCache = menus;
+    menuCacheTime = Date.now();
 
     return menus;
   },

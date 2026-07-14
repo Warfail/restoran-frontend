@@ -2,7 +2,7 @@ import toast from "react-hot-toast";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { 
+import {
   Bell, LogOut, Check, Plus, Search, Minus, RefreshCw,
   UtensilsCrossed, Coffee, ChefHat
 } from "lucide-react";
@@ -14,7 +14,6 @@ export default function KitchenDashboard() {
   const [hasNewNotif, setHasNewNotif] = useState(false);
   const [showOrderOverlay, setShowOrderOverlay] = useState(false);
   const lastOrderCountRef = useRef(0);
-  const lastOrdersJsonRef = useRef(""); // Added for equality check
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -27,12 +26,12 @@ export default function KitchenDashboard() {
   const [nowTime, setNowTime] = useState(new Date());
   const [tickCount, setTickCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  
+
   const [newOrders, setNewOrders] = useState([]);
   const [foodCooking, setFoodCooking] = useState([]);
   const [snackCooking, setSnackCooking] = useState([]);
   const [drinkCooking, setDrinkCooking] = useState([]);
-  
+
   const [checkedItems, setCheckedItems] = useState({});
   const [stockLogs, setStockLogs] = useState([]);
   const [inventory, setInventory] = useState([]);
@@ -49,7 +48,7 @@ export default function KitchenDashboard() {
   const [statsDate, setStatsDate] = useState(new Date().toISOString().split('T')[0]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const API_BASE = import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://restoran-backend-production-fb73.up.railway.app";
+  const API_BASE = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
 
   const menuDict = useMemo(() => {
     const dict = {};
@@ -99,12 +98,6 @@ export default function KitchenDashboard() {
       const ordersData = response?.data || response || [];
       const ordersArray = Array.isArray(ordersData) ? ordersData : [];
 
-      const ordersJson = JSON.stringify(ordersArray);
-      if (lastOrdersJsonRef.current === ordersJson) {
-        return; // Tidak ada perubahan, lewati re-render
-      }
-      lastOrdersJsonRef.current = ordersJson;
-
       ordersArray.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
       const newOrdersList = [];
@@ -148,7 +141,7 @@ export default function KitchenDashboard() {
         if (activeTabRef.current !== "antrean") {
           setHasNewNotif(true);
         }
-        
+
         toast("Ada Pesanan Baru!", {
           icon: '🔔',
           style: {
@@ -158,7 +151,7 @@ export default function KitchenDashboard() {
           },
           duration: 4000,
         });
-        
+
         try {
           const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
           audio.play().catch(e => console.log("Audio play failed:", e));
@@ -194,7 +187,7 @@ export default function KitchenDashboard() {
 
   const fetchMenus = async () => {
     try {
-      const menus = await api.getMenu(false, true).catch(() => []); // skipCache=false, excludeImage=true
+      const menus = await api.getMenu(true).catch(() => []);
       if (Array.isArray(menus)) {
         setMenuList(menus);
         menuListRef.current = menus; // Update ref
@@ -273,7 +266,7 @@ export default function KitchenDashboard() {
       fetchInventory();
       fetchMenus();
     }, 10000);
-    
+
     return () => {
       clearInterval(timer);
       clearInterval(interval);
@@ -296,20 +289,20 @@ export default function KitchenDashboard() {
   const startCooking = async (orderId) => {
     try {
       const stockResult = await api.reduceStock(orderId);
-      
+
       if (!stockResult.success) {
         toast.error(`Stok tidak cukup: ${stockResult.errors?.join(", ")}`);
         return;
       }
-      
+
       if (stockResult.disabled_menus && stockResult.disabled_menus.length > 0) {
         toast.warning(
           `⚠️ Menu dinonaktifkan (bahan habis): ${stockResult.disabled_menus.join(", ")}`
         );
       }
-      
+
       const response = await api.updateKitchenStatus(orderId, "cooking");
-      
+
       if (response.success || response) {
         const newStartTimes = { ...cookingStartTimes, [orderId]: new Date().toISOString() };
         localStorage.setItem("kitchenCookingStartTimes", JSON.stringify(newStartTimes));
@@ -331,27 +324,27 @@ export default function KitchenDashboard() {
       const orderId = order.orderId || order._id;
       const saved = JSON.parse(localStorage.getItem("kitchenCompletedSections") || "{}");
       const orderCompleted = saved[orderId] || [];
-      
+
       if (!orderCompleted.includes(category)) {
         orderCompleted.push(category);
       }
-      
+
       const itemsToEvaluate = order.originalItems || order.items;
       const menuDict = {};
       menuList.forEach(m => menuDict[m.name] = m.category);
       const getCat = (item) => (menuDict[item.name] || item.category || "Makanan").toLowerCase();
-      
+
       const hasMakanan = itemsToEvaluate?.some(item => getCat(item) === "makanan");
       const hasSnack = itemsToEvaluate?.some(item => getCat(item) === "snack");
       const hasMinuman = itemsToEvaluate?.some(item => getCat(item) === "minuman");
-      
+
       const requiredCats = [];
       if (hasMakanan) requiredCats.push("makanan");
       if (hasSnack) requiredCats.push("snack");
       if (hasMinuman) requiredCats.push("minuman");
-      
+
       const isAllDone = requiredCats.every(cat => orderCompleted.includes(cat));
-      
+
       if (isAllDone) {
         const response = await api.updateKitchenStatus(orderId, "completed");
         if (response.success || response) {
@@ -362,7 +355,7 @@ export default function KitchenDashboard() {
         saved[orderId] = orderCompleted;
         toast.success(`${category.toUpperCase()} untuk Meja ${order.tableNumber} selesai!`);
       }
-      
+
       localStorage.setItem("kitchenCompletedSections", JSON.stringify(saved));
       await fetchOrders();
     } catch (error) {
@@ -399,17 +392,17 @@ export default function KitchenDashboard() {
       toast.error("Masukkan jumlah stok terlebih dahulu");
       return;
     }
-    
+
     const newStock = parseFloat(counters[id]);
     if (isNaN(newStock) || newStock < 0) {
       toast.error("Masukkan angka yang valid");
       return;
     }
-    
+
     // 🔥 Optimistic Update
     setInventory(prev => prev.map(i => (i._id === id || i.id === id) ? { ...i, stock: newStock } : i));
     setCounters(prev => ({ ...prev, [id]: '' }));
-    
+
     try {
       await api.updateStock(id, { stock: newStock });
       toast.success("Stok berhasil diupdate!");
@@ -425,10 +418,10 @@ export default function KitchenDashboard() {
 
   const toggleMenuAvailability = async (id, currentStatus) => {
     const newStatus = !currentStatus;
-    
+
     // 🔥 Optimistic Update (Berubah seketika di layar)
     setMenuList(prev => prev.map(m => (m._id === id || m.id === id) ? { ...m, isAvailable: newStatus } : m));
-    
+
     try {
       await api.updateMenu(id, { isAvailable: newStatus });
       toast.success(newStatus ? "Menu diaktifkan" : "Menu dinonaktifkan");
@@ -463,7 +456,7 @@ export default function KitchenDashboard() {
 
   const filteredInventory = inventory.filter(item => {
     const matchSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     let matchStatus = true;
     if (statusFilter !== "Semua") {
       const stock = item.stock || 0;
@@ -472,7 +465,7 @@ export default function KitchenDashboard() {
       else if (statusFilter === "Menipis") matchStatus = stock > 5 && stock <= 10;
       else if (statusFilter === "Aman") matchStatus = stock > 10;
     }
-    
+
     return matchSearch && matchStatus;
   });
 
@@ -486,7 +479,7 @@ export default function KitchenDashboard() {
     if (cookingStartTimes[orderId]) {
       return new Date(cookingStartTimes[orderId]);
     }
-    
+
     let start = new Date(fallbackDate);
     if (start.getTime() > nowTime.getTime() + 60000) {
       start = new Date(start.getTime() - 7 * 60 * 60 * 1000);
@@ -500,22 +493,22 @@ export default function KitchenDashboard() {
   const getTimerInfo = (order, category) => {
     const start = getCookingStartTime(order.orderId || order._id, order.updatedAt || order.createdAt || Date.now());
     const elapsedMs = nowTime - start;
-    
+
     let targetMins = 15;
     if (category === "snack") targetMins = 10;
     if (category === "minuman") targetMins = 5;
-    
+
     const targetMs = targetMins * 60 * 1000;
-    
+
     const isAlert = elapsedMs >= targetMs;
     const isOverdue = isAlert;
-    
+
     const safeElapsed = Math.max(0, elapsedMs);
     const m = Math.floor(safeElapsed / 60000);
     const s = Math.floor((safeElapsed % 60000) / 1000);
-    
+
     const timeString = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    
+
     return {
       timeString,
       isAlert,
@@ -550,11 +543,11 @@ export default function KitchenDashboard() {
             <button onClick={() => setActiveTab("stats")} className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${activeTab === "stats" ? "bg-red-500 text-white" : "hover:bg-gray-100"}`}>Statistik</button>
           </div>
         </div>
-          
+
         <div className="hidden md:flex items-center justify-end gap-3 w-full md:w-1/4">
           <span className="text-sm font-medium">{currentTime}</span>
           <div className="relative">
-            <Bell 
+            <Bell
               className={`w-5 h-5 cursor-pointer transition-colors ${hasNewNotif ? 'text-red-500 animate-pulse' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => {
                 setShowOrderOverlay(true);
@@ -761,9 +754,9 @@ export default function KitchenDashboard() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input type="text" placeholder="Cari bahan..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
-                <select 
-                  value={statusFilter} 
-                  onChange={(e) => setStatusFilter(e.target.value)} 
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
                   className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none w-full sm:w-48 shadow-sm"
                 >
                   <option value="Semua">Semua Status</option>
@@ -789,13 +782,13 @@ export default function KitchenDashboard() {
                           {getStatusBadge(item.stock)}
                         </div>
                       </div>
-                      
+
                       {/* Counter & Action (Bawah di mobile, Kanan di desktop) */}
                       <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-gray-100">
                         <div className="flex items-center gap-2">
                           <button onClick={() => updateCounter(item._id || item.id, -1)} className="w-8 h-8 border rounded-lg flex items-center justify-center hover:bg-gray-50"><Minus className="w-3.5 h-3.5" /></button>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             step="any"
                             min="0"
                             placeholder="0"
@@ -826,9 +819,9 @@ export default function KitchenDashboard() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input type="text" placeholder="Cari menu..." className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
-                <select 
-                  value={filterCategory} 
-                  onChange={(e) => setFilterCategory(e.target.value)} 
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
                   className="bg-white border rounded-lg px-3 py-2 text-sm focus:outline-none w-full sm:w-48 shadow-sm"
                 >
                   <option value="all">Semua Kategori</option>
@@ -936,7 +929,7 @@ export default function KitchenDashboard() {
                     </button>
                   </div>
                 </div>
-                
+
                 {statsLoading ? (
                   <div className="text-center py-8">Loading...</div>
                 ) : dailyStats.length === 0 ? (
@@ -963,11 +956,10 @@ export default function KitchenDashboard() {
                                 {item.total} {item.unit}
                               </td>
                               <td className="px-4 py-2">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  item.category === "Makanan" ? "bg-orange-100 text-orange-700" :
-                                  item.category === "Snack" ? "bg-yellow-100 text-yellow-700" :
-                                  "bg-blue-100 text-blue-700"
-                                }`}>
+                                <span className={`px-2 py-1 rounded-full text-xs ${item.category === "Makanan" ? "bg-orange-100 text-orange-700" :
+                                    item.category === "Snack" ? "bg-yellow-100 text-yellow-700" :
+                                      "bg-blue-100 text-blue-700"
+                                  }`}>
                                   {item.category === "Makanan" && "🍽️"}
                                   {item.category === "Snack" && "🍿"}
                                   {item.category === "Minuman" && "🥤"}
@@ -1009,14 +1001,14 @@ export default function KitchenDashboard() {
                 <Bell className="w-5 h-5 text-red-500" />
                 Pesanan Baru
               </h2>
-              <button 
+              <button
                 onClick={() => setShowOrderOverlay(false)}
                 className="text-gray-400 hover:text-gray-700 bg-white hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors text-xl font-bold"
               >
                 &times;
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
               {newOrders.length === 0 ? (
                 <div className="text-center py-10 text-gray-400 flex flex-col items-center">
@@ -1050,15 +1042,15 @@ export default function KitchenDashboard() {
                 </div>
               )}
             </div>
-            
+
             <div className="px-6 py-4 border-t bg-white flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setShowOrderOverlay(false)}
                 className="px-6 py-2 rounded-xl font-bold transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200"
               >
                 Tutup
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setShowOrderOverlay(false);
                   setActiveTab("antrean");

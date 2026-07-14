@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "../services/api";
@@ -10,7 +10,7 @@ export default function CustomerMenuPage() {
   const tableNumber = searchParams.get("table") || "5";
   const customerName = searchParams.get("name") || "Guest";
   const orderType = searchParams.get("type") || "Makan di Tempat";
-  
+
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem("cart");
@@ -28,71 +28,82 @@ export default function CustomerMenuPage() {
   }, [cart]);
   const [orderSummary, setOrderSummary] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState(["Semua"]);
-  
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const API_URL = import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://restoran-backend-production-fb73.up.railway.app";
-
-  // Debounce search term
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(1);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
+  const API_URL = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
 
   // 🔥 FETCH MENU DENGAN FILTER KATEGORI + PAGINATION
   useEffect(() => {
     const fetchMenu = async () => {
       try {
         setLoading(true);
-        const { api } = await import('../services/api');
-        const menus = await api.getMenu(false); // Global cache
-        let filtered = menus || [];
-        
-        // Sanitasi kategori
-        filtered = filtered.map(item => {
-          let category = item.category || "Makanan";
-          if (category.toLowerCase() === "minuman") category = "Minuman";
-          if (!["Makanan", "Snack", "Minuman"].includes(category)) category = "Makanan";
-          return { ...item, category };
-        });
-        
-        // Filter by category
+
+        let url = `${API_URL}/menu/?page=1&limit=500&t=${Date.now()}`;
         if (selectedCategory !== "Semua") {
-          filtered = filtered.filter(item => item.category === selectedCategory);
+          url += `&category=${encodeURIComponent(selectedCategory)}`;
         }
-        
-        // Filter by search
-        if (debouncedSearch) {
-          filtered = filtered.filter(item => item.name?.toLowerCase().includes(debouncedSearch.toLowerCase()));
+
+        const response = await fetch(url, {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
         }
-        
-        const itemsPerPage = 12;
-        setTotalPages(Math.ceil(filtered.length / itemsPerPage) || 1);
-        
-        const startIndex = (page - 1) * itemsPerPage;
-        const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
-        
-        setMenuItems(paginated);
-        setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
+
+        const data = await response.json();
+        console.log("Menu data:", data);
+
+        if (data.success) {
+          const menus = data.data || [];
+          if (Array.isArray(menus) && menus.length > 0) {
+            // 🔥 SANITASI KATEGORI (PASTIKAN MINUMAN KELUAR!)
+            const sanitizedMenus = menus.map(item => {
+              let category = item.category || "Makanan";
+              // 🔥 NORMALISASI: "minuman" → "Minuman"
+              if (category.toLowerCase() === "minuman") {
+                category = "Minuman";
+              }
+              // 🔥 VALIDASI: KALO GA VALID → "Makanan"
+              const validCategories = ["Makanan", "Snack", "Minuman"];
+              if (!validCategories.includes(category)) {
+                category = "Makanan";
+              }
+              return { ...item, category };
+            });
+
+            console.log("✅ After sanitize:", sanitizedMenus);
+
+            setMenuItems(sanitizedMenus);
+            setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
+          } else {
+            setMenuItems([]);
+          }
+          setTotalPages(data.pagination?.totalPages || 1);
+        } else {
+          console.warn("API returned success: false", data);
+          setMenuItems([]);
+        }
       } catch (error) {
         console.error("Failed to fetch menu:", error);
+        toast.error("Gagal memuat menu. Silakan refresh.");
         setMenuItems([]);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchMenu();
-  }, [page, selectedCategory, debouncedSearch]);
+  }, [page, selectedCategory]);
 
 
   const handleCategoryClick = (cat) => {
@@ -103,13 +114,13 @@ export default function CustomerMenuPage() {
   const addToCart = (item) => {
     const itemId = item._id || item.menuId || item.id;
     const existing = cart.find(cartItem => (cartItem._id || cartItem.menuId || cartItem.id) === itemId);
-    
+
     if (existing) {
       if (existing.quantity + 1 > (item.stock || 0)) {
         toast.error(`Stok maksimal untuk ${item.name} adalah ${item.stock || 0}`);
         return;
       }
-      setCart(cart.map(cartItem => 
+      setCart(cart.map(cartItem =>
         (cartItem._id || cartItem.menuId || cartItem.id) === itemId
           ? { ...cartItem, quantity: cartItem.quantity + 1, subtotal: (cartItem.quantity + 1) * cartItem.price }
           : cartItem
@@ -119,9 +130,9 @@ export default function CustomerMenuPage() {
         toast.error(`Stok ${item.name} habis`);
         return;
       }
-      setCart([...cart, { 
-        ...item, 
-        quantity: 1, 
+      setCart([...cart, {
+        ...item,
+        quantity: 1,
         subtotal: item.price,
         category: item.category || "Makanan"
       }]);
@@ -139,7 +150,7 @@ export default function CustomerMenuPage() {
       if (newQuantity <= 0) {
         removeFromCart(itemId);
       } else {
-        setCart(cart.map(i => 
+        setCart(cart.map(i =>
           (i._id || i.menuId || i.id) === itemId
             ? { ...i, quantity: newQuantity, subtotal: newQuantity * i.price }
             : i
@@ -161,7 +172,7 @@ export default function CustomerMenuPage() {
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-    
+
     navigate("/cart", {
       state: {
         customerName: customerName,
@@ -173,18 +184,19 @@ export default function CustomerMenuPage() {
     });
   };
 
-  const filteredMenu = useMemo(() => {
-    return menuItems;
-  }, [menuItems]);
+  // 🔥 FILTER BERDASARKAN SEARCH (TANPA MENGACAUKAN PAGINATION)
+  const filteredMenu = menuItems.filter(item => {
+    if (!item || !item.name) return false;
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
-  const groupedMenu = useMemo(() => {
-    return filteredMenu.reduce((groups, item) => {
-      if (!item || !item.category) return groups;
-      if (!groups[item.category]) groups[item.category] = [];
-      groups[item.category].push(item);
-      return groups;
-    }, {});
-  }, [filteredMenu]);
+  const groupedMenu = filteredMenu.reduce((groups, item) => {
+    if (!item || !item.category) return groups;
+    if (!groups[item.category]) groups[item.category] = [];
+    groups[item.category].push(item);
+    return groups;
+  }, {});
 
   if (loading) {
     return (
@@ -266,11 +278,10 @@ export default function CustomerMenuPage() {
             <button
               key={index}
               onClick={() => handleCategoryClick(cat)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                selectedCategory === cat
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition ${selectedCategory === cat
                   ? "bg-white text-gray-900 border border-gray-200 shadow-sm"
                   : "bg-white text-gray-900 border border-gray-200 shadow-sm"
-              }`}
+                }`}
             >
               {cat}
             </button>
@@ -289,10 +300,10 @@ export default function CustomerMenuPage() {
               <div className="space-y-0">
                 {groupedMenu[category].map((item) => (
                   <div key={item._id || item.menuId || item.id} className={`flex items-center gap-3.5 py-4 border-b border-gray-100 ${item.isAvailable === false ? 'opacity-50 grayscale' : ''}`}>
-                    <img 
-                      src={item.image} 
-                      alt={item.name} 
-                      className="w-20 h-16 rounded-xl object-cover flex-shrink-0" 
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-20 h-16 rounded-xl object-cover flex-shrink-0"
                       loading="lazy"
                       width="80"
                       height="64"
@@ -346,11 +357,11 @@ export default function CustomerMenuPage() {
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          
+
           <span className="text-sm font-medium text-gray-600">
             {page} / {totalPages}
           </span>
-          
+
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
@@ -364,7 +375,7 @@ export default function CustomerMenuPage() {
       {/* FLOATING CHECKOUT BAR */}
       {cart.length > 0 && !showCart && (
         <div className="fixed bottom-0 left-0 right-0 p-4 z-40 bg-gradient-to-t from-white via-white/80 to-transparent pt-12 pb-6 pointer-events-none">
-          <div 
+          <div
             onClick={handleCheckout}
             className="max-w-md mx-auto bg-red-600 rounded-2xl shadow-lg p-3 flex items-center justify-between cursor-pointer hover:bg-red-700 transition active:scale-[0.98] pointer-events-auto"
           >
@@ -405,9 +416,9 @@ export default function CustomerMenuPage() {
                 <div className="space-y-3">
                   {cart.map((item) => (
                     <div key={item._id || item.menuId || item.id} className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm rounded-xl p-3 hover:shadow-md transition-shadow">
-                      <img 
-                        src={item.image} 
-                        alt={item.name} 
+                      <img
+                        src={item.image}
+                        alt={item.name}
                         className="w-14 h-14 rounded-lg object-cover"
                         loading="lazy"
                         width="56"
