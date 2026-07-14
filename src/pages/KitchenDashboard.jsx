@@ -194,7 +194,7 @@ export default function KitchenDashboard() {
 
   const fetchMenus = async () => {
     try {
-      const menus = await api.getMenu(true, true).catch(() => []); // skipCache=true, excludeImage=true
+      const menus = await api.getMenu(false, true).catch(() => []); // skipCache=false, excludeImage=true
       if (Array.isArray(menus)) {
         setMenuList(menus);
         menuListRef.current = menus; // Update ref
