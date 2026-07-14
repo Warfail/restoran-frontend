@@ -37,7 +37,7 @@ export default function CustomerMenuPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const API_URL = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
+  const API_URL = import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://restoran-backend-production-fb73.up.railway.app";
 
   // Debounce search term
   useEffect(() => {

@@ -1,8 +1,6 @@
-// export const API_BASE = import.meta.env.DEV 
-//   ? "http://127.0.0.1:8000" 
-//   : "https://restoran-backend-production-fb73.up.railway.app";
-
-  export const API_BASE = "https://restoran-backend-production-fb73.up.railway.app";
+export const API_BASE = import.meta.env.DEV 
+  ? "http://127.0.0.1:8000" 
+  : "https://restoran-backend-production-fb73.up.railway.app";
 
 // 🔥 MENU CACHE
 let menuCache = null;

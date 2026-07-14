@@ -49,7 +49,7 @@ export default function KitchenDashboard() {
   const [statsDate, setStatsDate] = useState(new Date().toISOString().split('T')[0]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
+  const API_BASE = import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://restoran-backend-production-fb73.up.railway.app";
 
   const menuDict = useMemo(() => {
     const dict = {};
