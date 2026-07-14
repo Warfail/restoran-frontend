@@ -53,7 +53,7 @@ export default function AdminDashboard() {
       // Ambil semua data dari API
       const [ordersRes, menusRes, usersRes] = await Promise.all([
         api.getOrders(),
-        api.getMenu(),
+        api.getMenu(false, true), // skipCache=false, excludeImage=true
         api.getUsers().catch(() => ({ data: [] }))
       ]);
       

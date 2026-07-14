@@ -44,13 +44,20 @@ export const api = {
   },
 
   // ========== MENU (Public) ==========
-  getMenu: async (skipCache = false) => {
+  getMenu: async (skipCache = false, excludeImage = false, limit = 500) => {
     if (!skipCache && menuCache && menuCacheTime && (Date.now() - menuCacheTime < CACHE_DURATION)) {
       console.log("✅ Using cached menu");
       return menuCache;
     }
 
-    const res = await fetch(`${API_BASE}/menu/?limit=500&t=${Date.now()}`, {
+    const url = new URL(`${API_BASE}/menu/`);
+    url.searchParams.append("limit", limit);
+    url.searchParams.append("t", Date.now());
+    if (excludeImage) {
+      url.searchParams.append("exclude_image", "true");
+    }
+
+    const res = await fetch(url.toString(), {
       headers: {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'

@@ -28,6 +28,7 @@ export default function CustomerMenuPage() {
   }, [cart]);
   const [orderSummary, setOrderSummary] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,15 +39,27 @@ export default function CustomerMenuPage() {
 
   const API_URL = import.meta.env.VITE_API_URL || "https://restoran-backend-production-fb73.up.railway.app";
 
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   // 🔥 FETCH MENU DENGAN FILTER KATEGORI + PAGINATION
   useEffect(() => {
     const fetchMenu = async () => {
       try {
         setLoading(true);
         
-        let url = `${API_URL}/menu/?page=1&limit=500&t=${Date.now()}`;
+        let url = `${API_URL}/menu/?page=${page}&limit=12&t=${Date.now()}`;
         if (selectedCategory !== "Semua") {
           url += `&category=${encodeURIComponent(selectedCategory)}`;
+        }
+        if (debouncedSearch) {
+          url += `&search=${encodeURIComponent(debouncedSearch)}`;
         }
         
         const response = await fetch(url, {
@@ -103,7 +116,7 @@ export default function CustomerMenuPage() {
     };
     
     fetchMenu();
-  }, [page, selectedCategory]);
+  }, [page, selectedCategory, debouncedSearch]);
 
 
   const handleCategoryClick = (cat) => {
@@ -185,11 +198,8 @@ export default function CustomerMenuPage() {
   };
 
   const filteredMenu = useMemo(() => {
-    return menuItems.filter(item => {
-      if (!item || !item.name) return false;
-      return item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-  }, [menuItems, searchTerm]);
+    return menuItems;
+  }, [menuItems]);
 
   const groupedMenu = useMemo(() => {
     return filteredMenu.reduce((groups, item) => {
