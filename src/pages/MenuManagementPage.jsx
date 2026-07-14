@@ -4,7 +4,7 @@ import MobileHeader from "../components/admin/MobileHeader";
 import Sidebar from "../components/admin/Sidebar";
 import AdminHeader from "../components/admin/AdminHeader";
 import toast from "react-hot-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import UpdateMenuModal from "../components/UpdateMenuModal";
@@ -45,12 +45,22 @@ export default function MenuManagementPage() {
     return () => clearInterval(intervalId);
   }, []);
 
+  const lastMenusJsonRef = useRef(""); // Added for equality check
+
   const fetchMenus = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       const response = await api.getMenu(true);
       const menusData = response.data || response;
-      setMenus(Array.isArray(menusData) ? menusData : []);
+      const menusArray = Array.isArray(menusData) ? menusData : [];
+      
+      const menusJson = JSON.stringify(menusArray);
+      if (lastMenusJsonRef.current === menusJson) {
+        return; // Tidak ada perubahan, lewati re-render
+      }
+      lastMenusJsonRef.current = menusJson;
+
+      setMenus(menusArray);
     } catch (error) {
       console.error("Failed to fetch menus:", error);
     } finally {
@@ -102,25 +112,27 @@ export default function MenuManagementPage() {
 
   const categoryOrder = { "makanan": 1, "minuman": 2, "snack": 3 };
 
-  const filteredMenus = menus.filter(m => {
-    const matchSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchCategory = filterCategory === "all" || m.category?.toLowerCase() === filterCategory;
-    return matchSearch && matchCategory;
-  }).sort((a, b) => {
-    const catA = (a.category || "").toLowerCase();
-    const catB = (b.category || "").toLowerCase();
-    
-    const orderA = categoryOrder[catA] || 99;
-    const orderB = categoryOrder[catB] || 99;
-    
-    if (orderA !== orderB) {
-      return orderA - orderB;
-    }
-    
-    const nameA = (a.name || "").toLowerCase();
-    const nameB = (b.name || "").toLowerCase();
-    return nameA.localeCompare(nameB);
-  });
+  const filteredMenus = useMemo(() => {
+    return menus.filter(m => {
+      const matchSearch = m.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCategory = filterCategory === "all" || m.category?.toLowerCase() === filterCategory;
+      return matchSearch && matchCategory;
+    }).sort((a, b) => {
+      const catA = (a.category || "").toLowerCase();
+      const catB = (b.category || "").toLowerCase();
+      
+      const orderA = categoryOrder[catA] || 99;
+      const orderB = categoryOrder[catB] || 99;
+      
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      
+      const nameA = (a.name || "").toLowerCase();
+      const nameB = (b.name || "").toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }, [menus, searchTerm, filterCategory]);
 
 
 

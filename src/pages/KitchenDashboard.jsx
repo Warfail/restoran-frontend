@@ -14,6 +14,7 @@ export default function KitchenDashboard() {
   const [hasNewNotif, setHasNewNotif] = useState(false);
   const [showOrderOverlay, setShowOrderOverlay] = useState(false);
   const lastOrderCountRef = useRef(0);
+  const lastOrdersJsonRef = useRef(""); // Added for equality check
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -97,6 +98,12 @@ export default function KitchenDashboard() {
       const response = await api.getKitchenOrders();
       const ordersData = response?.data || response || [];
       const ordersArray = Array.isArray(ordersData) ? ordersData : [];
+
+      const ordersJson = JSON.stringify(ordersArray);
+      if (lastOrdersJsonRef.current === ordersJson) {
+        return; // Tidak ada perubahan, lewati re-render
+      }
+      lastOrdersJsonRef.current = ordersJson;
 
       ordersArray.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 

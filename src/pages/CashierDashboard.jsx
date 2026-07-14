@@ -53,7 +53,7 @@ export default function CashierDashboard() {
   const [currentPrintOrderId, setCurrentPrintOrderId] = useState(null);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
 
-  // 🔥 AUTO-REFRESH 10 DETIK
+
   useEffect(() => {
     fetchOrders(true);
     const interval = setInterval(() => fetchOrders(false), 10000);

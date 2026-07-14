@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "../services/api";
@@ -105,7 +105,7 @@ export default function CustomerMenuPage() {
     fetchMenu();
   }, [page, selectedCategory]);
 
-  // 🔥 HANDLE KLIK KATEGORI
+
   const handleCategoryClick = (cat) => {
     setSelectedCategory(cat);
     setPage(1);
@@ -184,19 +184,21 @@ export default function CustomerMenuPage() {
     });
   };
 
-  // 🔥 FILTER BERDASARKAN SEARCH (TANPA MENGACAUKAN PAGINATION)
-  const filteredMenu = menuItems.filter(item => {
-    if (!item || !item.name) return false;
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredMenu = useMemo(() => {
+    return menuItems.filter(item => {
+      if (!item || !item.name) return false;
+      return item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [menuItems, searchTerm]);
 
-  const groupedMenu = filteredMenu.reduce((groups, item) => {
-    if (!item || !item.category) return groups;
-    if (!groups[item.category]) groups[item.category] = [];
-    groups[item.category].push(item);
-    return groups;
-  }, {});
+  const groupedMenu = useMemo(() => {
+    return filteredMenu.reduce((groups, item) => {
+      if (!item || !item.category) return groups;
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push(item);
+      return groups;
+    }, {});
+  }, [filteredMenu]);
 
   if (loading) {
     return (
