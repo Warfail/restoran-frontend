@@ -53,62 +53,38 @@ export default function CustomerMenuPage() {
     const fetchMenu = async () => {
       try {
         setLoading(true);
+        const { api } = await import('../services/api');
+        const menus = await api.getMenu(false); // Global cache
+        let filtered = menus || [];
         
-        let url = `${API_URL}/menu/?page=${page}&limit=12&t=${Date.now()}`;
-        if (selectedCategory !== "Semua") {
-          url += `&category=${encodeURIComponent(selectedCategory)}`;
-        }
-        if (debouncedSearch) {
-          url += `&search=${encodeURIComponent(debouncedSearch)}`;
-        }
-        
-        const response = await fetch(url, {
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
+        // Sanitasi kategori
+        filtered = filtered.map(item => {
+          let category = item.category || "Makanan";
+          if (category.toLowerCase() === "minuman") category = "Minuman";
+          if (!["Makanan", "Snack", "Minuman"].includes(category)) category = "Makanan";
+          return { ...item, category };
         });
         
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+        // Filter by category
+        if (selectedCategory !== "Semua") {
+          filtered = filtered.filter(item => item.category === selectedCategory);
         }
         
-        const data = await response.json();
-        console.log("Menu data:", data);
-        
-        if (data.success) {
-          const menus = data.data || [];
-          if (Array.isArray(menus) && menus.length > 0) {
-            // 🔥 SANITASI KATEGORI (PASTIKAN MINUMAN KELUAR!)
-            const sanitizedMenus = menus.map(item => {
-              let category = item.category || "Makanan";
-              // 🔥 NORMALISASI: "minuman" → "Minuman"
-              if (category.toLowerCase() === "minuman") {
-                category = "Minuman";
-              }
-              // 🔥 VALIDASI: KALO GA VALID → "Makanan"
-              const validCategories = ["Makanan", "Snack", "Minuman"];
-              if (!validCategories.includes(category)) {
-                category = "Makanan";
-              }
-              return { ...item, category };
-            });
-            
-            console.log("✅ After sanitize:", sanitizedMenus);
-            
-            setMenuItems(sanitizedMenus);
-            setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
-          } else {
-            setMenuItems([]);
-          }
-          setTotalPages(data.pagination?.totalPages || 1);
-        } else {
-          console.warn("API returned success: false", data);
-          setMenuItems([]);
+        // Filter by search
+        if (debouncedSearch) {
+          filtered = filtered.filter(item => item.name?.toLowerCase().includes(debouncedSearch.toLowerCase()));
         }
+        
+        const itemsPerPage = 12;
+        setTotalPages(Math.ceil(filtered.length / itemsPerPage) || 1);
+        
+        const startIndex = (page - 1) * itemsPerPage;
+        const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+        
+        setMenuItems(paginated);
+        setCategories(["Semua", "Makanan", "Snack", "Minuman"]);
       } catch (error) {
         console.error("Failed to fetch menu:", error);
-        toast.error("Gagal memuat menu. Silakan refresh.");
         setMenuItems([]);
       } finally {
         setLoading(false);
