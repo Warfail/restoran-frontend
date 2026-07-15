@@ -157,6 +157,16 @@ export default function CashierDashboard() {
     : orders.filter(o => o.isPrinted);
 
   const filteredOrders = currentOrders.filter(order => {
+    // 🔥 PENTING: Jangan tampilkan pesanan online yang belum dibayar di Kasir!
+    // Kasir hanya melihat pesanan PENDING jika metode pembayarannya cash/debit.
+    // Jika metode pembayarannya kosong atau QRIS/Transfer tapi masih PENDING, jangan munculkan!
+    if (order.status === "pending" || order.payment_status === "pending") {
+      const isCash = order.paymentMethod === "cash" || order.paymentMethod === "debit";
+      if (!isCash) {
+        return false; // Sembunyikan pesanan zombie / belum bayar online
+      }
+    }
+
     const matchesSearch = order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.tableNumber?.toString().includes(searchTerm);

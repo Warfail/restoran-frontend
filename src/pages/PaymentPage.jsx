@@ -161,6 +161,8 @@ export default function PaymentPage() {
       }
 
       // 🔥 BAYAR PAKE SNAP
+      // Reset loading BEFORE opening Snap so they don't get stuck if they close it
+      setLoading(false);
       window.snap.pay(response.token, {
         onSuccess: async function (result) {
           console.log("✅ Payment success:", result);
@@ -205,7 +207,7 @@ export default function PaymentPage() {
           document.querySelectorAll('iframe[src*="midtrans"]').forEach(el => el.remove());
           document.body.style.overflow = '';
           toast.success("Pembayaran dibatalkan", { duration: 3000, icon: '❌' });
-          setLoading(false);
+          // No need to setLoading(false) here because we did it above
         },
       });
     } catch (error) {
