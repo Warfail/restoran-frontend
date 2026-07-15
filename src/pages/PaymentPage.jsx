@@ -143,6 +143,7 @@ export default function PaymentPage() {
         customerName: customerName,
         customerEmail: "customer@example.com",
         items: items || [],
+        paymentMethod: selectedMethod,
       });
 
       console.log("Midtrans response:", response);
