@@ -269,6 +269,18 @@ export default function PaymentPage() {
 
       {/* Payment Methods */}
       <div className="p-4 space-y-3">
+        <div onClick={() => setSelectedMethod("qris")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "qris" ? "border-2 border-green-500" : "border border-gray-200"}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+              <QrCode className="w-5.5 h-5.5 text-white" />
+            </div>
+            <div>
+              <p className="text-gray-900 font-semibold text-sm">QRIS / E-Wallet</p>
+              <p className="text-gray-500 text-xs">GoPay, OVO, Dana, LinkAja</p>
+            </div>
+          </div>
+        </div>
+
         <div onClick={() => setSelectedMethod("transfer")} className={`bg-white rounded-xl p-4 transition-all cursor-pointer ${selectedMethod === "transfer" ? "border-2 border-green-500" : "border border-gray-200"}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
