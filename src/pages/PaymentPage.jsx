@@ -199,29 +199,13 @@ export default function PaymentPage() {
           setLoading(false);
         },
         onClose: function () {
-  console.log("🔴 User closed payment popup");
-  
-  // 1. Force close popup
-  forceCloseSnapPopup();
-  
-  // 2. Cleanup
-  document.querySelectorAll('iframe[src*="midtrans"]').forEach(el => el.remove());
-  document.body.style.overflow = '';
-  
-  // 3. UI feedback (PAKAI toast.success)
-  toast.success("Pembayaran dibatalkan", {
-    duration: 3000,
-    icon: '❌'
-  });
-  
-  setLoading(false);
-  
-  // 4. Redirect
-  setTimeout(() => {
-    console.log("🔄 Redirecting to cart...");
-    window.location.href = '/payment';
-  }, 500);
-},
+          console.log("🔴 User closed payment popup");
+          forceCloseSnapPopup();
+          document.querySelectorAll('iframe[src*="midtrans"]').forEach(el => el.remove());
+          document.body.style.overflow = '';
+          toast.success("Pembayaran dibatalkan", { duration: 3000, icon: '❌' });
+          setLoading(false);
+        },
       });
     } catch (error) {
       console.error("Payment failed:", error);
