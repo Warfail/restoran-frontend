@@ -156,7 +156,7 @@ export default function CashierDashboard() {
     ? orders.filter(o => !o.isPrinted)
     : orders.filter(o => o.isPrinted);
 
-  const filteredOrders = currentOrders.filter(order => {
+  const activeOrders = currentOrders.filter(order => {
     // 🔥 PENTING: Jangan tampilkan pesanan online yang belum dibayar di Kasir!
     // Kasir hanya melihat pesanan PENDING jika metode pembayarannya cash/debit.
     // Jika metode pembayarannya kosong atau QRIS/Transfer tapi masih PENDING, jangan munculkan!
@@ -166,7 +166,10 @@ export default function CashierDashboard() {
         return false; // Sembunyikan pesanan zombie / belum bayar online
       }
     }
+    return true;
+  });
 
+  const filteredOrders = activeOrders.filter(order => {
     const matchesSearch = order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.tableNumber?.toString().includes(searchTerm);
@@ -196,10 +199,10 @@ export default function CashierDashboard() {
   };
 
   const stats = {
-    total: currentOrders.length,
-    pending: currentOrders.filter(o => o.status === "pending").length,
-    confirmed: currentOrders.filter(o => o.status === "confirmed").length,
-    paid: currentOrders.filter(o => ["paid", "cooking", "completed", "done", "settlement"].includes(o.status)).length
+    total: activeOrders.length,
+    pending: activeOrders.filter(o => o.status === "pending").length,
+    confirmed: activeOrders.filter(o => o.status === "confirmed").length,
+    paid: activeOrders.filter(o => ["paid", "cooking", "completed", "done", "settlement"].includes(o.status)).length
   };
 
   return (
