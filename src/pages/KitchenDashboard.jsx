@@ -111,7 +111,20 @@ export default function KitchenDashboard() {
         if (order.status === "paid" || order.status === "pending") {
           newOrdersList.push(order);
         } else if (order.status === "cooking") {
-          const getCat = (item) => (dict[item.name] || item.category || "Makanan").toLowerCase();
+          const getCat = (item) => {
+            let cat = dict[item.name] || item.category;
+            if (cat) return cat.toLowerCase();
+            
+            // Fallback for old orders that didn't save category
+            const name = item.name?.toLowerCase() || "";
+            if (name.includes("es ") || name.includes("teh") || name.includes("kopi") || name.includes("wedang") || name.includes("jeruk") || name.includes("soda") || name.includes("air") || name.includes("matcha") || name.includes("lemon")) {
+              return "minuman";
+            }
+            if (name.includes("singkong") || name.includes("pisang") || name.includes("mendoan") || name.includes("gethuk") || name.includes("timus")) {
+              return "snack";
+            }
+            return "makanan";
+          };
 
           const hasMakanan = order.items?.some(item => getCat(item) === "makanan");
           const hasSnack = order.items?.some(item => getCat(item) === "snack");
