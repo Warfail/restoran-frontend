@@ -75,6 +75,23 @@ export default function MenuManagementPage() {
     }
   };
 
+  const toggleMenuAvailability = async (id, currentStatus) => {
+    const newStatus = !currentStatus;
+
+    // Optimistic Update
+    setMenus(prev => prev.map(m => (m._id === id || m.menuId === id) ? { ...m, isAvailable: newStatus } : m));
+
+    try {
+      await api.updateMenu(id, { isAvailable: newStatus });
+      toast.success(newStatus ? "Menu tersedia" : "Menu habis");
+    } catch (error) {
+      console.error("Failed to update menu:", error);
+      toast.error("Gagal update status menu");
+      // Revert if failed
+      setMenus(prev => prev.map(m => (m._id === id || m.menuId === id) ? { ...m, isAvailable: currentStatus } : m));
+    }
+  };
+
   const handleDeleteClick = (menu) => {
     setMenuToDelete(menu);
     setIsDeleteModalOpen(true);
@@ -235,6 +252,7 @@ export default function MenuManagementPage() {
                       <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Kategori</th>
                       <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Harga</th>
                       <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Stok</th>
+                      <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Status</th>
                       <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Aksi</th>
                     </tr>
                   </thead>
@@ -252,6 +270,19 @@ export default function MenuManagementPage() {
                           }`}>{menu.category}</span></td>
                         <td className="px-5 py-3 text-gray-700">Rp {menu.price?.toLocaleString()}</td>
                         <td className="px-5 py-3 text-gray-700">{menu.stock || 0}</td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => toggleMenuAvailability(menu._id || menu.menuId, menu.isAvailable !== false)} 
+                              className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-300 focus:outline-none ${menu.isAvailable !== false ? "bg-green-700" : "bg-gray-200"}`}
+                            >
+                              <span className={`inline-block w-4 h-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${menu.isAvailable !== false ? "translate-x-6" : "translate-x-1"}`} />
+                            </button>
+                            <span className={`text-sm font-medium ${menu.isAvailable !== false ? 'text-green-800' : 'text-red-600'}`}>
+                              {menu.isAvailable !== false ? "Tersedia" : "Habis"}
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-5 py-3">
                           <div className="flex gap-2">
                             <button onClick={() => openUpdateModal(menu)} className="p-2 border rounded-md hover:bg-gray-50">
