@@ -78,7 +78,11 @@ export default function CustomerMenuPage() {
               if (!validCategories.includes(category)) {
                 category = "Makanan";
               }
-              return { ...item, category };
+              
+              // 🔥 OPTIMIZATION: Use API endpoint for images
+              const imageUrl = `${API_URL}/menu/${item._id || item.menuId || item.id}/image`;
+              
+              return { ...item, category, image: imageUrl };
             });
 
             console.log("✅ After sanitize:", sanitizedMenus);

@@ -66,6 +66,12 @@ export const api = {
       menus = data;
     }
 
+    // 🔥 OPTIMIZATION: Use API endpoint for images instead of loading base64 directly
+    menus = menus.map(menu => ({
+      ...menu,
+      image: `${API_BASE}/menu/${menu._id || menu.menuId}/image`
+    }));
+
     menuCache = menus;
     menuCacheTime = Date.now();
 
