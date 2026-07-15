@@ -153,8 +153,8 @@ export default function CashierDashboard() {
   };
 
   const currentOrders = activeTab === "transaksi" 
-    ? orders.filter(o => !o.isPrinted)
-    : orders.filter(o => o.isPrinted);
+    ? orders.filter(o => !o.isPrinted && o.status !== "completed")
+    : orders.filter(o => o.isPrinted || o.status === "completed");
 
   const filteredOrders = currentOrders.filter(order => {
     // 🔥 PENTING: Jangan tampilkan pesanan online yang belum dibayar di Kasir!
