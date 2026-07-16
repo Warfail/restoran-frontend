@@ -175,11 +175,43 @@ export default function SalesReportPage() {
 
   const currentStats = useMemo(() => {
     const totalPendapatan = currentChartData.reduce((sum, d) => sum + d.pendapatan, 0);
+    
+    // Filter valid orders according to the active period
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const validOrders = ordersData.filter(o => 
       o.status === "completed" || 
       o.payment_status === "paid" || 
       o.status === "paid"
-    );
+    ).filter(o => {
+      let dateStr = o.createdAt || o.updatedAt;
+      if (!dateStr) return false;
+      const date = new Date(dateStr);
+      
+      if (activePeriod === "Tahunan") {
+        const year = parseInt(selectedYear) || today.getFullYear();
+        return date.getFullYear() === year;
+      } else if (activePeriod === "Bulanan") {
+        const [y, m] = selectedMonth.split('-');
+        return date.getFullYear() === parseInt(y) && date.getMonth() === (parseInt(m) - 1);
+      } else if (activePeriod === "Mingguan") {
+        const [yearStr, weekStr] = selectedWeek.split('-W');
+        const year = parseInt(yearStr);
+        const week = parseInt(weekStr);
+        const simpleDate = new Date(year, 0, 1 + (week - 1) * 7);
+        const dayOfWeek = simpleDate.getDay();
+        const start = new Date(simpleDate);
+        start.setDate(simpleDate.getDate() - dayOfWeek + 1);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        return date >= start && date <= end;
+      }
+      return true;
+    });
+
     const totalTransaksi = validOrders.length;
     // Asumsi 1 transaksi = 1 pelanggan baru (simplified) atau hitung unique customerName
     const uniqueCustomers = new Set(validOrders.map(o => o.customerName || "Guest")).size;

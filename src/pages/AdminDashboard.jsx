@@ -89,13 +89,20 @@ export default function AdminDashboard() {
         }
       }
 
+      // Filter valid orders (paid/completed)
+      const validOrdersArray = ordersArray.filter(o => 
+        o.status === "completed" || 
+        o.payment_status === "paid" || 
+        o.status === "paid"
+      );
+
       // Hitung total saat ini
-      const currentSales = ordersArray.reduce((sum, order) => {
+      const currentSales = validOrdersArray.reduce((sum, order) => {
         const amount = order?.totalAmount || order?.total || order?.grandTotal || 0;
         return sum + (typeof amount === 'number' ? amount : 0);
       }, 0);
 
-      const currentOrders = ordersArray.length;
+      const currentOrders = validOrdersArray.length;
       const currentMenus = menusArray.length;
       const currentUsers = usersArray.length;
 
@@ -105,7 +112,7 @@ export default function AdminDashboard() {
       const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-      const lastMonthOrdersList = ordersArray.filter(order => {
+      const lastMonthOrdersList = validOrdersArray.filter(order => {
         const orderDate = order?.createdAt ? new Date(order.createdAt) : null;
         return orderDate && orderDate >= firstDayLastMonth && orderDate <= lastDayLastMonth;
       });
